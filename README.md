@@ -7,7 +7,7 @@ Flight controller hardware and firmware used in the Amon Lander project. Two har
 - **Board v1 (STM32F405)** — the current, working design.
 - **Board v2 (STM32xxx (Zephyr) + Raspberry Pi CM4)** — the next-gen design with a new MCU running Zephyr RTOS and a companion **Raspberry Pi Compute Module 4 (CM4)**.
 
-> Flight controler in part of other projects:
+> Part of the Amon Lander project:
 >
 > - **Amon Lander** — overall vehicle, frame, test/control SW, and data  
 >   https://github.com/TilenTinta/Amon_Lander  
