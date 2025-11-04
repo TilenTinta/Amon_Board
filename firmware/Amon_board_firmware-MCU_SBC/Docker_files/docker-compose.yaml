@@ -1,0 +1,24 @@
+  
+version: "3.9"
+
+services:
+    zephyr_wsl:                                                     # Define a service named "zephyr" - your dev environment
+        build:
+            context: .                                              # Build the Docker image from the current directory
+            dockerfile: Dockerfile                                  # Use the Dockerfile in the current directory to build the image
+        image: ubuntu:24.04                                         # Image name
+        container_name: zephyr_dev_WSL                              # The container will be named "zephyr_dev_WSL"
+        environment:
+            - HOME=/workspace                                       # Home directory
+            - ZEPHYR_BASE=/workspace/zephyr                         # Environment variable (Zephyr base path)
+            - ZEPHYR_BOARD_DIR=/workspace/boards                    # Environment variable (add a custom boards)
+            - USER_ID=1000                                          # Environment variable (usually matches your user ID on the host)
+            - GROUP_ID=1000                                         # Environment variable (usually matches your group ID on the host)
+        working_dir: /workspace                                     # Sets the working directory inside the container
+        volumes:
+            - .:/workspace
+          #- type: bind
+          #  source: //wsl.localhost/Ubuntu/home/tinta/workspace
+          #  target: /workspace
+        command: bash -lc 'echo "mounted $(date -Is)" > /workspace/__MOUNT_OK.txt; sleep infinity' # Test - search for that file
+        tty: true                                                   # Allocates a terminal - for interactive shell

@@ -1,0 +1,103 @@
+/*########################################################################################
+*		
+* Author: Tilen Tinta
+* Date: 2025-10-04
+* Description: amon_board.dts - devicetree - complete pinout file for Amon Lander board
+* Zephyr version: 4.2.99
+*
+##########################################################################################
+*/
+
+/dts-v1/;
+#include <st/f4/stm32f405Xg.dtsi>
+//#include <st/f4/stm32f405rgtx-pinctrl.dtsi>
+//#include "amon_board_v2-pinctrl.dtsi"
+
+
+/ {
+	model = "Amon board v2";
+	compatible = "tintat,amon_board_v2", "st,stm32f405";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,ccm = &ccm0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		rgb0: led_red {
+			gpios = <&gpioa 2 GPIO_ACTIVE_HIGH>;
+			label = "RGB LED - red";
+		};
+
+		rgb1: led_green {
+			gpios = <&gpioa 10 GPIO_ACTIVE_HIGH>;
+			label = "RGB LED - green";
+		};
+
+		rgb2: led_blue {
+			gpios = <&gpioa 9 GPIO_ACTIVE_HIGH>;
+			label = "RGB LED - blue";
+		};
+	};
+
+	aliases {
+		rgb0-red = &rgb0;
+		rgb0-green = &rgb1;
+		rgb0-blue = &rgb2;
+	};
+};
+
+
+
+/* ##### Clocks ##### */
+&clk_lsi {
+	status = "okay";
+};
+
+&clk_hse {
+	clock-frequency = <DT_FREQ_M(25)>;
+	status = "okay";
+};
+
+&pll {
+	div-m = <15>;
+	mul-n = <144>;
+	div-p = <2>;
+	div-q = <5>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(168)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <4>;
+	apb2-prescaler = <2>;
+};
+
+&systick {
+	status = "okay";
+};
+
+
+/* ##### GPIOs ##### */
+&gpioa {
+	status = "okay";
+};
+
+&gpiob {
+	status = "okay";
+};
+
+&gpioc {
+	status = "okay";
+};
+
+&gpiod {
+	status = "okay";
+};
+

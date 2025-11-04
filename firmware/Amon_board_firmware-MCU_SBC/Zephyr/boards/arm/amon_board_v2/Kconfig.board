@@ -1,0 +1,25 @@
+########################################################################################
+#		
+# Author: Tilen Tinta
+# Date: 2025-10-04
+# Description: Kconfig.bord - board properties definition
+# Zephyr version: 4.2.99
+#
+##########################################################################################
+
+### Custom Kconfig configuration ###
+menu "RF Configuration"
+
+    # Select numer of radio used
+    choice RADIO_NUMBER
+        prompt "Select number of radions"
+        default RADIO_NO_2
+
+        config RADIO_NO_1
+            bool "No. radion: 1"
+        
+        config RADIO_NO_2
+            bool "wM-No. radion: 2"
+
+    endchoice
+endmenu

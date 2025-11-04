@@ -1,0 +1,69 @@
+/*########################################################################################
+*
+* Author: Tilen Tinta
+* Date: 2025-07-15
+* Description: amon_board-pinctrl.dtsi - base devicetree - pinout file for Amon Lander board
+* Zephyr version: 4.2.99
+*
+##########################################################################################
+*/
+
+#include <dt-bindings/pinctrl/stm32-pinctrl.h>
+
+// &pinctrl {
+
+//     /* I2C0 default pins: PA1 SDA, PA0 SCL */
+//     i2c0_default: i2c0-default {
+//         group0 {
+//             pins = <I2C0_SDA_PB0>, <I2C0_SCL_PB1>;
+//             drive-open-drain;
+//             bias-pull-up;
+//         };
+//     };
+
+//     /* USART1 default pins: PA5 TX, PA6 RX */
+//     usart1_default: usart1-default {
+//         group0 {
+//             pins = <USART1_TX_PA5>;
+//             drive-push-pull;
+//             output-high;
+//         };
+//         group1 {
+//             pins = <USART1_RX_PA6>;
+//             input-enable;
+//             silabs,input-filter;
+//         };
+//     };
+
+//     /* SPI via USART0 (common on BG22): PC0 MOSI/TX, PC1 MISO/RX, PC2 SCK/CLK */
+//     // Working configuration
+//     spi0_lora_default: spi0-lora-default {
+//         group0 {
+//             /* TX/MOSI + CLK are outputs */
+//             pins = <USART0_TX_PC0>, <USART0_CLK_PC2>;
+//             drive-push-pull;
+//             output-high;
+//         };
+//         group1 {
+//             /* RX/MISO is input */
+//             pins = <USART0_RX_PC1>;
+//             input-enable;
+//         };
+//     };
+
+//     // Sleep configuration
+//     spi0_lora_sleep: spi0-lora-sleep {
+//         /* SCK + MOSI as push-pull outputs driven low */
+//         group0 {
+//             pins = <USART0_CLK_PC2>, <USART0_TX_PC0>;
+//             drive-push-pull;
+//             output-low;
+//         };
+//         /* MISO input disabled to avoid leakage/floating */
+//         group1 {
+//             pins = <USART0_RX_PC1>;
+//             input-disable;
+//             /* or: bias-pull-down; */
+//         };
+//     };
+// };

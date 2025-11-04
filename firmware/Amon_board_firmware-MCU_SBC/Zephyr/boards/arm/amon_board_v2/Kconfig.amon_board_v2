@@ -1,0 +1,11 @@
+########################################################################################
+#		
+# Author: Tilen Tinta
+# Date: 2025-10-04
+# Description: Kconfig.amon_board_v2 - board mcu definition
+# Zephyr version: 4.2.99
+#
+##########################################################################################
+
+config BOARD_AMON_BOARD_V2
+	select SOC_STM32F405XX

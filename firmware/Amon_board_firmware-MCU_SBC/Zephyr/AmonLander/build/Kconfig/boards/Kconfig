@@ -1,0 +1,2 @@
+# Load Zephyr board Kconfig descriptions.
+osource "/workspace/AmonLander/boards/arm/amon_board_v2/Kconfig"

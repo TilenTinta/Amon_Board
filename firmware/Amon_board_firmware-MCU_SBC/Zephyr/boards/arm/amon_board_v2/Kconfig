@@ -1,0 +1,14 @@
+########################################################################################
+#		
+# Author: Tilen Tinta
+# Date: 2025-10-04
+# Description: Kconfig - main file to other Kconfig files
+# Zephyr version: 4.2.99
+#
+##########################################################################################
+
+# 1. Include the file that defines the core hardware
+source "/workspace/boards/arm/amon_board_v2/Kconfig.amon_board_v2"
+
+# 2. Include the file that defines custom user-configurable options
+source "/workspace/boards/arm/amon_board_v2/Kconfig.board"

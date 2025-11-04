@@ -1,0 +1,4 @@
+west:
+  command: /workspace/.venv/bin/west build -p always -b amon_board_v2 -- -DBOARD_ROOT=/workspace/AmonLander/..
+  topdir: /workspace
+  version: 1.4.0

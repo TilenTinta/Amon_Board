@@ -1,0 +1,17 @@
+### Windows ### 
+If you use Windows do not run Docker container with root folder in windows file system. Build times will 
+be very long (10-15min). Use WSL file system to decrease times to a few seconds.
+To solve that:
+	- enable WSL,
+	- Enable WSL paths in DockerDesktop,
+	- move to its directory (e.g. \\wsl.localhost\Ubuntu) in CMD/Powershell/GitBash...,
+	- run:
+		- docker-compose build
+		- docker-compose up -d
+	- interact: docker exec -it zephyr_dev_WSL bash
+	- Once in docker install Zephyr as described on their website:
+		- https://docs.zephyrproject.org/latest/develop/getting_started/index.html
+		- !!! everywhere where is mantioned something like ~/zephyrproject do not use it. For
+		  that commands run as is just without this folder in it (e.g. instead of: west init ~/zephyrproject, run: west init)
+	- stop: exit / docekr-compose down or press stop in DockerDesktop
+	

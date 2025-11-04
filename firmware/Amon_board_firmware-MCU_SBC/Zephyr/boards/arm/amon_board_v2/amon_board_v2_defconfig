@@ -1,0 +1,53 @@
+##########################################################################################
+#		
+# Author: Tilen Tinta
+# Date: 2025-10-04
+# Description: amon_board_defconfig -configuration of default software elements
+# Zephyr version: 4.2.99
+#
+##########################################################################################
+
+### Stack setup ###
+CONFIG_ARM_MPU=y
+CONFIG_MAIN_STACK_SIZE=2048
+CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE=2048
+CONFIG_CLOCK_CONTROL=y
+CONFIG_ISR_STACK_SIZE=1024
+CONFIG_MAIN_STACK_SIZE=1024
+CONFIG_HW_STACK_PROTECTION=y
+CONFIG_FPU=y
+
+
+### Debugging ###
+# CONFIG_THREAD_NAME=y
+# CONFIG_SCHED_CPU_MASK=y
+# CONFIG_THREAD_ANALYZER=y
+# CONFIG_SEGGER_SYSTEMVIEW=n
+# CONFIG_SIZE_OPTIMIZATIONS=y
+CONFIG_TRACING=n
+CONFIG_DEBUG=y
+CONFIG_DEBUG_OPTIMIZATIONS=y  
+
+CONFIG_CONSOLE=y
+CONFIG_USE_SEGGER_RTT=y
+CONFIG_RTT_CONSOLE=y
+
+### MCU Pinout Drivers ###
+CONFIG_PINCTRL=y
+CONFIG_GPIO=y
+# CONFIG_I2C=y
+# CONFIG_SPI=y
+
+
+CONFIG_SERIAL=y
+#CONFIG_CONSOLE=y
+#CONFIG_UART_CONSOLE=y
+
+
+### Connected devices ###
+
+
+
+### Log ###
+CONFIG_PRINTK=y
+CONFIG_LOG=y

@@ -1,0 +1,2 @@
+osource "/workspace/AmonLander/../boards/shields/*/Kconfig.defconfig"
+osource "/workspace/AmonLander/boards/shields/*/Kconfig.defconfig"

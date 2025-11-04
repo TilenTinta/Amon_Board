@@ -1,0 +1,15 @@
+/dts-v1/;
+
+/* node '/' defined in zephyr/dts/common/skeleton.dtsi:9 */
+/ {
+	#address-cells = < 0x1 >; /* in zephyr/dts/common/skeleton.dtsi:10 */
+	#size-cells = < 0x1 >;    /* in zephyr/dts/common/skeleton.dtsi:11 */
+
+	/* node '/chosen' defined in zephyr/dts/common/skeleton.dtsi:12 */
+	chosen {
+	};
+
+	/* node '/aliases' defined in zephyr/dts/common/skeleton.dtsi:13 */
+	aliases {
+	};
+};

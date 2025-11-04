@@ -1,0 +1,6 @@
+board:
+  name: amon_board_v2
+  full_name: Amon board v2 (mcu + RPi)
+  vendor: tintat
+  socs:
+    - name: stm32f405xx
