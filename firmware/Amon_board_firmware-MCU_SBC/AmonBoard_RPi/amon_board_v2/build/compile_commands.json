@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/amon/Desktop/amon_lander/amon_board_v2/build",
+  "command": "/usr/bin/aarch64-linux-gnu-gcc  -I/home/amon/Desktop/amon_lander/amon_board_v2/include -I/home/amon/Desktop/amon_lander/amon_board_v2/modules/gnss/include -g -std=gnu11 -o CMakeFiles/amon_lander.dir/src/main.c.o -c /home/amon/Desktop/amon_lander/amon_board_v2/src/main.c",
+  "file": "/home/amon/Desktop/amon_lander/amon_board_v2/src/main.c",
+  "output": "CMakeFiles/amon_lander.dir/src/main.c.o"
+},
+{
+  "directory": "/home/amon/Desktop/amon_lander/amon_board_v2/build/modules/gnss",
+  "command": "/usr/bin/aarch64-linux-gnu-gcc  -I/home/amon/Desktop/amon_lander/amon_board_v2/include -I/home/amon/Desktop/amon_lander/amon_board_v2/modules/gnss/include -g -std=gnu11 -o CMakeFiles/gnss_module.dir/src/gnss.c.o -c /home/amon/Desktop/amon_lander/amon_board_v2/modules/gnss/src/gnss.c",
+  "file": "/home/amon/Desktop/amon_lander/amon_board_v2/modules/gnss/src/gnss.c",
+  "output": "modules/gnss/CMakeFiles/gnss_module.dir/src/gnss.c.o"
+}
+]

@@ -1,0 +1,2 @@
+/usr/bin/aarch64-linux-gnu-ar qc libgnss_module.a CMakeFiles/gnss_module.dir/src/gnss.c.o
+/usr/bin/aarch64-linux-gnu-ranlib libgnss_module.a

@@ -1,0 +1,6 @@
+/home/amon/Desktop/amon_lander/amon_board_v2/build/CMakeFiles/amon_lander.dir
+/home/amon/Desktop/amon_lander/amon_board_v2/build/CMakeFiles/edit_cache.dir
+/home/amon/Desktop/amon_lander/amon_board_v2/build/CMakeFiles/rebuild_cache.dir
+/home/amon/Desktop/amon_lander/amon_board_v2/build/modules/gnss/CMakeFiles/gnss_module.dir
+/home/amon/Desktop/amon_lander/amon_board_v2/build/modules/gnss/CMakeFiles/edit_cache.dir
+/home/amon/Desktop/amon_lander/amon_board_v2/build/modules/gnss/CMakeFiles/rebuild_cache.dir

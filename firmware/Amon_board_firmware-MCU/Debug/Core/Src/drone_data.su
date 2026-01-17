@@ -1,0 +1,6 @@
+../Core/Src/drone_data.c:30:9:RF_packet_decode	16	static
+../Core/Src/drone_data.c:77:6:decode_opcode	16	static
+../Core/Src/drone_data.c:148:6:packet_create_pair_start	16	static
+../Core/Src/drone_data.c:171:6:packet_create_pair_status	16	static
+../Core/Src/drone_data.c:194:6:packet_create_ping_pong	16	static
+../Core/Src/drone_data.c:240:6:packet_create_telemetry	16	static

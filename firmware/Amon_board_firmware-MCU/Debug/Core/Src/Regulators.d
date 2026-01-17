@@ -1,2 +1,2 @@
-Core/Src/Regulators.o: ../Core/Src/Regulators.c ../Core/Inc/Regulators.h
-../Core/Inc/Regulators.h:
+Core/Src/regulators.o: ../Core/Src/regulators.c ../Core/Inc/regulators.h
+../Core/Inc/regulators.h:

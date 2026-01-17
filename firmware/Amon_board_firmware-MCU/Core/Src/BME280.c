@@ -1,33 +1,43 @@
-/*
- * BME280.c
- *
- *  Created on: Feb 23, 2023
- *      Author: Tinta T.
- */
+/*****************************************************************
+ * File Name          : BME280.c
+ * Author             : Tinta T.
+ * Version            : V1.0.0
+ * Date               : 2023/02/23
+ * Description        : Driver for Bosch BME280 sensor
+*****************************************************************/
 
 #ifndef BME280_C_
 #define BME280_C_
 
 #include "BME280.h"
 
-/*
- * Private functions
- */
 
-HAL_StatusTypeDef BME280_ReadRegister(BME280 *dev, uint8_t reg, uint8_t *data);						// Read one register from device
+/*###########################################################################################################################################################*/
+/* Private functions */
 
-HAL_StatusTypeDef BME280_ReadRegisters(BME280 *dev, uint8_t reg, uint8_t *data, uint8_t lenght);	// Read multiple registers from device
-
-HAL_StatusTypeDef BME280_WriteRegister(BME280 *dev, uint8_t reg, uint8_t data);						// Write register to device
-
-int32_t BME280_TemperatureCompesation(BME280 *dev, int32_t RawTemp);								// Compensate raw temperature value with compensation values from sensor
-
-uint32_t BME280_HumidityCompesation(BME280 *dev, int32_t RawHum);									// Compensate raw humidity value with compensation values from sensor
-
-uint32_t BME280_PressureCompesation(BME280 *dev, int32_t RawPress);									// Compensate raw pressure value with compensation values from sensor
+static HAL_StatusTypeDef BME280_ReadRegister(s_BME280 *dev, uint8_t reg, uint8_t *data);						// Read one register from device
+static HAL_StatusTypeDef BME280_ReadRegisters(s_BME280 *dev, uint8_t reg, uint8_t *data, uint8_t lenght);	// Read multiple registers from device
+static HAL_StatusTypeDef BME280_WriteRegister(s_BME280 *dev, uint8_t reg, uint8_t data);						// Write register to device
+static int32_t BME280_TemperatureCompesation(s_BME280 *dev, int32_t RawTemp);								// Compensate raw temperature value with compensation values from sensor
+static uint32_t BME280_HumidityCompesation(s_BME280 *dev, int32_t RawHum);									// Compensate raw humidity value with compensation values from sensor
+static uint32_t BME280_PressureCompesation(s_BME280 *dev, int32_t RawPress);									// Compensate raw pressure value with compensation values from sensor
 
 
-uint8_t BME280_ReadDeviceID(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+/*###########################################################################################################################################################*/
+/* Functions */
+
+
+/*********************************************************************
+* @fn     BME280_ReadDeviceID
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read device ID value
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_ReadDeviceID(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -41,18 +51,23 @@ uint8_t BME280_ReadDeviceID(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	}
 	else
 	{
-		if (reg_data == 0x76){
-			return 2; // NOK
-		}
-		else
-		{
-			return 0; // OK
-		}
+		return 0; // OK
 	}
 }
 
 
-uint8_t BME280_Reset(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_Reset
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Reset device and all its values
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_Reset(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status = 0;
@@ -97,7 +112,18 @@ uint8_t BME280_Reset(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t BME280_Init(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_Init
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Initialize device
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_Init(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -135,7 +161,18 @@ uint8_t BME280_Init(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t BME280_ReadCalibData(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_ReadCalibData
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read factory calibration
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_ReadCalibData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -181,7 +218,18 @@ uint8_t BME280_ReadCalibData(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t BME280_ReadTemperature(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_ReadTemperature
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read temperature
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_ReadTemperature(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -208,7 +256,18 @@ uint8_t BME280_ReadTemperature(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-int32_t BME280_TemperatureCompesation(BME280 *dev, int32_t RawTemp){
+
+/*********************************************************************
+* @fn     BME280_TemperatureCompesation
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Calculate temperature compensation
+*
+* @return  OK: 0, NOK: 1
+*/
+static int32_t BME280_TemperatureCompesation(s_BME280 *dev, int32_t RawTemp){
 
 	int32_t var1, var2, temperature;
 	var1 = ((((RawTemp >> 3) - ((int32_t)dev->dig_T1 << 1))) * ((int32_t)dev->dig_T2)) >> 11;
@@ -222,7 +281,18 @@ int32_t BME280_TemperatureCompesation(BME280 *dev, int32_t RawTemp){
 }
 
 
-uint8_t BME280_ReadPressure(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_ReadPressure
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read pressure value
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_ReadPressure(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -250,7 +320,18 @@ uint8_t BME280_ReadPressure(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint32_t BME280_PressureCompesation(BME280 *dev, int32_t RawPress){
+
+/*********************************************************************
+* @fn     BME280_PressureCompesation
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Calculate pressure compensation
+*
+* @return  OK: 0, NOK: 1
+*/
+static uint32_t BME280_PressureCompesation(s_BME280 *dev, int32_t RawPress){
 
 	int64_t var1, var2, pressure;
 	var1 = ((int64_t)dev->t_fine) - 128000;
@@ -274,7 +355,18 @@ uint32_t BME280_PressureCompesation(BME280 *dev, int32_t RawPress){
 }
 
 
-uint8_t BME280_ReadHumidity(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_ReadHumidity
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read humidity value
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_ReadHumidity(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status = 0;
@@ -301,7 +393,18 @@ uint8_t BME280_ReadHumidity(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint32_t BME280_HumidityCompesation(BME280 *dev, int32_t RawHumidity){
+
+/*********************************************************************
+* @fn     BME280_HumidityCompesation
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Calculate humidity compensation
+*
+* @return  OK: 0, NOK: 1
+*/
+static uint32_t BME280_HumidityCompesation(s_BME280 *dev, int32_t RawHumidity){
 
 	int32_t humidity;
 	humidity = ((dev->t_fine) - ((int32_t)76800));
@@ -313,7 +416,18 @@ uint32_t BME280_HumidityCompesation(BME280 *dev, int32_t RawHumidity){
 }
 
 
-uint8_t BME280_ReadAllData(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     BME280_ReadAllData
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read all data from sensor + compensation
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_ReadAllData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status = 0;
@@ -360,15 +474,15 @@ uint8_t BME280_ReadAllData(BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 
 
 /* LL Drivers */
-HAL_StatusTypeDef BME280_ReadRegister(BME280 *dev, uint8_t reg, uint8_t *data){
+static HAL_StatusTypeDef BME280_ReadRegister(s_BME280 *dev, uint8_t reg, uint8_t *data){
 	return HAL_I2C_Mem_Read (dev -> i2cHandle, BME280_ID, reg, I2C_MEMADD_SIZE_8BIT, data, 1, 100);
 }
 
-HAL_StatusTypeDef BME280_ReadRegisters(BME280 *dev, uint8_t reg, uint8_t *data, uint8_t lenght){
+static HAL_StatusTypeDef BME280_ReadRegisters(s_BME280 *dev, uint8_t reg, uint8_t *data, uint8_t lenght){
 	return HAL_I2C_Mem_Read (dev -> i2cHandle, BME280_ID, reg, I2C_MEMADD_SIZE_8BIT, data, lenght, 100);
 }
 
-HAL_StatusTypeDef BME280_WriteRegister(BME280 *dev, uint8_t reg, uint8_t data){
+static HAL_StatusTypeDef BME280_WriteRegister(s_BME280 *dev, uint8_t reg, uint8_t data){
 	return HAL_I2C_Mem_Write (dev -> i2cHandle, BME280_ID, reg, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
 }
 

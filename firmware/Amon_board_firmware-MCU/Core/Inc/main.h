@@ -34,8 +34,10 @@ extern "C" {
 #include "MPU6050.h"
 #include "BME280.h"
 #include "PWM.h"
-#include "GPS.h"
-#include "DroneData.h"
+#include <GNSS.h>
+#include "drone_data.h"
+#include "data_transcode.h"
+#include "NRF24L01.h"
 
 #include "VL53L1X_api.h"
 #include "VL53L1X_calibration.h"
@@ -104,6 +106,7 @@ void Error_Handler(void);
 #define UART4_RX_GPS_GPIO_Port GPIOC
 #define RF_IRQ2_Pin GPIO_PIN_2
 #define RF_IRQ2_GPIO_Port GPIOD
+#define RF_IRQ2_EXTI_IRQn EXTI2_IRQn
 #define CS_RF2_Pin GPIO_PIN_4
 #define CS_RF2_GPIO_Port GPIOB
 #define EN_RF2_Pin GPIO_PIN_5

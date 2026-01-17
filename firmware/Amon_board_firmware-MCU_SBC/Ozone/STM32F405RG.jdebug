@@ -4,8 +4,8 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : C:/DATA/Projects/Amon_Lander/Amon_board_firmware-MCU_SBC/Ozone/STM32F405RG.jdebug
-Created       : 30 Aug 2025 11:27
+File          : C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU_SBC/Ozone/STM32F405RG.jdebug
+Created       : 4 Oct 2025 19:51
 Ozone Version : V3.38f
 */
 
@@ -22,27 +22,27 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("C:/DATA/Projects/Amon_Lander/Amon_board_firmware-MCU_SBC/Ozone", "$(ProjectDir)");
-  Project.AddPathSubstitute ("c:/data/projects/amon_lander/amon_board_firmware-mcu_sbc/ozone", "$(ProjectDir)");
+  Project.AddPathSubstitute ("C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU_SBC/Ozone", "$(ProjectDir)");
+  Project.AddPathSubstitute ("c:/data/projects/amon_board/firmware/amon_board_firmware-mcu_sbc/ozone", "$(ProjectDir)");
   Project.SetDevice ("STM32F405RG");
   Project.SetHostIF ("USB", "");
-  Project.SetTargetIF ("JTAG");
+  Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
+  Project.SetOSPlugin("ZephyrPlugin");
   //
   // User settings
   //
-
+  //File.Open ("Y:/home/tinta/workspace/build/zephyr/zephyr.elf");
   
-  // Open the ELF from WSL (UNC path; note the escaped backslashes)
-  //File.Open("\\\\wsl.localhost\\Ubuntu\\home\\tinta\\workspace\\build\\zephyr\\zephyr.elf");
-  File.Open ("//wsl.localhost/Ubuntu/home/tinta/workspace/build/zephyr/zephyr.elf");
-
-  // Map BOTH possible prefixes used in your builds → the same UNC folder
+  // Open the ELF from WSL
+  File.Open ("Y:/home/tinta/workspace/build/zephyr/zephyr.elf");
+  
+  // Tell Ozone how to map Linux debug paths - Windows/UNC
   Project.AddPathSubstitute("/workspace/",                 "\\\\wsl.localhost\\Ubuntu\\home\\tinta\\workspace\\");
   Project.AddPathSubstitute("/home/tinta/workspace/",     "\\\\wsl.localhost\\Ubuntu\\home\\tinta\\workspace\\");
 
-  // Nice-to-have: let Ozone search here when paths are relative
+  // (Optional) also add a search path for headers/sources
   Project.AddSearchPath("\\\\wsl.localhost\\Ubuntu\\home\\tinta\\workspace");
 }
 

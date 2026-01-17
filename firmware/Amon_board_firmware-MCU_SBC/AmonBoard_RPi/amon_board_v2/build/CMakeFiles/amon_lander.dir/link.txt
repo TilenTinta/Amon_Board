@@ -1,0 +1,1 @@
+/usr/bin/aarch64-linux-gnu-gcc -g -Wl,--dependency-file=CMakeFiles/amon_lander.dir/link.d CMakeFiles/amon_lander.dir/src/main.c.o -o amon_lander  modules/gnss/libgnss_module.a

@@ -1,24 +1,38 @@
-/*
- * MPU6050.c
- *
- *  Created on: Apr 8, 2023
- *      Author: Tinta T.
- */
+/*****************************************************************
+ * File Name          : MPU6050.c
+ * Author             : Tinta T.
+ * Version            : V1.0.0
+ * Date               : 2023/04/08
+ * Description        : Driver for MPU6050 gyro
+*****************************************************************/
+
+
 #include "MPU6050.h"
 
-/*
- * Private functions
- */
-HAL_StatusTypeDef MPU6050_ReadRegister(MPU6050 *dev, uint8_t reg, uint8_t *data);						// Read one register from device
+/*###########################################################################################################################################################*/
+/* Private functions */
 
-HAL_StatusTypeDef MPU6050_ReadRegisters(MPU6050 *dev, uint8_t reg, uint8_t *data, uint16_t lenght);		// Read multiple registers from device
-
-HAL_StatusTypeDef MPU6050_WriteRegister(MPU6050 *dev, uint8_t reg, uint8_t data);						// Write register to device
-
-uint16_t MPU6050_ReadBytesInFIFO(MPU6050 *dev);															// Read number of bytes available to read in FIFO register
+HAL_StatusTypeDef MPU6050_ReadRegister(s_MPU6050 *dev, uint8_t reg, uint8_t *data);						// Read one register from device
+HAL_StatusTypeDef MPU6050_ReadRegisters(s_MPU6050 *dev, uint8_t reg, uint8_t *data, uint16_t lenght);		// Read multiple registers from device
+HAL_StatusTypeDef MPU6050_WriteRegister(s_MPU6050 *dev, uint8_t reg, uint8_t data);						// Write register to device
+uint16_t MPU6050_ReadBytesInFIFO(s_MPU6050 *dev);															// Read number of bytes available to read in FIFO register
 
 
-uint8_t MPU6050_ReadDeviceID(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+/*###########################################################################################################################################################*/
+/* Functions */
+
+
+/*********************************************************************
+* @fn     MPU6050_ReadDeviceID
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read device ID to identify it
+*
+* @return  OK: 0, NOK: 1, Wrong device: 2
+*/
+uint8_t MPU6050_ReadDeviceID(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -43,7 +57,18 @@ uint8_t MPU6050_ReadDeviceID(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_Reset(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_Reset
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Reset device and its data
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_Reset(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -82,7 +107,18 @@ uint8_t MPU6050_Reset(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_Init(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_Init
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Initialize device with all configurations
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_Init(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -131,7 +167,18 @@ uint8_t MPU6050_Init(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadFactoryTrim(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadFactoryTrim
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read factory calibration values that are used in data calculatons
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadFactoryTrim(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -219,7 +266,18 @@ uint8_t MPU6050_ReadFactoryTrim(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-void MPU6050_RawToDeg(MPU6050 *dev, AMON_Drone *drone){
+
+/*********************************************************************
+* @fn     MPU6050_RawToDeg
+*
+* @param *dev: struct to device data
+* @param *drone: drone data struct
+*
+* @brief   Filter raw data from sensor with complementary filter
+*
+* @return  None
+*/
+void MPU6050_RawToDeg(s_MPU6050 *dev, s_drone_data *drone){
 
 	/* Axis orientation on drone are: X+ points down, Z+ points out of sensor and Y+ points right if you watch drone from the board side */
 	float pitch = 0;
@@ -232,15 +290,26 @@ void MPU6050_RawToDeg(MPU6050 *dev, AMON_Drone *drone){
 	roll = atan(-dev->ACCEL_Y / sqrtf(pow(dev->ACCEL_Z,2) + pow(-dev->ACCEL_X,2))) * (float)(1.0f / (3.14f / 180.0f));
 
 	/* Complementary Filter */
-	drone->Pitch = ALPHA * (drone->PitchOld + dev->ACCEL_Y * 0.005) + (1 - ALPHA) * pitch;
-	drone->PitchOld = drone->Pitch;
+	drone->position.Pitch = ALPHA * (drone->position.PitchOld + dev->ACCEL_Y * 0.005) + (1 - ALPHA) * pitch;
+	drone->position.PitchOld = drone->position.Pitch;
 
-	drone->Roll = ALPHA * (drone->RollOld + dev->ACCEL_Z * 0.005) + (1 - ALPHA) * roll;
-	drone->RollOld = drone->Roll;
+	drone->position.Roll = ALPHA * (drone->position.RollOld + dev->ACCEL_Z * 0.005) + (1 - ALPHA) * roll;
+	drone->position.RollOld = drone->position.Roll;
 }
 
 
-uint8_t MPU6050_SelfTest(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_SelfTest
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Run defined self test - device check
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_SelfTest(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 	HAL_StatusTypeDef status;
 
@@ -378,7 +447,18 @@ uint8_t MPU6050_SelfTest(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadAllDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadAllDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read all data from sensor
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadAllDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -448,7 +528,18 @@ uint8_t MPU6050_ReadAllDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadTemperatureDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadTemperatureDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read temperature value from sensor
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadTemperatureDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -473,7 +564,18 @@ uint8_t MPU6050_ReadTemperatureDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle
 }
 
 
-uint8_t MPU6050_ReadGyroXDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadGyroXDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read gyroscope value - x
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadGyroXDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -498,7 +600,18 @@ uint8_t MPU6050_ReadGyroXDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadGyroYDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadGyroYDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read gyroscope value - y
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadGyroYDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -523,7 +636,18 @@ uint8_t MPU6050_ReadGyroYDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadGyroZDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadGyroZDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read gyroscope value - z
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadGyroZDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -548,7 +672,18 @@ uint8_t MPU6050_ReadGyroZDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadAccelXDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadAccelXDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read acceleration value - x
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadAccelXDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -573,7 +708,18 @@ uint8_t MPU6050_ReadAccelXDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadAccelYDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadAccelYDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read acceleration value - y
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadAccelYDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -598,7 +744,18 @@ uint8_t MPU6050_ReadAccelYDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadAccelZDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
+
+/*********************************************************************
+* @fn     MPU6050_ReadAccelZDirect
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read acceleration value - y
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadAccelZDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
@@ -623,7 +780,18 @@ uint8_t MPU6050_ReadAccelZDirect(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 }
 
 
-uint8_t MPU6050_ReadFIFO(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){ // NOT WORKING YET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+/*********************************************************************
+* @fn     MPU6050_ReadFIFO
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read all data from FIFO register - Not finished!!!!!
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t MPU6050_ReadFIFO(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status = 0;
@@ -680,7 +848,18 @@ uint8_t MPU6050_ReadFIFO(MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){ // NOT WOR
 }
 
 
-uint16_t MPU6050_ReadBytesInFIFO(MPU6050 *dev){
+
+/*********************************************************************
+* @fn     MPU6050_ReadBytesInFIFO
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Read two bytes from FIFO
+*
+* @return  OK: 0, NOK: 1
+*/
+uint16_t MPU6050_ReadBytesInFIFO(s_MPU6050 *dev){
 
 	HAL_StatusTypeDef status;
 	uint8_t Data[2] = {0};
@@ -704,14 +883,14 @@ uint16_t MPU6050_ReadBytesInFIFO(MPU6050 *dev){
 
 
 //* LL functions *//
-HAL_StatusTypeDef MPU6050_ReadRegister(MPU6050 *dev, uint8_t reg, uint8_t *data){
+HAL_StatusTypeDef MPU6050_ReadRegister(s_MPU6050 *dev, uint8_t reg, uint8_t *data){
 	return HAL_I2C_Mem_Read (dev -> i2cHandle, MPU6050_ID, reg, I2C_MEMADD_SIZE_8BIT, data, 1, 100);
 };
 
-HAL_StatusTypeDef MPU6050_ReadRegisters(MPU6050 *dev, uint8_t reg, uint8_t *data, uint16_t lenght){
+HAL_StatusTypeDef MPU6050_ReadRegisters(s_MPU6050 *dev, uint8_t reg, uint8_t *data, uint16_t lenght){
 	return HAL_I2C_Mem_Read (dev -> i2cHandle, MPU6050_ID, reg, I2C_MEMADD_SIZE_8BIT, data, lenght, 100);
 };
 
-HAL_StatusTypeDef MPU6050_WriteRegister(MPU6050 *dev, uint8_t reg, uint8_t data){
+HAL_StatusTypeDef MPU6050_WriteRegister(s_MPU6050 *dev, uint8_t reg, uint8_t data){
 	return HAL_I2C_Mem_Write (dev -> i2cHandle, MPU6050_ID, reg, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
 };

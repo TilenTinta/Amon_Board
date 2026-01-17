@@ -1,0 +1,8 @@
+../Core/Src/data_transcode.c:30:6:packetDataReset	16	static
+../Core/Src/data_transcode.c:80:6:UART_packet_parse	32	static
+../Core/Src/data_transcode.c:147:6:RF_packet_parse	24	static
+../Core/Src/data_transcode.c:178:9:UART_decode	32	static
+../Core/Src/data_transcode.c:266:9:RF_decode	24	static
+../Core/Src/data_transcode.c:323:6:UART_encode	24	static
+../Core/Src/data_transcode.c:362:6:RF_encode	32	static
+../Core/Src/data_transcode.c:396:10:crc16_cal	24	static

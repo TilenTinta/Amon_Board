@@ -41,8 +41,9 @@ Middlewares/Third_Party/FatFs/src/ff_gen_drv.o: \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
- ../Core/Inc/MPU6050.h ../Core/Inc/DroneData.h ../Core/Inc/BME280.h \
- ../Core/Inc/PWM.h ../Core/Inc/GPS.h \
+ ../Core/Inc/MPU6050.h ../Core/Inc/drone_data.h \
+ ../Core/Inc/data_transcode.h ../Core/Inc/BME280.h ../Core/Inc/PWM.h \
+ ../Core/Inc/GNSS.h ../Core/Inc/drone_data.h ../Core/Inc/NRF24L01.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h \
@@ -91,10 +92,13 @@ Middlewares/Third_Party/FatFs/src/ff_gen_drv.o: \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
 ../Core/Inc/MPU6050.h:
-../Core/Inc/DroneData.h:
+../Core/Inc/drone_data.h:
+../Core/Inc/data_transcode.h:
 ../Core/Inc/BME280.h:
 ../Core/Inc/PWM.h:
-../Core/Inc/GPS.h:
+../Core/Inc/GNSS.h:
+../Core/Inc/drone_data.h:
+../Core/Inc/NRF24L01.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h:
