@@ -14,7 +14,7 @@ Flight controller hardware and firmware used in the Amon Lander project. Two har
 > - **Amon Link** — PC - drone communications (PCB + firmware)  
 >   https://github.com/TilenTinta/Amon_Link  
 > - **Amon Ground Control** — desktop GCS for telemetry & control  
->   https://github.com/TilenTinta/Amon_Ground_Control
+>   https://github.com/TilenTinta/Amon_GroundControl_Software
 
 ---
 
@@ -104,7 +104,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
     - Config storage (NVS) and firmware update hooks
 
 - **Companion Computer — Raspberry Pi CM4**  
-  - Runs userland services for:
+  - Runs services for:
     - Ground link, mission control, high-rate logging
     - Navigation stack expansion (mapping, state estimation helpers)
     - Future CV/ML applications (optional)
@@ -112,8 +112,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
   - **Services:** Telemetry bridge (to Amon Link), data recorder, configuration UI server
   - **OS:** Raspberry Pi OS Lite (or other lightweight Linux)
 
-**Electrical (high-level goals)**
-
+**Electrical**
 - Robust power tree with multiple separated rails for servos/EDF vs logic
 - MCU - CM4 isolation where needed (level shifting/ESD)
 - On-board mass storage for logs (eMMC on CM4 + SD/QSPI on MCU)
@@ -153,11 +152,11 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 1. **Clone**
    ```bash
    git clone https://github.com/<your-org-or-user>/Amon_Board.git
-   cd Amon_Board/firmware/v1-baremetal
+   cd Amon_Board/firmware/Amon_board_firmware-MCU
    ```
 2. **Toolchain**
    - Install `arm-none-eabi-gcc` and your preferred STM32 flashing tool.
-3. **Configure**
+3. **Configure - can be automatic**
    - Target: **STM32F405RG**; enable FPU; set clock tree; verify linker script.
 4. **Build**
    ```bash

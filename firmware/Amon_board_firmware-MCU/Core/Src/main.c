@@ -207,7 +207,7 @@ int main(void)
 
   // Radio 1 configurations (application specific)
   static const s_nrf_config radio_tx_cfg = {
-      .channel = 42,
+      .channel = 100,	//42
       .addr_width = AW_5BYTE,
       .auto_ack = 1,
       .dynamic_payload = 1,
@@ -218,7 +218,7 @@ int main(void)
   };
 
   static const s_pipe_addr radio_tx_addr = {
-      .tx_addr = { 0xE7, 0xE7, 0xE7, 0xE7, 0xE7 }
+      .tx_addr = { 0xE7, 0xE7, 0xE7, 0xE7, 0xE8 } //E8
   };
 
   // Radio 1 configurations (application specific)
@@ -346,13 +346,13 @@ int main(void)
 		  if (Reg50HzLoopEN == 1)
 		  {
 			  uint8_t dataRdy = 0;
-			  while(dataRdy == 0)
-			  {
-				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
-			  }
-			  dataRdy = 0;
-			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.Height);
-			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
+//			  while(dataRdy == 0)
+//			  {
+//				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
+//			  }
+//			  dataRdy = 0;
+//			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.Height);
+//			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
 			  // Read other sensors...
 			  Reg50HzLoopEN = 0;
 		  }
@@ -372,13 +372,40 @@ int main(void)
 
 		  /*##### GNSS/GPS - New packet available #####*/
 #ifdef USE_GPS
+
 		  if (NewGPSData == 1)
 		  {
+
+
 #ifdef USE_GPS_GGA
 			  GPS_Decode_GGA(USART4_GPSRX, &gps, &AmonDrone);
-#elif USE_GPS_GLL
+#endif
+
+
+#ifdef USE_GPS_GLL
 			  GPS_Decode_GLL(USART4_GPSRX, &gps, &AmonDrone);
 #endif
+
+
+#ifdef USE_GPS_GSA
+			  GPS_Decode_GSA(USART4_GPSRX, &gps, &AmonDrone);
+#endif
+
+
+#ifdef USE_GPS_GSV
+			  GPS_Decode_GSV(USART4_GPSRX, &gps, &AmonDrone);
+#endif
+
+
+#ifdef USE_GPS_RMC
+			  GPS_Decode_RMC(USART4_GPSRX, &gps, &AmonDrone);
+#endif
+
+
+#ifdef USE_GPS_VTG
+			  GPS_Decode_VTG(USART4_GPSRX, &gps, &AmonDrone);
+#endif
+
 			  NewGPSData = 0;
 		  }
 #endif
@@ -390,6 +417,7 @@ int main(void)
 
 	  	  // STATE: Drone is NOT connected with ground station
 		  case CONN_STATUS_DISCONNECTED:
+
 			  if (AmonDrone.DroneStatus != STATUS_STARTUP || AmonDrone.DroneStatus != STATUS_ERROR)
 			  {
 				  // RX packets
@@ -401,6 +429,8 @@ int main(void)
 					  {
 						  RF_packet_decode(&data_packets, &AmonDrone);
 					  }
+
+					  AmonDrone.radio_data.flag_new_rf_rx_data = 0;
 				  }
 
 				  // TX packets
@@ -417,6 +447,8 @@ int main(void)
 						  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
 						  NRF24_Send(&radio1);
 					  }
+
+					  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
 				  }
 
 			  }
@@ -503,7 +535,7 @@ int main(void)
 		AmonDrone.battery_edf_voltage = ADC_Read_EDF_Battery();
 		ADC_DMA_DataRdy = 0;
 
-		if (AmonDrone.battery_main_voltage < 1000) status++; // check board battery voltage (more than XV)
+		//if (AmonDrone.battery_main_voltage < 1000) status++; // check board battery voltage (more than XV)
 		//if (AmonDrone.battery_edf_voltage < 2000) status++; // check board battery voltage (more than XV)
 
 		HAL_Delay(500);
@@ -527,11 +559,12 @@ int main(void)
 		status += MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
 		status += MPU6050_SelfTest(&mpu6050, &hi2c3);
 
+		// TODO - debugging
 		/* vl53l1x */
 		uint8_t bootOK = 0;
-		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c3);
-
-		// TODO - debugging
+//		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c3);
+//
+//
 //		while (bootOK == 0)
 //		{
 //			status += VL53L1X_BootState(&vl53l1Dev, &hi2c3, &bootOK);
@@ -550,8 +583,14 @@ int main(void)
 		radio2.irq_on_pipe = 0xFF;
 
 		// Radios initialization and setup
-		NRF24_pin_config(&radio1, &hspi1, CS_RF1_GPIO_Port, CS_RF1_Pin, RF_IRQ1_GPIO_Port, RF_IRQ1_EN);        // Map pins for radio 1
-		NRF24_pin_config(&radio2, &hspi1, CS_RF2_GPIO_Port, CS_RF2_Pin, RF_IRQ2_GPIO_Port, RF_IRQ2_EN);        // Map pins for radio 2
+		NRF24_pin_config(&radio1, &hspi1, CS_RF1_GPIO_Port, CS_RF1_Pin, EN_RF1_GPIO_Port, EN_RF1_Pin);        // Map pins for radio 1
+		NRF24_pin_config(&radio2, &hspi1, CS_RF2_GPIO_Port, CS_RF2_Pin, EN_RF2_GPIO_Port, EN_RF2_Pin);        // Map pins for radio 2
+
+		HAL_Delay(10);
+		// Read status before even test device - strange SPI behaver
+		NRF24_ReadStatus(&radio1, NULL);
+		NRF24_ReadStatus(&radio2, NULL);
+
 
 		uint8_t stat = 0;
 		if (NRF24_ReadStatus(&radio1, &stat) == 0)
@@ -559,6 +598,7 @@ int main(void)
 			if (stat != 0x0E)
 			{
 				radio1.radioErr = NRF_ERR_BOOT;
+				AmonDrone.error_code.err_radio1 = 1;
 			}
 			else
 			{
@@ -571,7 +611,9 @@ int main(void)
 		{
 			if (stat != 0x0E)
 			{
+
 				radio2.radioErr = NRF_ERR_BOOT;
+				AmonDrone.error_code.err_radio2 = 1;
 			}
 			else
 			{
@@ -596,6 +638,18 @@ int main(void)
 		radio2.id       = NRF_ID_2;
 		NRF24_init(&radio2);
 		NRF24_SetRXAddress(&radio2, 0, radio2.address->pipe0_rx_addr);
+
+
+		//TEST
+		radio1.buffers.TX_FIFO[0]    = 1;
+		radio1.buffers.TX_FIFO[1]    = 5;
+		radio1.buffers.TX_FIFO[2]    = 5;
+		radio1.buffers.TX_FIFO[3]    = 1;
+		radio1.buffers.TX_FIFO[4]    = 2;
+		radio1.buffers.TX_FIFO[5]    = 0;
+		RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
+		NRF24_Send(&radio1);
+
 
 		/* Timers */
 		HAL_TIM_Base_Start_IT(&htim4); // TVC LOOP, leg leds (50Hz)
@@ -940,7 +994,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -1403,21 +1457,21 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : RF_IRQ2_Pin */
   GPIO_InitStruct.Pin = RF_IRQ2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF_IRQ2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RF_IRQ1_Pin */
   GPIO_InitStruct.Pin = RF_IRQ1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF_IRQ1_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 4, 0);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -1438,12 +1492,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 // GPIO interrupt
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if(GPIO_Pin == RF_IRQ2_Pin)
+    if(GPIO_Pin == RF_IRQ1_Pin)
     {
     	radio1.irq_flag = 1;
     }
 
-    if(GPIO_Pin == RF_IRQ1_Pin)
+    if(GPIO_Pin == RF_IRQ2_Pin)
 	{
     	radio2.irq_flag = 1;
 	}

@@ -15,6 +15,6 @@
 ../Core/Src/NRF24L01.c:458:9:NRF24_Send	24	static
 ../Core/Src/NRF24L01.c:517:9:NRF24_ReadRXPayload	32	static
 ../Core/Src/NRF24L01.c:585:9:NRF24_SetTXAddress	24	static
-../Core/Src/NRF24L01.c:631:10:NRF24_SetRXAddress	32	static
-../Core/Src/NRF24L01.c:679:9:NRF24_GetLinkQuality	24	static
-../Core/Src/NRF24L01.c:688:9:NRF24_GetRxPipe	24	static
+../Core/Src/NRF24L01.c:654:10:NRF24_SetRXAddress	32	static
+../Core/Src/NRF24L01.c:702:9:NRF24_GetLinkQuality	24	static
+../Core/Src/NRF24L01.c:711:9:NRF24_GetRxPipe	24	static

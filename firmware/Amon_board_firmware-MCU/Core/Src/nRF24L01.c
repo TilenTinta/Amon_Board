@@ -33,7 +33,7 @@ static inline void nrf_cs_high(s_nRF24L01 *dev)
 // Reset CE pin
 static inline void nrf_ce_low(s_nRF24L01 *dev)      
 { 
-    HAL_GPIO_WritePin(dev->CS_Port, dev->CS_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(dev->CE_Port, dev->CE_Pin, GPIO_PIN_RESET);
 }   
 
 
@@ -41,7 +41,7 @@ static inline void nrf_ce_low(s_nRF24L01 *dev)
 // Set CE pin
 static inline void nrf_ce_high(s_nRF24L01 *dev)      
 { 
-	HAL_GPIO_WritePin(dev->CS_Port, dev->CS_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(dev->CE_Port, dev->CE_Pin, GPIO_PIN_SET);
 }   
 
 
@@ -237,7 +237,7 @@ uint8_t NRF24_SPI_Transceive(s_nRF24L01 *dev, const uint8_t *tx, uint8_t *rx, ui
  * @param   *dev: device struct
  * @param   *status_out: pointer to variable to save returned device status
  *
- * @brief   Quick alive test (NOP) �� returns RF_STATUS
+ * @brief   Quick alive test (NOP) - returns RF_STATUS
  *
  * @return  0 OK, 1 NOK
  */
@@ -496,7 +496,7 @@ uint8_t NRF24_Send(s_nRF24L01 *dev)
 
     // Start transmition
     nrf_ce_high(dev);
-    HAL_Delay(1);                 // >10?s required
+    HAL_Delay(1);                 // >10us required
     nrf_ce_low(dev);
 
     return 0;
@@ -561,7 +561,7 @@ uint8_t NRF24_ReadRXPayload(s_nRF24L01 *dev)
     nrf_cs_high(dev);
 
     // Clear IRQ
-    // NRF24_WriteRegister(dev, RF_STATUS, RX_DR, NULL);
+    //NRF24_WriteRegister(dev, RF_STATUS, RX_DR, NULL);
 
     dev->buffers.flag_new_rx = 0;   // Data received no new data
     dev->buffers.rx_lenght = payload_len;   // save lenght
@@ -584,31 +584,54 @@ uint8_t NRF24_ReadRXPayload(s_nRF24L01 *dev)
  */
 uint8_t NRF24_SetTXAddress(s_nRF24L01 *dev, const uint8_t *addr)
 {
-    uint8_t addr_len = dev->config->addr_width + 2; // AW encoding: 3�C5 bytes (register value + 2)
+//    uint8_t addr_len = dev->config->addr_width + 2; // AW encoding: 3�C5 bytes (register value + 2)
+//
+//    // TX address
+//    nrf_cs_low(dev);
+//
+//    nrf_spi_txrx(dev, W_REGISTER | TX_ADDR);
+//
+//    for (uint8_t i = 0; i < addr_len; i++)
+//    {
+//        nrf_spi_txrx(dev, addr[i]);
+//    }
+//
+//    nrf_cs_high(dev);
+//
+//    // RX_ADDR_P0 must match TX_ADDR for auto-ack
+//    nrf_cs_low(dev);
+//
+//    nrf_spi_txrx(dev, W_REGISTER | RX_ADDR_P0);
+//
+//    for (uint8_t i = 0; i < addr_len; i++)
+//    {
+//        nrf_spi_txrx(dev, addr[i]);
+//    }
+//
+//    nrf_cs_high(dev);
+//
+//    return 0;
 
-    // TX address
+
+    uint8_t addr_len = dev->config->addr_width + 2;
+
+    // Set TX address only
     nrf_cs_low(dev);
-
     nrf_spi_txrx(dev, W_REGISTER | TX_ADDR);
-
-    for (uint8_t i = 0; i < addr_len; i++) 
-    {
+    for (uint8_t i = 0; i < addr_len; i++) {
         nrf_spi_txrx(dev, addr[i]);
     }
-
     nrf_cs_high(dev);
 
-    // RX_ADDR_P0 must match TX_ADDR for auto-ack
-    nrf_cs_low(dev);
-
-    nrf_spi_txrx(dev, W_REGISTER | RX_ADDR_P0);
-
-    for (uint8_t i = 0; i < addr_len; i++) 
-    {
-        nrf_spi_txrx(dev, addr[i]);
+    // ONLY mirror RX_ADDR_P0 if this device expects ACKs
+    if (dev->config->auto_ack) {
+        nrf_cs_low(dev);
+        nrf_spi_txrx(dev, W_REGISTER | RX_ADDR_P0);
+        for (uint8_t i = 0; i < addr_len; i++) {
+            nrf_spi_txrx(dev, addr[i]);
+        }
+        nrf_cs_high(dev);
     }
-
-    nrf_cs_high(dev);
 
     return 0;
 }
