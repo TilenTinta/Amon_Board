@@ -93,10 +93,17 @@ void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 
 		case OPT_PAIR_STATUS:
 			packet_create_pair_status(packets, drone_data);
+			if (drone_data->radio_data.flag_connection_begin == 2)
+			{
+				drone_data->radio_data.flag_connection_begin = 1;
+				drone_data->radio_data.flag_connection_lost = 0;
+			}
+
 			break;
 
 		case OPT_PAIR_START:
 			packet_create_pair_start(packets);
+			drone_data->radio_data.flag_connection_begin = 2;
 			break;
 
 		case OPT_LINK_GET_PARAMS:
@@ -185,13 +192,34 @@ void packet_create_pair_status(s_packets *packets, s_drone_data *drone_data)
  * @fcn    	packet_create_ping_pong
  *
  * @param 	*packets: pointer to all data packets
+ *
+ * @brief   Assemble packet ping-pong test
+ *
+ * @return  none
+ */
+void packet_create_ping_pong(s_packets *packets)
+{
+	packets->rf_packet_drone.version = PROTOCOL_VER;
+	packets->rf_packet_drone.flags = FLAG_ACK;
+	packets->rf_packet_drone.src_id = ID_DRONE;
+	packets->rf_packet_drone.dest_id = ID_PC;
+	packets->rf_packet_drone.opcode = OPT_PING;
+	packets->rf_packet_drone.plen = 0;
+}
+
+
+
+/*********************************************************************
+ * @fcn    	packet_create_telemetry
+ *
+ * @param 	*packets: pointer to all data packets
  * @param 	*drone_data: pointer to all drone data
  *
  * @brief   Assemble packet for telemetry sending
  *
  * @return  none
  */
-void packet_create_ping_pong(s_packets *packets)
+void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 {
 	static uint8_t packet_num = 0;	// Counter of packets (each packet different data)
 
@@ -215,6 +243,9 @@ void packet_create_ping_pong(s_packets *packets)
 
 		case 100:
 			// Last packet
+
+
+
 			packet_num = 0;
 			break;
 
@@ -228,24 +259,6 @@ void packet_create_ping_pong(s_packets *packets)
 
 
 
-/*********************************************************************
- * @fcn    	packet_create_telemetry
- *
- * @param 	*packets: pointer to all data packets
- *
- * @brief   Assemble packet for ping-pong
- *
- * @return  none
- */
-void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
-{
-	packets->rf_packet_drone.version = PROTOCOL_VER;
-	packets->rf_packet_drone.flags = FLAG_ACK;
-	packets->rf_packet_drone.src_id = ID_DRONE;
-	packets->rf_packet_drone.dest_id = ID_PC;
-	packets->rf_packet_drone.opcode = OPT_PING;
-	packets->rf_packet_drone.plen = 0;
-	//packets->rf_packet_drone.payload = NULL;
-}
+
 
 

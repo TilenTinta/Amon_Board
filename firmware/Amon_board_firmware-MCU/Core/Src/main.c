@@ -206,24 +206,36 @@ int main(void)
 
 
   // Radio 1 configurations (application specific)
-  static const s_nrf_config radio_tx_cfg = {
+  static const s_nrf_config radio_tx_normal_cfg = {
       .channel = 100,	//42
       .addr_width = AW_5BYTE,
       .auto_ack = 1,
       .dynamic_payload = 1,
-      .retries = 3,
-      .retry_delay = ARD_500us,
+      .retries = 15,
+      .retry_delay = ARD_3500us, //ARD_1250us
+      .datarate = NRF_DATARATE_1MBPS,
+      .power = NRF_POWER_0DBM,
+  };
+
+  static const s_nrf_config radio_tx_stream_cfg = {
+      .channel = 100,	//42
+      .addr_width = AW_5BYTE,
+      .auto_ack = 1,
+      .dynamic_payload = 1,
+      .retries = 8,
+      .retry_delay = ARD_1000us, //ARD_1250us
       .datarate = NRF_DATARATE_1MBPS,
       .power = NRF_POWER_0DBM,
   };
 
   static const s_pipe_addr radio_tx_addr = {
-      .tx_addr = { 0xE7, 0xE7, 0xE7, 0xE7, 0xE8 } //E8
+      //.tx_addr = { 0xE7, 0xE7, 0xE7, 0xE7, 0xEE } //E8
+      .tx_addr = { 0xC2, 0xA1, 0x55, 0x12, 0x01 }
   };
 
   // Radio 1 configurations (application specific)
   static const s_nrf_config radio_rx_cfg = {
-      .channel = 40,
+      .channel = 70,
       .addr_width = AW_5BYTE,
       .auto_ack = 1,
       .dynamic_payload = 1,
@@ -234,7 +246,8 @@ int main(void)
   };
 
   static const s_pipe_addr radio_rx_addr = {
-      .pipe0_rx_addr = { 0xE7, 0xE7, 0xE7, 0xE7, 0xE7 }
+      //.pipe0_rx_addr = { 0xE7, 0xE7, 0xE7, 0xE7, 0xE7 }
+      .pipe0_rx_addr = { 0xD4, 0xB2, 0xAA, 0x78, 0x50 }
   };
 
 
@@ -291,12 +304,12 @@ int main(void)
 
 
 	  /*##### RADIO - Data to send #####*/
-	  if (AmonDrone.radio_data.flag_new_rf_tx_data)
-	  {
-		  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
-		  NRF24_Send(&radio1);
-		  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
-	  }
+//	  if (AmonDrone.radio_data.flag_new_rf_tx_data)
+//	  {
+//		  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
+//		  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
+//		  NRF24_Send(&radio1);
+//	  }
 
 
 	  /*##### RADIO - transmit report #####*/
@@ -317,6 +330,7 @@ int main(void)
 		  if (AmonDrone.radio_data.packet_fail_cnt >= 5)
 		  {
 			  AmonDrone.radio_data.flag_connection_lost = 1;
+			  AmonDrone.radio_data.packet_fail_cnt = 0;
 			  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
 		  }
 	  }
@@ -327,6 +341,49 @@ int main(void)
 	  {
 		  NRF24_ReadRXPayload(&radio2);
 		  AmonDrone.radio_data.flag_new_rf_rx_data = 1;
+	  }
+
+	  /*##### RADIO - Decode, encode, send #####*/
+	  if (AmonDrone.DroneStatus != STATUS_STARTUP || AmonDrone.DroneStatus != STATUS_ERROR)
+	  {
+		  // RX packets
+		  if (AmonDrone.radio_data.flag_new_rf_rx_data == 1)
+		  {
+			  AmonDrone.radio_data.flag_new_rf_rx_data = 0;
+			  uint8_t ret = RF_decode(radio2.buffers.RX_FIFO, &data_packets, NULL);
+
+			  if (ret == TRANSCODE_OK || ret == TRANSCODE_BROADCAST)
+			  {
+				  RF_packet_decode(&data_packets, &AmonDrone);
+			  }
+
+			  // ACK required - better link connection
+			  if (AmonDrone.radio_data.flag_stream_data == 1)
+			  {
+				  AmonDrone.radio_data.flag_stream_data = 0;
+				  radio1.config = &radio_tx_stream_cfg;
+				  NRF24_init(&radio1);
+			  }
+		  }
+
+		  // TX packets - received and requires ACK
+		  if (AmonDrone.radio_data.flag_new_rf_tx_data == 1)
+		  {
+			  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
+			  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
+			  NRF24_Send(&radio1);
+		  }
+
+		  // TX packets - telemetry send
+		  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_telemetry_send == 1)
+		  {
+			  AmonDrone.radio_data.flag_telemetry_send = 0;
+			  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
+			  NRF24_Send(&radio1);
+		  }
+
+		  // Detect successful connection
+		  if (AmonDrone.radio_data.flag_connection_begin == 1) AmonDrone.radio_data.conn_status = CONN_STATUS_CONNECTED;
 	  }
 
 
@@ -355,6 +412,8 @@ int main(void)
 //			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
 			  // Read other sensors...
 			  Reg50HzLoopEN = 0;
+
+			  AmonDrone.radio_data.flag_telemetry_send = 1;
 		  }
 
 		  // Timer 6 - 1Hz
@@ -366,6 +425,27 @@ int main(void)
 				  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
 				  AmonDrone.radio_data.flag_connection_lost = 1;
 			  }
+
+
+			  // Stream mode switch
+			  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_stream_data == 0) // STATUS_FLY
+			  {
+				  static uint8_t stream_time_cnt = 0;
+
+				  if (stream_time_cnt < 2)
+				  {
+					  stream_time_cnt++;
+				  }
+				  else
+				  {
+					  stream_time_cnt = 0;
+					  // Turn ON stream data mode
+					  AmonDrone.radio_data.flag_stream_data = 1;
+					  radio1.config = &radio_tx_normal_cfg;
+					  NRF24_init(&radio1);
+				  }
+			  }
+
 			  Reg1HzLoopEN = 0;
 		  }
 
@@ -418,48 +498,12 @@ int main(void)
 	  	  // STATE: Drone is NOT connected with ground station
 		  case CONN_STATUS_DISCONNECTED:
 
-			  if (AmonDrone.DroneStatus != STATUS_STARTUP || AmonDrone.DroneStatus != STATUS_ERROR)
-			  {
-				  // RX packets
-				  if (AmonDrone.radio_data.flag_new_rf_rx_data == 1)
-				  {
-					  uint8_t ret = RF_decode(radio2.buffers.RX_FIFO, &data_packets, NULL);
-
-					  if (ret == TRANSCODE_OK || ret == TRANSCODE_BROADCAST)
-					  {
-						  RF_packet_decode(&data_packets, &AmonDrone);
-					  }
-
-					  AmonDrone.radio_data.flag_new_rf_rx_data = 0;
-				  }
-
-				  // TX packets
-				  if (AmonDrone.radio_data.flag_new_rf_tx_data == 1)
-				  {
-					  if (AmonDrone.radio_data.flag_telemetry_send == 0)
-					  {
-						  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
-						  NRF24_Send(&radio1);
-					  }
-					  else
-					  {
-						  // TODO - encode telemetry
-						  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
-						  NRF24_Send(&radio1);
-					  }
-
-					  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
-				  }
-
-			  }
-
 			  break;
 
 
 		  // STATE: Drone IS connected with ground station
 		  case CONN_STATUS_CONNECTED:
 
-			  // TODO
 			  break;
 
 
@@ -579,8 +623,10 @@ int main(void)
 		radio2.op_modes = NRF_MODE_PWR_ON_RST;              // set default radio state
 		AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
 		AmonDrone.radio_data.flag_connection_lost = 0;
+		AmonDrone.radio_data.flag_connection_begin = 0;
 		radio1.irq_on_pipe = 0xFF;
 		radio2.irq_on_pipe = 0xFF;
+		AmonDrone.radio_data.flag_stream_data = 0;
 
 		// Radios initialization and setup
 		NRF24_pin_config(&radio1, &hspi1, CS_RF1_GPIO_Port, CS_RF1_Pin, EN_RF1_GPIO_Port, EN_RF1_Pin);        // Map pins for radio 1
@@ -626,7 +672,7 @@ int main(void)
 
 		// Set radio configurations and init
 		radio1.role     = NRF_ROLE_PTX;
-		radio1.config   = &radio_tx_cfg;
+		radio1.config   = &radio_tx_normal_cfg;
 		radio1.address  = &radio_tx_addr;
 		radio1.id       = NRF_ID_1;
 		NRF24_init(&radio1);
@@ -638,17 +684,6 @@ int main(void)
 		radio2.id       = NRF_ID_2;
 		NRF24_init(&radio2);
 		NRF24_SetRXAddress(&radio2, 0, radio2.address->pipe0_rx_addr);
-
-
-		//TEST
-		radio1.buffers.TX_FIFO[0]    = 1;
-		radio1.buffers.TX_FIFO[1]    = 5;
-		radio1.buffers.TX_FIFO[2]    = 5;
-		radio1.buffers.TX_FIFO[3]    = 1;
-		radio1.buffers.TX_FIFO[4]    = 2;
-		radio1.buffers.TX_FIFO[5]    = 0;
-		RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
-		NRF24_Send(&radio1);
 
 
 		/* Timers */
@@ -669,7 +704,7 @@ int main(void)
 
 		InitError = status;
 
-		// Check if all init functionsa are OK
+		// Check if all init functions are OK
 		if (InitError == 0) // OK
 		{
 			StartupInit = 1;
@@ -698,62 +733,61 @@ int main(void)
 		  /*** MAIN STATE MACHINE ***/
 		  switch(AmonDrone.DroneStatus) {
 
-		  // STATE: Drone idling
-		  case STATUS_IDLE:
+			  // STATE: Drone idling
+			  case STATUS_IDLE:
 
-			  if (TVCServoEnableFlag == 1) TVCServoDisable();	// Disable TVC servos
-			  if (EDFEnableFlag == 1) EDFDisable();				// Disable EDF
+				  if (TVCServoEnableFlag == 1) TVCServoDisable();	// Disable TVC servos
+				  if (EDFEnableFlag == 1) EDFDisable();				// Disable EDF
 
-
-
-
+				  break;
 
 
-		  // STATE: Drone armed and ready to take off
-		  case STATUS_ARM:
+			  // STATE: Drone armed and ready to take off
+			  case STATUS_ARM:
 
-			  if (TVCServoEnableFlag == 0) TVCServoEnable();
-			  if (EDFEnableFlag == 0) EDFEnable();
-
-
-			  break;
+				  if (TVCServoEnableFlag == 0) TVCServoEnable();
+				  if (EDFEnableFlag == 0) EDFEnable();
 
 
-		  // STATE: Flying
-		  case STATUS_FLY:
-
-			  DegresToCCR(90.0f + AmonDrone.position.Pitch + (AmonDrone.position.PitchMean) + SERVO_XN_OFFSET, SERVO_XN);
-			  DegresToCCR(90.0f - AmonDrone.position.Pitch + (AmonDrone.position.PitchMean) + SERVO_XP_OFFSET, SERVO_XP);
-			  DegresToCCR(90.0f - AmonDrone.position.Roll + (AmonDrone.position.RollMean) + SERVO_YN_OFFSET, SERVO_YN);
-			  DegresToCCR(90.0f + AmonDrone.position.Roll + (AmonDrone.position.RollMean) + SERVO_YP_OFFSET, SERVO_YP);
-
-			  break;
+				  break;
 
 
+			  // STATE: Flying
+			  case STATUS_FLY:
 
-		  // STATE: End of flight
-		  case STATUS_FLY_OVER:
+				  DegresToCCR(90.0f + AmonDrone.position.Pitch + (AmonDrone.position.PitchMean) + SERVO_XN_OFFSET, SERVO_XN);
+				  DegresToCCR(90.0f - AmonDrone.position.Pitch + (AmonDrone.position.PitchMean) + SERVO_XP_OFFSET, SERVO_XP);
+				  DegresToCCR(90.0f - AmonDrone.position.Roll + (AmonDrone.position.RollMean) + SERVO_YN_OFFSET, SERVO_YN);
+				  DegresToCCR(90.0f + AmonDrone.position.Roll + (AmonDrone.position.RollMean) + SERVO_YP_OFFSET, SERVO_YP);
 
-			  if (TVCServoEnableFlag == 1) TVCServoDisable();
-			  if (EDFEnableFlag == 1) EDFDisable();
-
-
-			  break;
+				  break;
 
 
-		  // STATE: Wrong state
-		  default:
+			  // STATE: End of flight
+			  case STATUS_FLY_OVER:
 
-			  AmonDrone.DroneStatus = STATUS_ERROR;
-			  TVCServoDisable();
-			  EDFDisable();
+				  if (TVCServoEnableFlag == 1) TVCServoDisable();
+				  if (EDFEnableFlag == 1) EDFDisable();
 
-			  break;
+
+				  break;
+
+
+			  // STATE: Wrong state
+			  default:
+
+				  AmonDrone.DroneStatus = STATUS_ERROR;
+				  TVCServoDisable();
+				  EDFDisable();
+
+				  break;
 		  }
 	  }
 
 
 #endif
+
+
 
 	  /* ********* GYROSCOPE Calibration *********
 	   * Before using gyroscope is necessary to set right offset values for all three accelerometers.

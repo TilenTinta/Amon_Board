@@ -86,6 +86,8 @@ typedef enum {
 typedef struct {
 	e_connection_status conn_status;			// Status of connection with ground station
 	uint8_t				flag_connection_lost;	// Flag indicating lost of connection
+	uint8_t				flag_connection_begin;	// Flag for connecting procedure (default-0, START-2, STATUS-1)
+	uint8_t				flag_stream_data;		// Flag for indicating data stream - different radio settings
 
 	uint32_t 			packet_tx_cnt;			// Counter of transmitted packets
 	uint32_t 			packet_fail_cnt;		// Counter of transmitted packets (max_rxs)
@@ -162,6 +164,7 @@ typedef struct {
 /* Functions */
 
 uint8_t RF_packet_decode(s_packets *packets, s_drone_data *drone_data);
+void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data);
 
 
 #endif /* INC_DRONE_DATA_H_ */

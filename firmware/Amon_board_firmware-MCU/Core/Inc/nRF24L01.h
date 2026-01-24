@@ -91,7 +91,7 @@ extern "C" {
 #define PWR_UP                  (1 << 1)    // bit 1 in CONFIG register - 1: POWER UP, 0:POWER DOWN
 #define PRIM_RX                 (1 << 0)    // bit 0 in CONFIG register - RX/TX control
 
-// EN_AA - Enable ��Auto Acknowledgment�� Function, register bits [Chapter 9.1, Table 24]
+// EN_AA - Enable - Auto Acknowledgment Function, register bits [Chapter 9.1, Table 24]
 #define ENAA_P5                 (1 << 5)    // bit 5 in EN_AA register - Enable auto acknowledgement data pipe 5
 #define ENAA_P4                 (1 << 4)    // bit 4 in EN_AA register - Enable auto acknowledgement data pipe 4
 #define ENAA_P3                 (1 << 3)    // bit 3 in EN_AA register - Enable auto acknowledgement data pipe 3
@@ -118,22 +118,22 @@ extern "C" {
 #define ARD                      0xF0       // bit 7:4 in SETUP_RETR register - Auto Retransmit Delay
 #define ARC                      0x0F       // bit 3:0 in SETUP_RETR register - Auto Retransmit Count
 
-#define ARD_250us                0x00       // bit 7:4 in SETUP_RETR register - Wait 250��s
+#define ARD_250us                0x00       // bit 7:4 in SETUP_RETR register - Wait 250us
 #define ARD_500us                0x10       // bit 7:4 in SETUP_RETR register - Wait 500us
 #define ARD_750us                0x20       // bit 7:4 in SETUP_RETR register - Wait 750us
-#define ARD_1000us               0x30       // bit 7:4 in SETUP_RETR register - Wait 1000��s
-#define ARD_1250us               0x40       // bit 7:4 in SETUP_RETR register - Wait 1250��s
-#define ARD_1500us               0x50       // bit 7:4 in SETUP_RETR register - Wait 1500��s
-#define ARD_1750us               0x60       // bit 7:4 in SETUP_RETR register - Wait 1750��s
-#define ARD_2000us               0x70       // bit 7:4 in SETUP_RETR register - Wait 2000��s
-#define ARD_2250us               0x80       // bit 7:4 in SETUP_RETR register - Wait 2250��s
-#define ARD_2500us               0x90       // bit 7:4 in SETUP_RETR register - Wait 2500��s
-#define ARD_2750us               0xA0       // bit 7:4 in SETUP_RETR register - Wait 2750��s
-#define ARD_3000us               0xB0       // bit 7:4 in SETUP_RETR register - Wait 3000��s
-#define ARD_3250us               0xC0       // bit 7:4 in SETUP_RETR register - Wait 3250��s
-#define ARD_3500us               0xD0       // bit 7:4 in SETUP_RETR register - Wait 3500��s
-#define ARD_3750us               0xE0       // bit 7:4 in SETUP_RETR register - Wait 3750��s
-#define ARD_4000us               0xF0       // bit 7:4 in SETUP_RETR register - Wait 4000��s
+#define ARD_1000us               0x30       // bit 7:4 in SETUP_RETR register - Wait 1000us
+#define ARD_1250us               0x40       // bit 7:4 in SETUP_RETR register - Wait 1250us
+#define ARD_1500us               0x50       // bit 7:4 in SETUP_RETR register - Wait 1500us
+#define ARD_1750us               0x60       // bit 7:4 in SETUP_RETR register - Wait 1750us
+#define ARD_2000us               0x70       // bit 7:4 in SETUP_RETR register - Wait 2000us
+#define ARD_2250us               0x80       // bit 7:4 in SETUP_RETR register - Wait 2250us
+#define ARD_2500us               0x90       // bit 7:4 in SETUP_RETR register - Wait 2500us
+#define ARD_2750us               0xA0       // bit 7:4 in SETUP_RETR register - Wait 2750us
+#define ARD_3000us               0xB0       // bit 7:4 in SETUP_RETR register - Wait 3000us
+#define ARD_3250us               0xC0       // bit 7:4 in SETUP_RETR register - Wait 3250us
+#define ARD_3500us               0xD0       // bit 7:4 in SETUP_RETR register - Wait 3500us
+#define ARD_3750us               0xE0       // bit 7:4 in SETUP_RETR register - Wait 3750us
+#define ARD_4000us               0xF0       // bit 7:4 in SETUP_RETR register - Wait 4000us
 
 #define ARC_OFF                  0x00       // bit 7:4 in SETUP_RETR register - retransmit: off
 #define ARC1                     0x10       // bit 7:4 in SETUP_RETR register - retransmit: 1x
@@ -347,6 +347,7 @@ typedef struct {
     uint8_t             irq_flag;       // IRQ flag - interrupt detected
     uint8_t             irq_on_pipe;    // number of pipe where irq is detected
     uint8_t             irq_status;     // Flag that indicates interrupt
+    uint8_t             flag_tx_in_progress;    // Flag that blocks next uart receive if old one not finished yet
 
     e_nrf_radion_id     id;             // Radio ID
     e_nrf_role          role;           // Set radio as receiver/transmiter

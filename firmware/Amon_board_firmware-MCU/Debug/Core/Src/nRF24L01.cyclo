@@ -11,10 +11,10 @@
 ../Core/Src/NRF24L01.c:219:9:NRF24_SPI_Transceive	2
 ../Core/Src/NRF24L01.c:244:9:NRF24_ReadStatus	1
 ../Core/Src/NRF24L01.c:270:6:NRF24_HandleIRQ	5
-../Core/Src/NRF24L01.c:318:6:NRF24_init	10
-../Core/Src/NRF24L01.c:458:9:NRF24_Send	5
-../Core/Src/NRF24L01.c:517:9:NRF24_ReadRXPayload	5
-../Core/Src/NRF24L01.c:585:9:NRF24_SetTXAddress	4
-../Core/Src/NRF24L01.c:654:10:NRF24_SetRXAddress	4
-../Core/Src/NRF24L01.c:702:9:NRF24_GetLinkQuality	1
-../Core/Src/NRF24L01.c:711:9:NRF24_GetRxPipe	2
+../Core/Src/NRF24L01.c:320:6:NRF24_init	10
+../Core/Src/NRF24L01.c:460:9:NRF24_Send	6
+../Core/Src/NRF24L01.c:522:9:NRF24_ReadRXPayload	5
+../Core/Src/NRF24L01.c:590:9:NRF24_SetTXAddress	4
+../Core/Src/NRF24L01.c:659:10:NRF24_SetRXAddress	4
+../Core/Src/NRF24L01.c:707:9:NRF24_GetLinkQuality	1
+../Core/Src/NRF24L01.c:716:9:NRF24_GetRxPipe	2
