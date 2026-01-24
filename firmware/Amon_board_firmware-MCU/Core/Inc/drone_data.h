@@ -30,6 +30,7 @@
 
 #define RADIO_NUM			2 	// Set number of radios mounted on board
 #define CONN_TIMEOUT_SEC	3	// Amount off seconds that triggers timeout/lost connection
+//#define CONN_STEPS_2			// If using only OPT_PAIR_START signal for pairing comment this
 
 // Select GPS decoding (comment/uncomment for enable/disable)
 #define USE_GPS
@@ -124,6 +125,17 @@ typedef struct {
 } s_position;
 
 
+
+typedef struct {
+	uint16_t 			battery_main_voltage;	// Voltage of main board battery
+	uint16_t 			battery_edf_voltage;	// Voltage of EDF fan battery
+	uint16_t			temperature;			// Temperature
+	uint8_t				humidity;				// Humidity
+	uint32_t			pressure;				// Pressure
+
+}s_data;
+
+
 // Drone: Error codes
 typedef struct {
 	uint8_t				err_main_bat;			// Error flag - main battery voltage
@@ -142,18 +154,15 @@ typedef struct {
 	/* Base data */
 	e_drone_status 		DroneStatus;	 		// Status of drone
 	s_date_time 		date_time;				// Current time - GPS
-	uint16_t 			battery_main_voltage;	// Voltage of main board battery
-	uint16_t 			battery_edf_voltage;	// Voltage of EDF fan battery
 	s_errors			error_code;				// Error codes of drone
 
 	/* Radio */
 	s_radios			radio_data;				// All data for radio communication
 
-	/* Orientation of drone */
+	/* Data */
 	s_position			position;				// Drone position (angled, speed, etc.)
-
-	/* Data from GPS */
-	//s_GPS				gps_data;
+	//s_GPS				gps_data;				// GPS data
+	s_data				data;					// Other drone data (batterys, temp, hum, press...)
 
 
 } s_drone_data;

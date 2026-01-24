@@ -108,20 +108,25 @@ extern "C" {
 #define OPT_DRONE_COMMAND       0x33    // Send command to drone (calibrate, save��)
 #define OPT_TELEMETRY           0x40    // Telemetry data from drone (STREAM; sub-type via TLVs)
 
-// Payload format �� TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
-#define TVL_BAT                 0x01    // Battery mV (u16 LE)
-#define TVL_RSSI                0x02    // RSSI/Link quality (u8)
-#define TVL_FW_VER              0x03    // FW version (ascii)
-#define TVL_RF_CH               0x10    // RF Channel (u8)
-#define TVL_ADDR_LEN            0x11    // Address length (u8=3/4/5)
-#define TVL_DATA_RATE           0x12    // Data rate (u8: 0=250kbps,1=1Mbps,2=2Mbps)
-#define TVL_PWR_LVL             0x13    // Power level (u8)
+// Payload format - TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
+#define TVL_RSSI                0x01    // RSSI/Link quality (u8)
+#define TVL_FW_VER              0x02    // FW version (ascii)
+#define TVL_RF_CH               0x11    // RF Channel (u8)
+#define TVL_ADDR_LEN            0x12    // Address length (u8=3/4/5)
+#define TVL_DATA_RATE           0x13    // Data rate (u8: 0=250kbps,1=1Mbps,2=2Mbps)
+#define TVL_R1_PWR              0x14    // Power level - radio1 (u8)
+#define TVL_R2_PWR              0x15    // Power level - radio2 (u8)
+
 #define TVL_DRONE_MODE          0x20    // Drone mode (u8)
-#define TLV_CALIB_TARG          0x21    // Calib target (u8)
-#define TVL_ALT_ANGL            0x30    // Attitude roll/pitch/yaw (i16 each, deg*100)
-#define TVL_IMU                 0x31    // IMU raw ax/ay/az,gx/gy/gz (i16 each)
-#define TVL_GPS                 0x32    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
-#define TVL_ERR                 0x7F    // Error code (u8) + detail (optional ascii)
+#define TVL_BAT                 0x21    // Battery mV (u16 LE)
+#define TVL_ERR                 0x22    // Error code (u8) + detail (optional ascii)
+
+#define TVL_THP					0x30	// Temperature, humidity, pressure (i16, u8, u16)
+#define TVL_ANGL           		0x31    // Roll/pitch/yaw (i16 each, deg*100)
+#define TVL_ALT					0x32	// Attitude cm (u16)
+#define TVL_IMU                 0x33    // IMU raw ax/ay/az,gx/gy/gz (i16 each)
+#define TVL_GPS                 0x34    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
+
 // TODO: TBD
 
 /*###########################################################################################################################################################*/

@@ -375,9 +375,10 @@ int main(void)
 		  }
 
 		  // TX packets - telemetry send
-		  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_telemetry_send == 1)
+		  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_telemetry_send == 1 && AmonDrone.radio_data.flag_new_rf_tx_data == 0)
 		  {
 			  AmonDrone.radio_data.flag_telemetry_send = 0;
+			  packet_create_telemetry(&data_packets, &AmonDrone);
 			  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
 			  NRF24_Send(&radio1);
 		  }
@@ -388,7 +389,7 @@ int main(void)
 
 
 	  /*##### TIMERS - Timer flag triggers #####*/
-	  if (AmonDrone.DroneStatus != STATUS_STARTUP || AmonDrone.DroneStatus != STATUS_ERROR)
+	  if (AmonDrone.DroneStatus != STATUS_STARTUP && AmonDrone.DroneStatus != STATUS_ERROR)
 	  {
 
 		  // Timer 4 - 200Hz
@@ -402,7 +403,7 @@ int main(void)
 		  // Timer 5 - 50Hz
 		  if (Reg50HzLoopEN == 1)
 		  {
-			  uint8_t dataRdy = 0;
+//			  uint8_t dataRdy = 0;
 //			  while(dataRdy == 0)
 //			  {
 //				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
@@ -410,7 +411,14 @@ int main(void)
 //			  dataRdy = 0;
 //			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.Height);
 //			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
-			  // Read other sensors...
+			  // TODO Read other sensors...
+
+			  // BME280
+			  BME280_ReadAllData(&bme280, &hi2c3);
+			  AmonDrone.data.temperature = (uint16_t)bme280.Temp_C;
+			  AmonDrone.data.humidity = (uint8_t)bme280.Hum_Perc;
+			  AmonDrone.data.pressure = bme280.Press_Pa;
+
 			  Reg50HzLoopEN = 0;
 
 			  AmonDrone.radio_data.flag_telemetry_send = 1;
@@ -575,8 +583,8 @@ int main(void)
 //			// white...
 //		}
 
-		AmonDrone.battery_main_voltage = ADC_Read_Main_Battery();
-		AmonDrone.battery_edf_voltage = ADC_Read_EDF_Battery();
+		AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
+		AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
 		ADC_DMA_DataRdy = 0;
 
 		//if (AmonDrone.battery_main_voltage < 1000) status++; // check board battery voltage (more than XV)

@@ -12,9 +12,9 @@
 ../Core/Src/NRF24L01.c:244:9:NRF24_ReadStatus	1
 ../Core/Src/NRF24L01.c:270:6:NRF24_HandleIRQ	5
 ../Core/Src/NRF24L01.c:320:6:NRF24_init	10
-../Core/Src/NRF24L01.c:460:9:NRF24_Send	6
-../Core/Src/NRF24L01.c:522:9:NRF24_ReadRXPayload	5
-../Core/Src/NRF24L01.c:590:9:NRF24_SetTXAddress	4
-../Core/Src/NRF24L01.c:659:10:NRF24_SetRXAddress	4
-../Core/Src/NRF24L01.c:707:9:NRF24_GetLinkQuality	1
-../Core/Src/NRF24L01.c:716:9:NRF24_GetRxPipe	2
+../Core/Src/NRF24L01.c:460:9:NRF24_Send	7
+../Core/Src/NRF24L01.c:528:9:NRF24_ReadRXPayload	5
+../Core/Src/NRF24L01.c:596:9:NRF24_SetTXAddress	4
+../Core/Src/NRF24L01.c:665:10:NRF24_SetRXAddress	4
+../Core/Src/NRF24L01.c:713:9:NRF24_GetLinkQuality	1
+../Core/Src/NRF24L01.c:722:9:NRF24_GetRxPipe	2
