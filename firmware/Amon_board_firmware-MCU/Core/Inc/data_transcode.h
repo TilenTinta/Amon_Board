@@ -109,23 +109,30 @@ extern "C" {
 #define OPT_TELEMETRY           0x40    // Telemetry data from drone (STREAM; sub-type via TLVs)
 
 // Payload format - TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
-#define TVL_RSSI                0x01    // RSSI/Link quality (u8)
-#define TVL_FW_VER              0x02    // FW version (ascii)
+#define TVL_FW_VER              0x01    // FW version (ascii)
+#define TVL_RSSI                0x02    // RSSI/Link quality (u8)
 #define TVL_RF_CH               0x11    // RF Channel (u8)
 #define TVL_ADDR_LEN            0x12    // Address length (u8=3/4/5)
 #define TVL_DATA_RATE           0x13    // Data rate (u8: 0=250kbps,1=1Mbps,2=2Mbps)
 #define TVL_R1_PWR              0x14    // Power level - radio1 (u8)
 #define TVL_R2_PWR              0x15    // Power level - radio2 (u8)
+#define TVL_RF_STREAM			0x16	// Stream mode enabled
+#define TVL_RF_TX_CNT			0x17	// Transmited packet counter
+#define TVL_RF_FAIL_CNT			0x18	// Failed transmited packet counter
 
 #define TVL_DRONE_MODE          0x20    // Drone mode (u8)
-#define TVL_BAT                 0x21    // Battery mV (u16 LE)
+#define TVL_BAT_MAIN            0x21    // Main battery mV (u16 LE)
+#define TVL_BAT_EDF             0x21    // EDF battery mV (u16 LE)
 #define TVL_ERR                 0x22    // Error code (u8) + detail (optional ascii)
+#define TVL_DATE_TIME			0x23	// Date and time aquired from gps
+#define TVL_TLM					0x24	// Telemetry frequency
 
 #define TVL_THP					0x30	// Temperature, humidity, pressure (i16, u8, u16)
 #define TVL_ANGL           		0x31    // Roll/pitch/yaw (i16 each, deg*100)
 #define TVL_ALT					0x32	// Attitude cm (u16)
 #define TVL_IMU                 0x33    // IMU raw ax/ay/az,gx/gy/gz (i16 each)
-#define TVL_GPS                 0x34    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
+#define TVL_IMU_TEMP			0x34	// IMU temperature
+#define TVL_GPS                 0x35    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
 
 // TODO: TBD
 

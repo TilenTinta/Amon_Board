@@ -31,6 +31,7 @@
 #define RADIO_NUM			2 	// Set number of radios mounted on board
 #define CONN_TIMEOUT_SEC	3	// Amount off seconds that triggers timeout/lost connection
 //#define CONN_STEPS_2			// If using only OPT_PAIR_START signal for pairing comment this
+#define STREAM_EN_TIME		3	// Time in seconds over which stream mode is enabled
 
 // Select GPS decoding (comment/uncomment for enable/disable)
 #define USE_GPS
@@ -85,18 +86,18 @@ typedef enum {
 } e_connection_status;
 
 typedef struct {
-	e_connection_status conn_status;			// Status of connection with ground station
-	uint8_t				flag_connection_lost;	// Flag indicating lost of connection
-	uint8_t				flag_connection_begin;	// Flag for connecting procedure (default-0, START-2, STATUS-1)
-	uint8_t				flag_stream_data;		// Flag for indicating data stream - different radio settings
+	volatile e_connection_status conn_status;	// Status of connection with ground station
+	volatile uint8_t	flag_connection_lost;	// Flag indicating lost of connection
+	volatile uint8_t	flag_connection_begin;	// Flag for connecting procedure (default-0, START-2, STATUS-1)
+	volatile uint8_t	flag_stream_data;		// Flag for indicating data stream - different radio settings
 
 	uint32_t 			packet_tx_cnt;			// Counter of transmitted packets
 	uint32_t 			packet_fail_cnt;		// Counter of transmitted packets (max_rxs)
 	uint8_t				connection_timeout;		// Seconds counter for connection timeout
 
-    uint8_t     		flag_new_rf_rx_data;    // Flag indicating a new data has arrived
-    uint8_t     		flag_new_rf_tx_data;    // Flag indicating a new data is ready to send
-    uint8_t				flag_telemetry_send;	// Flag indicating telemetry send procedure
+	volatile uint8_t    flag_new_rf_rx_data;    // Flag indicating a new data has arrived
+	volatile uint8_t    flag_new_rf_tx_data;    // Flag indicating a new data is ready to send
+	volatile uint8_t	flag_telemetry_send;	// Flag indicating telemetry send procedure
 
     // PC -> Drone and Drone -> PC //
     uint8_t     		data_buffer[64];        // Buffer for saving data
@@ -120,7 +121,11 @@ typedef struct {
 	float 				RollMean;
 
 	/* Height of drone (when on ground the height is 0, offset on sensor set to 130mm) */
-	uint16_t Height;
+	uint16_t 			height_TOF_cm;
+	uint16_t			height_baro_m;
+
+	// Compass
+	uint16_t			heading_deg;
 
 } s_position;
 
@@ -152,7 +157,7 @@ typedef struct {
 typedef struct {
 
 	/* Base data */
-	e_drone_status 		DroneStatus;	 		// Status of drone
+	volatile e_drone_status DroneStatus;	 	// Status of drone
 	s_date_time 		date_time;				// Current time - GPS
 	s_errors			error_code;				// Error codes of drone
 

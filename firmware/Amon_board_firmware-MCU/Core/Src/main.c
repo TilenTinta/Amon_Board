@@ -220,10 +220,10 @@ int main(void)
   static const s_nrf_config radio_tx_stream_cfg = {
       .channel = 100,	//42
       .addr_width = AW_5BYTE,
-      .auto_ack = 1,
+      .auto_ack = 0,
       .dynamic_payload = 1,
-      .retries = 8,
-      .retry_delay = ARD_1000us, //ARD_1250us
+      .retries = 15,
+      .retry_delay = ARD_1250us, //ARD_1250us
       .datarate = NRF_DATARATE_1MBPS,
       .power = NRF_POWER_0DBM,
   };
@@ -234,7 +234,18 @@ int main(void)
   };
 
   // Radio 1 configurations (application specific)
-  static const s_nrf_config radio_rx_cfg = {
+  static const s_nrf_config radio_rx_normal_cfg = {
+      .channel = 70,
+      .addr_width = AW_5BYTE,
+      .auto_ack = 1,
+      .dynamic_payload = 1,
+      .retries = 0,
+      .retry_delay = 0,
+      .datarate = NRF_DATARATE_1MBPS,
+      .power = NRF_POWER_MINUS_6DBM,
+  };
+
+  static const s_nrf_config radio_rx_stream_cfg = {
       .channel = 70,
       .addr_width = AW_5BYTE,
       .auto_ack = 1,
@@ -281,6 +292,10 @@ int main(void)
 #endif
 
 
+/*#############################################################################################################################################
+#################################################################### RADIO ####################################################################
+#############################################################################################################################################*/
+
 	  /*##### RADIO IRQ HANDLING #####*/
 	  if (radio1.irq_flag == 1)
 	  {
@@ -303,15 +318,6 @@ int main(void)
 	  }
 
 
-	  /*##### RADIO - Data to send #####*/
-//	  if (AmonDrone.radio_data.flag_new_rf_tx_data)
-//	  {
-//		  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
-//		  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
-//		  NRF24_Send(&radio1);
-//	  }
-
-
 	  /*##### RADIO - transmit report #####*/
 	  if (radio1.buffers.flag_tx_done)
 	  {
@@ -327,16 +333,16 @@ int main(void)
 		  radio1.buffers.flag_max_rxs_reached = 0;
 
 		  // connection lost detection
-		  if (AmonDrone.radio_data.packet_fail_cnt >= 5)
-		  {
-			  AmonDrone.radio_data.flag_connection_lost = 1;
-			  AmonDrone.radio_data.packet_fail_cnt = 0;
-			  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
-		  }
+//		  if (AmonDrone.radio_data.packet_fail_cnt >= 5)
+//		  {
+//			  AmonDrone.radio_data.flag_connection_lost = 1;
+//			  AmonDrone.radio_data.packet_fail_cnt = 0;
+//			  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
+//		  }
 	  }
 
 
-	  /*##### RADIO - Data received #####*/
+	  /*##### RADIO - Data received -> read #####*/
 	  if (radio2.buffers.flag_new_rx)
 	  {
 		  NRF24_ReadRXPayload(&radio2);
@@ -344,7 +350,7 @@ int main(void)
 	  }
 
 	  /*##### RADIO - Decode, encode, send #####*/
-	  if (AmonDrone.DroneStatus != STATUS_STARTUP || AmonDrone.DroneStatus != STATUS_ERROR)
+	  if (AmonDrone.DroneStatus != STATUS_STARTUP || AmonDrone.DroneStatus != STATUS_ERROR) // &&
 	  {
 		  // RX packets
 		  if (AmonDrone.radio_data.flag_new_rf_rx_data == 1)
@@ -361,56 +367,102 @@ int main(void)
 			  if (AmonDrone.radio_data.flag_stream_data == 1)
 			  {
 				  AmonDrone.radio_data.flag_stream_data = 0;
-				  radio1.config = &radio_tx_stream_cfg;
+				  radio1.config = &radio_tx_normal_cfg;
 				  NRF24_init(&radio1);
+				  HAL_Delay(10);
 			  }
 		  }
+
 
 		  // TX packets - received and requires ACK
 		  if (AmonDrone.radio_data.flag_new_rf_tx_data == 1)
 		  {
 			  AmonDrone.radio_data.flag_new_rf_tx_data = 0;
+			  memset(radio1.buffers.TX_FIFO, 0, sizeof(radio1.buffers.TX_FIFO));
 			  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
 			  NRF24_Send(&radio1);
-		  }
 
-		  // TX packets - telemetry send
-		  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_telemetry_send == 1 && AmonDrone.radio_data.flag_new_rf_tx_data == 0)
-		  {
-			  AmonDrone.radio_data.flag_telemetry_send = 0;
-			  packet_create_telemetry(&data_packets, &AmonDrone);
-			  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
-			  NRF24_Send(&radio1);
-		  }
 
-		  // Detect successful connection
-		  if (AmonDrone.radio_data.flag_connection_begin == 1) AmonDrone.radio_data.conn_status = CONN_STATUS_CONNECTED;
+		  }
 	  }
 
 
+	  /*##### RADIO - Send telemetry data or not #####*/
+	  switch(AmonDrone.radio_data.conn_status) {
+
+		// STATE: Drone is NOT connected with ground station
+		case CONN_STATUS_DISCONNECTED:
+
+			// ACK required - better link connection
+			if (AmonDrone.radio_data.flag_stream_data == 1)
+			{
+				AmonDrone.radio_data.flag_stream_data = 0;
+				radio1.config = &radio_tx_normal_cfg;
+				NRF24_init(&radio1);
+				HAL_Delay(10);
+			}
+
+			// Detect successful connection
+			if (AmonDrone.radio_data.flag_connection_begin == 1) AmonDrone.radio_data.conn_status = CONN_STATUS_CONNECTED;
+
+			break;
+
+
+		// STATE: Drone IS connected with ground station
+		case CONN_STATUS_CONNECTED:
+
+			// TX packets - telemetry send
+			if (AmonDrone.radio_data.flag_telemetry_send == 1 && AmonDrone.radio_data.flag_new_rf_tx_data == 0)
+			{
+				AmonDrone.radio_data.flag_telemetry_send = 0;
+				packet_create_telemetry(&data_packets, &AmonDrone);
+				memset(radio1.buffers.TX_FIFO, 0, sizeof(radio1.buffers.TX_FIFO));
+				RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
+				NRF24_Send(&radio1);
+			}
+
+			break;
+
+
+		// STATE: Default state
+		default:
+			// Default
+			break;
+		}
+
+/*##############################################################################################################################################
+#################################################################### TIMERS ####################################################################
+##############################################################################################################################################*/
+
+
 	  /*##### TIMERS - Timer flag triggers #####*/
-	  if (AmonDrone.DroneStatus != STATUS_STARTUP && AmonDrone.DroneStatus != STATUS_ERROR)
+	  if (AmonDrone.DroneStatus != STATUS_STARTUP ) // && AmonDrone.DroneStatus != STATUS_ERROR
 	  {
 
-		  // Timer 4 - 200Hz
+		  // --- Timer 4 - 200Hz / 5ms ---
 		  if (Reg200HzLoopEN == 1)
 		  {
+			  Reg200HzLoopEN = 0;
+
 			  MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
 			  MPU6050_RawToDeg(&mpu6050, &AmonDrone); // calculate data to pitch and roll (and yaw)
-			  Reg200HzLoopEN = 0;
+
 		  }
 
-		  // Timer 5 - 50Hz
+
+		  // --- Timer 5 - 50Hz / 20ms ---
 		  if (Reg50HzLoopEN == 1)
 		  {
-//			  uint8_t dataRdy = 0;
-//			  while(dataRdy == 0)
-//			  {
-//				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
-//			  }
-//			  dataRdy = 0;
-//			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.Height);
-//			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
+			  Reg50HzLoopEN = 0;
+
+			  uint8_t dataRdy = 0;
+			  while(dataRdy == 0)
+			  {
+				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
+			  }
+			  dataRdy = 0;
+			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.height_TOF_cm);
+			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
 			  // TODO Read other sensors...
 
 			  // BME280
@@ -419,28 +471,45 @@ int main(void)
 			  AmonDrone.data.humidity = (uint8_t)bme280.Hum_Perc;
 			  AmonDrone.data.pressure = bme280.Press_Pa;
 
-			  Reg50HzLoopEN = 0;
+			  // Start ADC DMA (read analog value)
+			  HAL_ADC_Start_DMA(&hadc1, ADC_BAT_Val, 2);
 
-			  AmonDrone.radio_data.flag_telemetry_send = 1;
+			  // Send telemetry packet if stream mode is on - test
+			  if (AmonDrone.radio_data.flag_stream_data)
+			  {
+				  AmonDrone.radio_data.flag_telemetry_send = 1;
+			  }
 		  }
 
-		  // Timer 6 - 1Hz
+		  // ADC read - DMA trigger
+		  if (ADC_DMA_DataRdy)
+		  {
+			  AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
+			  AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
+			  ADC_DMA_DataRdy = 0;
+		  }
+
+
+		  // --- Timer 6 - 1Hz / 1sec ---
 		  if (Reg1HzLoopEN == 1)
 		  {
+			  Reg1HzLoopEN = 0;
+
 			  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED) AmonDrone.radio_data.connection_timeout++;
-			  if (AmonDrone.radio_data.connection_timeout >= CONN_TIMEOUT_SEC)
-			  {
-				  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
-				  AmonDrone.radio_data.flag_connection_lost = 1;
-			  }
+
+//			  if (AmonDrone.radio_data.connection_timeout >= CONN_TIMEOUT_SEC)
+//			  {
+//				  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
+//				  AmonDrone.radio_data.flag_connection_lost = 1;
+//			  }
 
 
 			  // Stream mode switch
-			  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_stream_data == 0) // STATUS_FLY
+			  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED && AmonDrone.radio_data.flag_stream_data == 0)
 			  {
 				  static uint8_t stream_time_cnt = 0;
 
-				  if (stream_time_cnt < 2)
+				  if (stream_time_cnt < STREAM_EN_TIME)
 				  {
 					  stream_time_cnt++;
 				  }
@@ -449,14 +518,18 @@ int main(void)
 					  stream_time_cnt = 0;
 					  // Turn ON stream data mode
 					  AmonDrone.radio_data.flag_stream_data = 1;
-					  radio1.config = &radio_tx_normal_cfg;
+					  radio1.config = &radio_tx_stream_cfg;
 					  NRF24_init(&radio1);
+					  HAL_Delay(10);
 				  }
 			  }
-
-			  Reg1HzLoopEN = 0;
 		  }
 
+
+
+/*##############################################################################################################################################
+##################################################################### GNSS #####################################################################
+##############################################################################################################################################*/
 
 		  /*##### GNSS/GPS - New packet available #####*/
 #ifdef USE_GPS
@@ -464,35 +537,29 @@ int main(void)
 		  if (NewGPSData == 1)
 		  {
 
-
-#ifdef USE_GPS_GGA
+	#ifdef USE_GPS_GGA
 			  GPS_Decode_GGA(USART4_GPSRX, &gps, &AmonDrone);
-#endif
+	#endif
 
-
-#ifdef USE_GPS_GLL
+	#ifdef USE_GPS_GLL
 			  GPS_Decode_GLL(USART4_GPSRX, &gps, &AmonDrone);
-#endif
+	#endif
 
-
-#ifdef USE_GPS_GSA
+	#ifdef USE_GPS_GSA
 			  GPS_Decode_GSA(USART4_GPSRX, &gps, &AmonDrone);
-#endif
+	#endif
 
-
-#ifdef USE_GPS_GSV
+	#ifdef USE_GPS_GSV
 			  GPS_Decode_GSV(USART4_GPSRX, &gps, &AmonDrone);
-#endif
+	#endif
 
-
-#ifdef USE_GPS_RMC
+	#ifdef USE_GPS_RMC
 			  GPS_Decode_RMC(USART4_GPSRX, &gps, &AmonDrone);
-#endif
+	#endif
 
-
-#ifdef USE_GPS_VTG
+	#ifdef USE_GPS_VTG
 			  GPS_Decode_VTG(USART4_GPSRX, &gps, &AmonDrone);
-#endif
+	#endif
 
 			  NewGPSData = 0;
 		  }
@@ -500,31 +567,9 @@ int main(void)
 	  }
 
 
-	  /*##### RADIO - Send telemetry data or not #####*/
-	  switch(AmonDrone.radio_data.conn_status) {
-
-	  	  // STATE: Drone is NOT connected with ground station
-		  case CONN_STATUS_DISCONNECTED:
-
-			  break;
-
-
-		  // STATE: Drone IS connected with ground station
-		  case CONN_STATUS_CONNECTED:
-
-			  break;
-
-
-		  // STATE: Default state
-		  default:
-			  // Default
-			  break;
-	  }
-
-
-
-
-
+/*#####################################################################################################################################################
+###################################################################### INIT & CODE ####################################################################
+#####################################################################################################################################################*/
 
 
 	  /********************************************************
@@ -536,36 +581,38 @@ int main(void)
 		//AmonDrone.DroneStatus = STATUS_STARTUP;
 		uint8_t status = 0;
 
-		/* Aligne all motors */
-		TVCServoEnable();
-		DegresToCCR(90.0 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(90.0 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(90.0 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(90.0 + SERVO_YP_OFFSET, SERVO_YP);
+		/* Align all motors */
+		// Set motors on neutral position
+		DegresToCCR(SERVOS_ZERO + SERVO_XN_OFFSET, SERVO_XN);
+		DegresToCCR(SERVOS_ZERO + SERVO_XP_OFFSET, SERVO_XP);
+		DegresToCCR(SERVOS_ZERO + SERVO_YN_OFFSET, SERVO_YN);
+		DegresToCCR(SERVOS_ZERO + SERVO_YP_OFFSET, SERVO_YP);
 		HAL_Delay(500); // wait on motors to stop moving
 
-		DegresToCCR(80.0 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(80.0 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(80.0 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(80.0 + SERVO_YP_OFFSET, SERVO_YP);
+		TVCServoEnable();	// Enable Servo timer
+
+		DegresToCCR(SERVOS_ZERO - 10 + SERVO_XN_OFFSET, SERVO_XN);
+		DegresToCCR(SERVOS_ZERO - 10 + SERVO_XP_OFFSET, SERVO_XP);
+		DegresToCCR(SERVOS_ZERO - 10 + SERVO_YN_OFFSET, SERVO_YN);
+		DegresToCCR(SERVOS_ZERO - 10 + SERVO_YP_OFFSET, SERVO_YP);
 		HAL_Delay(500); // wait on motors to stop moving
 
-		DegresToCCR(90.0 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(90.0 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(90.0 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(90.0 + SERVO_YP_OFFSET, SERVO_YP);
+		DegresToCCR(SERVOS_ZERO + SERVO_XN_OFFSET, SERVO_XN);
+		DegresToCCR(SERVOS_ZERO + SERVO_XP_OFFSET, SERVO_XP);
+		DegresToCCR(SERVOS_ZERO + SERVO_YN_OFFSET, SERVO_YN);
+		DegresToCCR(SERVOS_ZERO + SERVO_YP_OFFSET, SERVO_YP);
 		HAL_Delay(500); // wait on motors to stop moving
 
-		DegresToCCR(100.0 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(100.0 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(100.0 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(100.0 + SERVO_YP_OFFSET, SERVO_YP);
+		DegresToCCR(SERVOS_ZERO + 10 + SERVO_XN_OFFSET, SERVO_XN);
+		DegresToCCR(SERVOS_ZERO + 10 + SERVO_XP_OFFSET, SERVO_XP);
+		DegresToCCR(SERVOS_ZERO + 10 + SERVO_YN_OFFSET, SERVO_YN);
+		DegresToCCR(SERVOS_ZERO + 10 + SERVO_YP_OFFSET, SERVO_YP);
 		HAL_Delay(500); // wait on motors to stop moving
 
-		DegresToCCR(90.0 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(90.0 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(90.0 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(90.0 + SERVO_YP_OFFSET, SERVO_YP);
+		DegresToCCR(SERVOS_ZERO + SERVO_XN_OFFSET, SERVO_XN);
+		DegresToCCR(SERVOS_ZERO + SERVO_XP_OFFSET, SERVO_XP);
+		DegresToCCR(SERVOS_ZERO + SERVO_YN_OFFSET, SERVO_YN);
+		DegresToCCR(SERVOS_ZERO + SERVO_YP_OFFSET, SERVO_YP);
 		HAL_Delay(500); // wait on motors to stop moving
 
 		// Start timers for sensors and LEDs
@@ -578,14 +625,11 @@ int main(void)
 		/* Read both batteries and save in drone data struct */
 		HAL_ADC_Start_DMA(&hadc1, ADC_BAT_Val, 2); 		// Start ADC DMA (read analog value)
 
-		// TODO
-//		while(ADC_DMA_DataRdy == 0){
-//			// white...
-//		}
-
+		while(ADC_DMA_DataRdy == 0);
 		AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
 		AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
 		ADC_DMA_DataRdy = 0;
+
 
 		//if (AmonDrone.battery_main_voltage < 1000) status++; // check board battery voltage (more than XV)
 		//if (AmonDrone.battery_edf_voltage < 2000) status++; // check board battery voltage (more than XV)
@@ -611,20 +655,19 @@ int main(void)
 		status += MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
 		status += MPU6050_SelfTest(&mpu6050, &hi2c3);
 
-		// TODO - debugging
 		/* vl53l1x */
 		uint8_t bootOK = 0;
-//		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c3);
-//
-//
-//		while (bootOK == 0)
-//		{
-//			status += VL53L1X_BootState(&vl53l1Dev, &hi2c3, &bootOK);
-//		}
-//		status += VL53L1X_SensorInit(&vl53l1Dev, &hi2c3);
-//		status += VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c3, 200); // 140ms is min for 4m distance
-//		status += VL53L1X_SetOffset(&vl53l1Dev, &hi2c3, -130); // Set height from ground to get zero
-//		VL53L1X_StartRanging(&vl53l1Dev, &hi2c3);
+		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c3);
+
+
+		while (bootOK == 0)
+		{
+			status += VL53L1X_BootState(&vl53l1Dev, &hi2c3, &bootOK);
+		}
+		status += VL53L1X_SensorInit(&vl53l1Dev, &hi2c3);
+		status += VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c3, 200); // 140ms is min for 4m distance
+		status += VL53L1X_SetOffset(&vl53l1Dev, &hi2c3, -130); // Set height from ground to get zero
+		VL53L1X_StartRanging(&vl53l1Dev, &hi2c3);
 
 		/* NRF24L01 */
 		radio1.op_modes = NRF_MODE_PWR_ON_RST;              // set default radio state
@@ -687,7 +730,7 @@ int main(void)
 		NRF24_SetTXAddress(&radio1, radio1.address->tx_addr);
 
 		radio2.role     = NRF_ROLE_PRX;
-		radio2.config   = &radio_rx_cfg;
+		radio2.config   = &radio_rx_normal_cfg;
 		radio2.address  = &radio_rx_addr;
 		radio2.id       = NRF_ID_2;
 		NRF24_init(&radio2);
@@ -697,6 +740,7 @@ int main(void)
 		/* Timers */
 		HAL_TIM_Base_Start_IT(&htim4); // TVC LOOP, leg leds (50Hz)
 		HAL_TIM_Base_Start_IT(&htim5); // Complementary Filter
+		HAL_TIM_Base_Start_IT(&htim6); // Second timer - time
 
 #ifndef CALIBRATION
 
@@ -796,6 +840,10 @@ int main(void)
 #endif
 
 
+/*#####################################################################################################################################################
+###################################################################### CALIBRATION ####################################################################
+#####################################################################################################################################################*/
+
 
 	  /* ********* GYROSCOPE Calibration *********
 	   * Before using gyroscope is necessary to set right offset values for all three accelerometers.
@@ -894,10 +942,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 15;
-  RCC_OscInitStruct.PLL.PLLN = 144;
+  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 5;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -912,7 +960,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -942,14 +990,14 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -1072,9 +1120,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 500;
+  htim1.Init.Prescaler = 8399;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 2399;
+  htim1.Init.Period = 199;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -1150,9 +1198,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 500;
+  htim2.Init.Prescaler = 8399;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 2399;
+  htim2.Init.Period = 199;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -1182,7 +1230,6 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
@@ -1214,9 +1261,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 500;
+  htim3.Init.Prescaler = 83;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 2399;
+  htim3.Init.Period = 19999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -1284,9 +1331,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 500;
+  htim4.Init.Prescaler = 8399;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 2399;
+  htim4.Init.Period = 199;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -1329,9 +1376,9 @@ static void MX_TIM5_Init(void)
 
   /* USER CODE END TIM5_Init 1 */
   htim5.Instance = TIM5;
-  htim5.Init.Prescaler = 500;
+  htim5.Init.Prescaler = 4199;
   htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim5.Init.Period = 600;
+  htim5.Init.Period = 99;
   htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
@@ -1373,9 +1420,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 10000;
+  htim6.Init.Prescaler = 8399;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 6000;
+  htim6.Init.Period = 9999;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -1666,10 +1713,8 @@ void StatusLED(uint8_t Status)
 // Reading voltage of main board battery
 uint16_t ADC_Read_Main_Battery()
 {
-	uint16_t adcVal = ADC_BAT_Val[1];
-
+	uint16_t adcVal = ADC_BAT_Val[0];
 	float temp = ((float)adcVal * 3.3) / 4095;
-
 	float voltage = (((100000+10000)/10000) * temp);
 
 	return (uint16_t)(voltage*100);
@@ -1679,10 +1724,8 @@ uint16_t ADC_Read_Main_Battery()
 // Reading voltage of EDF battery
 uint16_t ADC_Read_EDF_Battery()
 {
-	uint16_t adcVal = ADC_BAT_Val[0];
-
+	uint16_t adcVal = ADC_BAT_Val[1];
 	float temp = ((float)adcVal * 3.3) / 4095;
-
 	float voltage = (((100000+10000)/10000) * temp);
 
 	return (uint16_t)(voltage*100);

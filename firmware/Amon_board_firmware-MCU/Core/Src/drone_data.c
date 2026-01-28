@@ -238,6 +238,55 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 	switch(packet_num){
 
 		case 0:
+			// DRONE INFO
+			uint8_t error_code1 = (drone_data->error_code.err_main_bat    |
+								 drone_data->error_code.err_edf_bat << 1 |
+								 drone_data->error_code.err_radio1  << 2 |
+								 drone_data->error_code.err_radio2  << 3 |
+								 drone_data->error_code.err_bme280  << 4 |
+								 drone_data->error_code.err_mpu6050 << 5 |
+								 drone_data->error_code.err_vl53l1x << 6);
+			uint8_t error_code2 = 0;
+
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_DRONE_MODE;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->DroneStatus;
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_ERR;
+			packets->rf_packet_drone.payload[payload_cnt++] =  error_code1;
+			packets->rf_packet_drone.payload[payload_cnt++] =  error_code2;
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_BAT_MAIN;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.battery_main_voltage >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->data.battery_main_voltage 	   & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_BAT_EDF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.battery_edf_voltage >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->data.battery_edf_voltage       & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_DATE_TIME;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->date_time.year;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->date_time.month;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->date_time.day;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->date_time.hour;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->date_time.minutes;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->date_time.seconds;
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_RF_STREAM;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->radio_data.flag_stream_data;
+
+			packets->rf_packet_drone.plen = payload_cnt;
+
+			packet_num++;
+
+			break;
+
+		case 1:
+			// DRONE INFO & DATA_1
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_RF_TX_CNT;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->radio_data.packet_tx_cnt >> 24) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->radio_data.packet_tx_cnt >> 16) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->radio_data.packet_tx_cnt >>  8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->radio_data.packet_tx_cnt 	   & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_RF_FAIL_CNT;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->radio_data.packet_fail_cnt >> 24) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->radio_data.packet_fail_cnt >> 16) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->radio_data.packet_fail_cnt >>  8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->radio_data.packet_fail_cnt 		 & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_THP;
 			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.temperature >> 8) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->data.temperature 	  & 0xFF;
@@ -246,19 +295,11 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.pressure >> 16) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.pressure >>  8) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->data.pressure 		& 0xFF;
-			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.battery_main_voltage >> 8) & 0xFF;
-			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->data.battery_main_voltage 	   & 0xFF;
-			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->data.battery_edf_voltage >> 8) & 0xFF;
-			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->data.battery_edf_voltage       & 0xFF;
 
 			packets->rf_packet_drone.plen = payload_cnt;
-			//packet_num++; // test
 
-			break;
-
-		case 1:
-
-
+			//packet_num++;
+			packet_num = 0;
 			break;
 
 		case 100:

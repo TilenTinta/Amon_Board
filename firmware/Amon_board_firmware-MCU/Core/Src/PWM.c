@@ -30,17 +30,18 @@ void PowerToPWMValue(uint8_t power);
 *
 * @return  none
 */
-void DegresToCCR(float Degress, uint8_t Servo)
+void DegresToCCR(float degrees, uint8_t Servo)
 {
-	float TimePerDeg = 0.01111; // 0deg = 0.5ms, 90deg = 1.5ms; delta 90deg = 1ms
-	//double TimePerDeg = 0.5 / 90; // 0deg = 0.5ms, 90deg = 1.5ms; delta 90deg = 1ms
+	// Clamp degrees
+	if (degrees < 0.0f)   degrees = 0.0f;
+	if (degrees > 180.0f) degrees = 180.0f;
 
-	float DutyCycle = ((Degress * TimePerDeg + 0.5) * 100) / 20.0f;
+	// Calculate degrees to CCR value (capture and compare register)
+	float pulse_us = SERVO_MIN_US + (degrees / 180.0f) * SERVO_RANGE_US;
 
-	// ARR(AutoReloadRegister) = 2400 (set in GUI editor for timer3)
-	uint16_t CCRValue = (uint16_t)(DutyCycle * 2400.0f) / 100.0f;
+	uint32_t ccr = (uint32_t)pulse_us;
 
-	SetPWMValue(Servo, CCRValue);
+	SetPWMValue(Servo, ccr);
 }
 
 
@@ -83,28 +84,28 @@ void PowerToPWMValue(uint8_t power)
 void SetPWMValue(uint8_t output, uint32_t val)
 {
 	switch(output){
-	case SERVO_XN:			// X-
-		TIM3->CCR1 = val;
-		break;
+		case SERVO_XN:			// X-
+			TIM3->CCR1 = val;
+			break;
 
-	case SERVO_XP:			// X+
-		TIM3->CCR2 = val;
-		break;
+		case SERVO_XP:			// X+
+			TIM3->CCR2 = val;
+			break;
 
-	case SERVO_YN:			// Y-
-		TIM3->CCR4 = val;
-		break;
+		case SERVO_YN:			// Y-
+			TIM3->CCR4 = val;
+			break;
 
-	case SERVO_YP:			// Y+
-		TIM3->CCR3 = val;
-		break;
+		case SERVO_YP:			// Y+
+			TIM3->CCR3 = val;
+			break;
 
-	case PWM_EDF:			// EDF
-		TIM2->CCR4 = val;
-		break;
+		case PWM_EDF:			// EDF
+			TIM2->CCR4 = val;
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 }
 

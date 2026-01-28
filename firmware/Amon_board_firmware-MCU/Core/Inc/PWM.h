@@ -33,23 +33,30 @@
 #define SERVO_YP_OFFSET 	-3
 #define SERVO_YN_OFFSET 	0
 
+#define SERVOS_ZERO			90
+
+#define SERVO_MIN_US 1000
+#define SERVO_MAX_US 2000
+#define SERVO_RANGE_US (SERVO_MAX_US - SERVO_MIN_US)
+
+
 
 /*###########################################################################################################################################################*/
 /* Enums */
 
 typedef enum {
-	SERVO_XP = 0x01,
-	SERVO_XN = 0x02,
-	SERVO_YP = 0x03,
-	SERVO_YN = 0x04,
-	PWM_EDF  = 0x05
+	SERVO_XP,
+	SERVO_XN,
+	SERVO_YP,
+	SERVO_YN,
+	PWM_EDF
 }e_servo;
 
 
 /*###########################################################################################################################################################*/
 /* Functions */
 
-void DegresToCCR(float Degress, uint8_t Servo);
+void DegresToCCR(float degrees, uint8_t Servo);
 
 
 #endif /* SERVO_SERVO_H_ */
