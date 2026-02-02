@@ -28,6 +28,8 @@
 #define CAL_ROLL			0
 #define CAL_LIDAR			0
 
+#define ANGLE_SCALE			100.0f	// Factor for angle scaling of angle
+
 #define RADIO_NUM			2 	// Set number of radios mounted on board
 #define CONN_TIMEOUT_SEC	3	// Amount off seconds that triggers timeout/lost connection
 //#define CONN_STEPS_2			// If using only OPT_PAIR_START signal for pairing comment this
@@ -41,6 +43,15 @@
 #define USE_GPS_GSV
 #define USE_GPS_RMC
 #define USE_GPS_VTG
+
+#define ALTITUDE_M			98		// Height where drone will take off
+
+#define R1_MAIN_BAT			100000	// Voltage divider resistor R1 - main battery
+#define R2_MAIN_BAT		 	10000	// Voltage divider resistor R2 - main battery
+#define R1_EDF_BAT			100000	// Voltage divider resistor R1 - EDF battery
+#define R2_EDF_BAT		 	10000	// Voltage divider resistor R2 - EDF battery
+
+#define MAIN_BOARD_V		3.3		// Main board voltage
 
 
 
@@ -85,6 +96,7 @@ typedef enum {
 	CONN_STATUS_DISCONNECTED
 } e_connection_status;
 
+
 typedef struct {
 	volatile e_connection_status conn_status;	// Status of connection with ground station
 	volatile uint8_t	flag_connection_lost;	// Flag indicating lost of connection
@@ -108,13 +120,16 @@ typedef struct {
 // Drone: position data
 typedef struct {
 	float 				Pitch;
-	float 				PitchOld;
-
 	float 				Roll;
-	float 				RollOld;
-
 	float 				Yaw;
-	float 				YawOld;
+
+	uint16_t			gyroTemp;	// Temperature of IMU
+	float				accel_x;	// Raw data - acceleration x
+	float				accel_y;	// Raw data - acceleration y
+	float				accel_z;	// Raw data - acceleration z
+	float				gyro_x;		// Raw data - gyro x
+	float				gyro_y;		// Raw data - gyro y
+	float				gyro_z;		// Raw data - gyro z
 
 	/* Data before flight to initialize orientation */
 	float 				PitchMean;
@@ -130,13 +145,13 @@ typedef struct {
 } s_position;
 
 
-
 typedef struct {
 	uint16_t 			battery_main_voltage;	// Voltage of main board battery
 	uint16_t 			battery_edf_voltage;	// Voltage of EDF fan battery
 	uint16_t			temperature;			// Temperature
 	uint8_t				humidity;				// Humidity
 	uint32_t			pressure;				// Pressure
+	uint16_t			take_off_alt_m;			// Take off altitude in meters
 
 }s_data;
 

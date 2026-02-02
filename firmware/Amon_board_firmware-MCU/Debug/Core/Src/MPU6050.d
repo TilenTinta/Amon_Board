@@ -1,5 +1,4 @@
 Core/Src/MPU6050.o: ../Core/Src/MPU6050.c ../Core/Inc/MPU6050.h \
- ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -38,8 +37,6 @@ Core/Src/MPU6050.o: ../Core/Src/MPU6050.c ../Core/Inc/MPU6050.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h
 ../Core/Inc/MPU6050.h:
-../Core/Inc/drone_data.h:
-../Core/Inc/data_transcode.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h:

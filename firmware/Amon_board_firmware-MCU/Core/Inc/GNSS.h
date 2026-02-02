@@ -140,6 +140,7 @@ typedef struct {
 // Main GPS packed
 typedef struct {
 
+	uint8_t  	GPS_RX_buffer[426];	// GPS data buffer
 	s_GGA		gga;				// Packet format data - GGA
 	s_GLL		gll;				// Packet format data - GLL
 	s_GSA		gsa;				// Packet format data - GSA

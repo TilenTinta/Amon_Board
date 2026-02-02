@@ -51,7 +51,19 @@ uint8_t BME280_ReadDeviceID(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	}
 	else
 	{
-		return 0; // OK
+		if (reg_data == 0x60)
+		{
+			return 0; // OK
+		}
+		else if (reg_data == 0x58)
+		{
+			return 1; // NOK - wrong sensor
+		}
+		else
+		{
+			return 1; // NOK - no sensor
+		}
+
 	}
 }
 
@@ -147,7 +159,7 @@ uint8_t BME280_Init(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	}
 
 	// Standbay, time IIR filter, 3-wire SPI, Mode; Set value: 0000010 = standbay 0.5ms, IIR 2, off SPI
-	static const uint8_t confData = 0x02;
+	static const uint8_t confData = 0xD0;
 	status = BME280_WriteRegister(dev, CONFIG_BME280, confData);
 
 	if (status != HAL_OK)
@@ -176,7 +188,7 @@ uint8_t BME280_ReadCalibData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> i2cHandle = i2cHandle;
 
 	HAL_StatusTypeDef status;
-	uint8_t CalibData[25] = {};
+	uint8_t CalibData[26] = {};
 
 	status = BME280_ReadRegisters(dev, DIG_T1_1, CalibData, 25);
 
@@ -185,19 +197,19 @@ uint8_t BME280_ReadCalibData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 		return 1;	// NOK
 	}
 
-	dev -> dig_T1 = (uint16_t)(CalibData[1] << 8) | (CalibData[0]);
-	dev -> dig_T2 = (uint16_t)(CalibData[3] << 8) | (CalibData[2]);
-	dev -> dig_T3 = (uint16_t)(CalibData[5] << 8) | (CalibData[4]);
-	dev -> dig_P1 = (uint16_t)(CalibData[7] << 8) | (CalibData[6]);
-	dev -> dig_P2 = (uint16_t)(CalibData[9] << 8) | (CalibData[8]);
-	dev -> dig_P3 = (uint16_t)(CalibData[11] << 8) | (CalibData[10]);
-	dev -> dig_P4 = (uint16_t)(CalibData[13] << 8) | (CalibData[12]);
-	dev -> dig_P5 = (uint16_t)(CalibData[15] << 8) | (CalibData[14]);
-	dev -> dig_P6 = (uint16_t)(CalibData[17] << 8) | (CalibData[16]);
-	dev -> dig_P7 = (uint16_t)(CalibData[19] << 8) | (CalibData[18]);
-	dev -> dig_P8 = (uint16_t)(CalibData[21] << 8) | (CalibData[20]);
-	dev -> dig_P9 = (uint16_t)(CalibData[23] << 8) | (CalibData[22]);
-	dev -> dig_H1 = CalibData[24];
+	dev -> dig_T1 = (uint16_t)((CalibData[1] << 8) | CalibData[0]);
+	dev -> dig_T2 = (int16_t)((CalibData[3] << 8) | CalibData[2]);
+	dev -> dig_T3 = (int16_t)((CalibData[5] << 8) | CalibData[4]);
+	dev -> dig_P1 = (uint16_t)((CalibData[7] << 8) | CalibData[6]);
+	dev -> dig_P2 = (int16_t)((CalibData[9]  << 8) | CalibData[8]);
+	dev -> dig_P3 = (int16_t)((CalibData[11] << 8) | CalibData[10]);
+	dev -> dig_P4 = (int16_t)((CalibData[13] << 8) | CalibData[12]);
+	dev -> dig_P5 = (int16_t)((CalibData[15] << 8) | CalibData[14]);
+	dev -> dig_P6 = (int16_t)((CalibData[17] << 8) | CalibData[16]);
+	dev -> dig_P7 = (int16_t)((CalibData[19] << 8) | CalibData[18]);
+	dev -> dig_P8 = (int16_t)((CalibData[21] << 8) | CalibData[20]);
+	dev -> dig_P9 = (int16_t)((CalibData[23] << 8) | CalibData[22]);
+	dev -> dig_H1 = CalibData[25]; // 0xA1
 
 
 	uint8_t CalibData2[7];
@@ -207,6 +219,7 @@ uint8_t BME280_ReadCalibData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	{
 		return 1;	// NOK
 	}
+
 
 	dev -> dig_H2 = ((uint16_t)CalibData2[1] << 8) | ((uint16_t)CalibData2[0]);
 	dev -> dig_H3 = CalibData2[2];
@@ -299,6 +312,7 @@ uint8_t BME280_ReadPressure(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	uint8_t PressData[3];
 	int32_t RawPressure;
 
+	BME280_ReadTemperature(dev, i2cHandle); // Required because of t_fine
 	status = BME280_ReadRegisters(dev, PRESS_MSB, PressData, 3);
 
 	if (status != HAL_OK)
@@ -470,6 +484,68 @@ uint8_t BME280_ReadAllData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
 	dev -> Hum_Perc = (hum / 1024);
 
 	return 0; // OK
+}
+
+
+
+/*********************************************************************
+* @fn     BME280_PressToAlt
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+*
+* @brief   Covert pressure readings to altitude in meters
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_PressToAlt(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle){
+
+	/*
+	const double p0 = 1013.25;
+    const double R = 287.05;
+    const double g = 9.80665;
+
+    double T = temp_c + 273.15;
+
+    // Saturation vapor pressure (hPa)
+    double es = 6.112 * exp((17.67 * temp_c) / (temp_c + 243.5));
+
+    // Actual vapor pressure
+    double e = (humidity_percent / 100.0) * es;
+
+    // Virtual temperature
+    double Tv = T * (1.0 + 0.61 * (e / pressure_hpa));
+
+    return (R * Tv / g) * log(p0 / pressure_hpa);
+	 */
+
+	float press = (float)dev->Press_Pa / 100.0f;
+	dev->altitude_m = (uint16_t) (44330.0 * (1.0 - pow(press / dev->sea_pressure, 0.1903)));
+	return 0;
+}
+
+
+
+/*********************************************************************
+* @fn     BME280_Altitude_Init
+*
+* @param *dev: struct to device data
+* @param *i2cHandle: i2c handle struct
+* @param known_alt_m: known altitude of takeoff (GPS, map, known takeoff point)
+*
+* @brief   Initialize starting altitude based on known data
+*
+* @return  OK: 0, NOK: 1
+*/
+uint8_t BME280_Altitude_Init(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle, float known_alt_m){
+
+	if (dev == NULL || i2cHandle == NULL || known_alt_m < 0) return 1; // Lets how we are not in the cave/Netherlands
+
+	float pressure_hpa = dev->Press_Pa / 100.0f;
+
+	dev->sea_pressure = pressure_hpa / pow(1.0f - (known_alt_m / 44330.0f), 5.255f);
+
+	return 0;
 }
 
 

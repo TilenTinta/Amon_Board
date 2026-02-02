@@ -1,0 +1,3 @@
+../Core/Src/filters.c:21:6:Complementary_deg	1
+../Core/Src/filters.c:52:6:Kalman_Init	1
+../Core/Src/filters.c:79:7:Kalman_Update	1

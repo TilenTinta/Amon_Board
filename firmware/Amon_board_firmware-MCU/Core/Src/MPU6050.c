@@ -268,38 +268,6 @@ uint8_t MPU6050_ReadFactoryTrim(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle){
 
 
 /*********************************************************************
-* @fn     MPU6050_RawToDeg
-*
-* @param *dev: struct to device data
-* @param *drone: drone data struct
-*
-* @brief   Filter raw data from sensor with complementary filter
-*
-* @return  None
-*/
-void MPU6050_RawToDeg(s_MPU6050 *dev, s_drone_data *drone){
-
-	/* Axis orientation on drone are: X+ points down, Z+ points out of sensor and Y+ points right if you watch drone from the board side */
-	float pitch = 0;
-	float roll = 0;
-
-	/* Calculate drone pitch */
-	pitch = atan(-dev->ACCEL_Z / sqrtf(pow(dev->ACCEL_Y,2) + pow(-dev->ACCEL_X,2))) * (float)(1.0f / (3.14f / 180.0f));
-
-	/* Calculate drone Roll */
-	roll = atan(-dev->ACCEL_Y / sqrtf(pow(dev->ACCEL_Z,2) + pow(-dev->ACCEL_X,2))) * (float)(1.0f / (3.14f / 180.0f));
-
-	/* Complementary Filter */
-	drone->position.Pitch = ALPHA * (drone->position.PitchOld + dev->ACCEL_Y * 0.005) + (1 - ALPHA) * pitch;
-	drone->position.PitchOld = drone->position.Pitch;
-
-	drone->position.Roll = ALPHA * (drone->position.RollOld + dev->ACCEL_Z * 0.005) + (1 - ALPHA) * roll;
-	drone->position.RollOld = drone->position.Roll;
-}
-
-
-
-/*********************************************************************
 * @fn     MPU6050_SelfTest
 *
 * @param *dev: struct to device data

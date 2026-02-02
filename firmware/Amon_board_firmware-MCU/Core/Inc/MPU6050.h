@@ -9,7 +9,6 @@
 #ifndef MPU6050_H_
 #define MPU6050_H_
 
-#include <drone_data.h>
 #include "stm32f4xx_hal.h"					/* For i2c communication */
 #include "math.h"
 
@@ -155,7 +154,7 @@ typedef struct {
 #define Y_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
 #define Z_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
 
-#define ALPHA						0.98	// Alpha value for complementary filter
+
 
 
 /*###########################################################################################################################################################*/
@@ -199,9 +198,6 @@ uint8_t MPU6050_ReadAllDirect(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle);
 
 // Read data in FIFO registers
 uint8_t MPU6050_ReadFIFO(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle);
-
-// Convert raw data to degrees and complementary filter for gyro data
-void MPU6050_RawToDeg(s_MPU6050 *dev, s_drone_data *drone);
 
 // Read device ID register
 uint8_t MPU6050_ReadDeviceID(s_MPU6050 *dev, I2C_HandleTypeDef *i2cHandle);

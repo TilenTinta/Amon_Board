@@ -34,13 +34,16 @@ extern "C" {
 #include "MPU6050.h"
 #include "BME280.h"
 #include "PWM.h"
-#include <GNSS.h>
-#include "drone_data.h"
-#include "data_transcode.h"
+#include "GNSS.h"
 #include "NRF24L01.h"
-
 #include "VL53L1X_api.h"
 #include "VL53L1X_calibration.h"
+
+#include "drone_data.h"
+#include "data_transcode.h"
+#include "filters.h"
+#include "regulators.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

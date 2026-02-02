@@ -126,10 +126,10 @@ uint16_t RGB_BlueMax = 0;
 
 // Battery data
 uint8_t  ADC_DMA_DataRdy = 0;
-uint32_t ADC_BAT_Val[2] = {};
+uint16_t ADC_BAT_Val[2] = {};
 
 // GPS data
-uint8_t  USART4_GPSRX[426] = {"\0"};
+uint8_t  USART4_GPSRX_DMA[426] = {"\0"};
 uint8_t  NewGPSData = 0;
 
 // Timers IRQ enable flag
@@ -140,16 +140,20 @@ uint8_t  Reg200HzLoopEN = 0;
 
 
 /* STRUCTS */
-s_MPU6050 mpu6050; 			// MPU6050 device driver
-s_BME280 bme280;			// bme280 device driver
-VL53L1_DEV vl53l1Dev;		// VL53L1 device driver
+s_MPU6050 	mpu6050; 		// MPU6050 device driver
+s_BME280 	bme280;			// bme280 device driver
+VL53L1_DEV 	vl53l1Dev;		// VL53L1 device driver
 //VL53L1X_Version_t vl53l1xVersion_t; // Lidar - unused
 //VL53L1X_Result_t vl53l1xResult_t; // Lidar - unused
-s_nRF24L01 radio1;			// nRF24L01 device driver
-s_nRF24L01 radio2;			// nRF24L01 device driver
+s_nRF24L01 	radio1;			// nRF24L01 device driver
+s_nRF24L01 	radio2;			// nRF24L01 device driver
 s_drone_data AmonDrone; 	// All drone data
-s_packets data_packets;		// Data structure for communication packets
-s_GPS gps;					// Decoded GPS data - packet type in struct
+s_packets 	data_packets;	// Data structure for communication packets
+s_GPS 		gps;			// Decoded GPS data - packet type in struct
+
+s_Kalman	kalman_pitch;	// Kalman values for pitch
+s_Kalman	kalman_roll;	// Kalman values for roll
+s_Kalman	kalman_yaw;		// Kalman values for yaw
 
 
 /* USER CODE END 0 */
@@ -201,9 +205,6 @@ int main(void)
 
   // Init
   AmonDrone.DroneStatus = 0;
-  AmonDrone.position.PitchOld = 0;
-  AmonDrone.position.RollOld = 0;
-
 
   // Radio 1 configurations (application specific)
   static const s_nrf_config radio_tx_normal_cfg = {
@@ -411,13 +412,14 @@ int main(void)
 		// STATE: Drone IS connected with ground station
 		case CONN_STATUS_CONNECTED:
 
-			// TX packets - telemetry send
+			// TX packets - telemetry send / stream
 			if (AmonDrone.radio_data.flag_telemetry_send == 1 && AmonDrone.radio_data.flag_new_rf_tx_data == 0)
 			{
 				AmonDrone.radio_data.flag_telemetry_send = 0;
 				packet_create_telemetry(&data_packets, &AmonDrone);
 				memset(radio1.buffers.TX_FIFO, 0, sizeof(radio1.buffers.TX_FIFO));
 				RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
+				//radio1.flag_tx_in_progress = 0;
 				NRF24_Send(&radio1);
 			}
 
@@ -445,7 +447,14 @@ int main(void)
 			  Reg200HzLoopEN = 0;
 
 			  MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
-			  MPU6050_RawToDeg(&mpu6050, &AmonDrone); // calculate data to pitch and roll (and yaw)
+			  Complementary_deg(&mpu6050, &AmonDrone); // calculate data to pitch and roll (and yaw)
+			  AmonDrone.position.gyroTemp = (uint16_t)mpu6050.Temp_C;
+			  AmonDrone.position.accel_x = mpu6050.ACCEL_X;
+			  AmonDrone.position.accel_y = mpu6050.ACCEL_Y;
+			  AmonDrone.position.accel_z = mpu6050.ACCEL_Z;
+			  AmonDrone.position.gyro_x = mpu6050.GYRO_X;
+			  AmonDrone.position.gyro_y = mpu6050.GYRO_Y;
+			  AmonDrone.position.gyro_z = mpu6050.GYRO_Z;
 
 		  }
 
@@ -455,24 +464,29 @@ int main(void)
 		  {
 			  Reg50HzLoopEN = 0;
 
-			  uint8_t dataRdy = 0;
-			  while(dataRdy == 0)
+			  static uint8_t dataRdy = 0;
+//			  while(dataRdy == 0)
+//			  {
+//				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
+//			  }
+//			  dataRdy = 0;
+			  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
+			  if (dataRdy)
 			  {
-				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
+				  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.height_TOF_cm);
+				  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
 			  }
-			  dataRdy = 0;
-			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.height_TOF_cm);
-			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
-			  // TODO Read other sensors...
 
 			  // BME280
 			  BME280_ReadAllData(&bme280, &hi2c3);
+			  BME280_PressToAlt(&bme280, &hi2c3);
 			  AmonDrone.data.temperature = (uint16_t)bme280.Temp_C;
 			  AmonDrone.data.humidity = (uint8_t)bme280.Hum_Perc;
 			  AmonDrone.data.pressure = bme280.Press_Pa;
+			  AmonDrone.position.height_baro_m = bme280.altitude_m;
 
 			  // Start ADC DMA (read analog value)
-			  HAL_ADC_Start_DMA(&hadc1, ADC_BAT_Val, 2);
+			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_BAT_Val, 2);
 
 			  // Send telemetry packet if stream mode is on - test
 			  if (AmonDrone.radio_data.flag_stream_data)
@@ -536,32 +550,33 @@ int main(void)
 
 		  if (NewGPSData == 1)
 		  {
+			  NewGPSData = 0;
+			  memcpy(USART4_GPSRX_DMA, gps.GPS_RX_buffer, sizeof(USART4_GPSRX_DMA));
+			  memset(USART4_GPSRX_DMA, 0, sizeof(USART4_GPSRX_DMA));
 
 	#ifdef USE_GPS_GGA
-			  GPS_Decode_GGA(USART4_GPSRX, &gps, &AmonDrone);
+			  GPS_Decode_GGA(gps.GPS_RX_buffer, &gps, &AmonDrone);
 	#endif
 
 	#ifdef USE_GPS_GLL
-			  GPS_Decode_GLL(USART4_GPSRX, &gps, &AmonDrone);
+			  GPS_Decode_GLL(gps.GPS_RX_buffer, &gps, &AmonDrone);
 	#endif
 
 	#ifdef USE_GPS_GSA
-			  GPS_Decode_GSA(USART4_GPSRX, &gps, &AmonDrone);
+			  GPS_Decode_GSA(gps.GPS_RX_buffer, &gps, &AmonDrone);
 	#endif
 
 	#ifdef USE_GPS_GSV
-			  GPS_Decode_GSV(USART4_GPSRX, &gps, &AmonDrone);
+			  GPS_Decode_GSV(gps.GPS_RX_buffer, &gps, &AmonDrone);
 	#endif
 
 	#ifdef USE_GPS_RMC
-			  GPS_Decode_RMC(USART4_GPSRX, &gps, &AmonDrone);
+			  GPS_Decode_RMC(gps.GPS_RX_buffer, &gps, &AmonDrone);
 	#endif
 
 	#ifdef USE_GPS_VTG
-			  GPS_Decode_VTG(USART4_GPSRX, &gps, &AmonDrone);
+			  GPS_Decode_VTG(gps.GPS_RX_buffer, &gps, &AmonDrone);
 	#endif
-
-			  NewGPSData = 0;
 		  }
 #endif
 	  }
@@ -623,7 +638,7 @@ int main(void)
 		HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // RGB (50Hz)
 
 		/* Read both batteries and save in drone data struct */
-		HAL_ADC_Start_DMA(&hadc1, ADC_BAT_Val, 2); 		// Start ADC DMA (read analog value)
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_BAT_Val, 2); 		// Start ADC DMA (read analog value)
 
 		while(ADC_DMA_DataRdy == 0);
 		AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
@@ -646,6 +661,10 @@ int main(void)
 		status += BME280_ReadDeviceID(&bme280, &hi2c3);
 		status += BME280_ReadCalibData(&bme280, &hi2c3);
 		status += BME280_Init(&bme280, &hi2c3);
+		HAL_Delay(100);
+		status += BME280_ReadAllData(&bme280, &hi2c3);
+		if (AmonDrone.data.take_off_alt_m == 0) AmonDrone.data.take_off_alt_m = ALTITUDE_M;
+		status += BME280_Altitude_Init(&bme280, &hi2c3, AmonDrone.data.take_off_alt_m);
 
 		/* MPU6050 */
 		status += MPU6050_ReadDeviceID(&mpu6050, &hi2c3);
@@ -745,7 +764,7 @@ int main(void)
 #ifndef CALIBRATION
 
 		// Do not enable UART DMA if calibrating
-		HAL_UART_Receive_DMA(&huart4, USART4_GPSRX, sizeof(USART4_GPSRX)); //426
+		HAL_UART_Receive_DMA(&huart4, USART4_GPSRX_DMA, sizeof(USART4_GPSRX_DMA)); //426
 
 #endif
 
@@ -1573,7 +1592,7 @@ static void MX_GPIO_Init(void)
 // UART interrupt
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	HAL_UART_Receive_DMA(&huart4, USART4_GPSRX, 426); // enable USART Receive again
+	HAL_UART_Receive_DMA(&huart4, USART4_GPSRX_DMA, 426); // enable USART Receive again
 	NewGPSData = 1;		// set flag that new data has arrived
 }
 
@@ -1713,9 +1732,9 @@ void StatusLED(uint8_t Status)
 // Reading voltage of main board battery
 uint16_t ADC_Read_Main_Battery()
 {
-	uint16_t adcVal = ADC_BAT_Val[0];
-	float temp = ((float)adcVal * 3.3) / 4095;
-	float voltage = (((100000+10000)/10000) * temp);
+	uint16_t adcVal = ADC_BAT_Val[1];
+	float temp = ((float)adcVal * MAIN_BOARD_V) / 4095;
+	float voltage = (R1_MAIN_BAT + R2_MAIN_BAT) * (temp / R2_MAIN_BAT);
 
 	return (uint16_t)(voltage*100);
 }
@@ -1724,7 +1743,7 @@ uint16_t ADC_Read_Main_Battery()
 // Reading voltage of EDF battery
 uint16_t ADC_Read_EDF_Battery()
 {
-	uint16_t adcVal = ADC_BAT_Val[1];
+	uint16_t adcVal = ADC_BAT_Val[0];
 	float temp = ((float)adcVal * 3.3) / 4095;
 	float voltage = (((100000+10000)/10000) * temp);
 

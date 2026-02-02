@@ -10,6 +10,7 @@
 #define BME280_H_
 
 #include "stm32f4xx_hal.h"					/* For i2c communication */
+#include <math.h>
 
 
 /*###########################################################################################################################################################*/
@@ -79,46 +80,46 @@
 #define DIG_H2_2			0xE2
 #define DIG_H3				0xE3
 #define DIG_H4_1			0xE4
-#define DIG_H4_2			0xE5	/* 3:0 */
-#define DIG_H5_1			0xE5	/* 7:4 */
-#define DIG_H5_2			0xE6	/* 11:8 */
+#define DIG_H4_2			0xE5		/* 3:0 */
+#define DIG_H5_1			0xE5		/* 7:4 */
+#define DIG_H5_2			0xE6		/* 11:8 */
+
 
 /*###########################################################################################################################################################*/
 /* Structs */
 
 typedef struct {
 
-	I2C_HandleTypeDef *i2cHandle;	/* i2c Handle */
+	I2C_HandleTypeDef 	*i2cHandle;		/* i2c Handle */
 
-	int32_t Temp_C;		/* Temperature value in Celsius */
-
-	uint32_t Hum_Perc;		/* Humidity value in percents */
-
-	uint32_t Press_Pa;		/* Pressure value in Pascals */
-
-	int32_t t_fine;
+	int32_t 			Temp_C;			/* Temperature value in Celsius */
+	uint32_t 			Hum_Perc;		/* Humidity value in percents */
+	uint32_t 			Press_Pa;		/* Pressure value in Pascals */
+	int32_t 			t_fine;			/* Temperature used for measurements correction */
+	uint16_t 			altitude_m;		/* Altitude calculated from pressure */
+	float 				sea_pressure;	/* Current calculated pressure at sea level */
 
 	/* Calibration data from sensor */
-	unsigned short dig_T1;
-	signed short dig_T2;
-	signed short dig_T3;
+	unsigned short 		dig_T1;
+	signed short 		dig_T2;
+	signed short 		dig_T3;
 
-	unsigned short dig_P1;
-	signed short dig_P2;
-	signed short dig_P3;
-	signed short dig_P4;
-	signed short dig_P5;
-	signed short dig_P6;
-	signed short dig_P7;
-	signed short dig_P8;
-	signed short dig_P9;
+	unsigned short 		dig_P1;
+	signed short 		dig_P2;
+	signed short 		dig_P3;
+	signed short 		dig_P4;
+	signed short 		dig_P5;
+	signed short 		dig_P6;
+	signed short 		dig_P7;
+	signed short 		dig_P8;
+	signed short 		dig_P9;
 
-	unsigned char dig_H1;
-	signed short dig_H2;
-	unsigned char dig_H3;
-	signed short dig_H4;
-	signed short dig_H5;
-	signed char dig_H6;
+	unsigned char 		dig_H1;
+	signed short 		dig_H2;
+	unsigned char 		dig_H3;
+	signed short 		dig_H4;
+	signed short 		dig_H5;
+	signed char 		dig_H6;
 
 } s_BME280;
 
@@ -149,5 +150,11 @@ uint8_t BME280_ReadAllData(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle);
 
 // Reset device
 uint8_t BME280_Reset(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle);
+
+// Calculate altitude from pressure
+uint8_t BME280_PressToAlt(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle);
+
+// Calculate starting point of pressure
+uint8_t BME280_Altitude_Init(s_BME280 *dev, I2C_HandleTypeDef *i2cHandle, float known_alt_m);
 
 #endif /* BME280_H_ */

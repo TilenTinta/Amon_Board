@@ -3,4 +3,4 @@
 ../Core/Src/drone_data.c:159:13:packet_create_pair_start	1
 ../Core/Src/drone_data.c:182:13:packet_create_pair_status	1
 ../Core/Src/drone_data.c:204:13:packet_create_ping_pong	1
-../Core/Src/drone_data.c:226:6:packet_create_telemetry	5
+../Core/Src/drone_data.c:226:6:packet_create_telemetry	7

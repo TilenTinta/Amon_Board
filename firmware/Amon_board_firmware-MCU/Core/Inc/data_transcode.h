@@ -129,10 +129,11 @@ extern "C" {
 
 #define TVL_THP					0x30	// Temperature, humidity, pressure (i16, u8, u16)
 #define TVL_ANGL           		0x31    // Roll/pitch/yaw (i16 each, deg*100)
-#define TVL_ALT					0x32	// Attitude cm (u16)
+#define TVL_ALT					0x32	// Altitude cm (u16)
 #define TVL_IMU                 0x33    // IMU raw ax/ay/az,gx/gy/gz (i16 each)
 #define TVL_IMU_TEMP			0x34	// IMU temperature
 #define TVL_GPS                 0x35    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
+#define TVL_ALT_PRESS			0x36	// Altitude in m from pressure
 
 // TODO: TBD
 

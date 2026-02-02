@@ -5,6 +5,7 @@
 "./Core/Src/PWM.o"
 "./Core/Src/data_transcode.o"
 "./Core/Src/drone_data.o"
+"./Core/Src/filters.o"
 "./Core/Src/main.o"
 "./Core/Src/regulators.o"
 "./Core/Src/stm32f4xx_hal_msp.o"
