@@ -1,0 +1,11 @@
+../Core/Src/logging.c:67:24:log_addr	1
+../Core/Src/logging.c:89:5:log_flash_read	3
+../Core/Src/logging.c:116:5:log_flash_prog	5
+../Core/Src/logging.c:143:5:log_flash_erase	1
+../Core/Src/logging.c:167:5:log_flash_sync	1
+../Core/Src/logging.c:183:6:log_init	2
+../Core/Src/logging.c:216:6:log_test_write	1
+../Core/Src/logging.c:238:6:log_test_read	1
+../Core/Src/logging.c:269:6:log_list_files	1
+../Core/Src/logging.c:290:6:log_flush	1
+../Core/Src/logging.c:309:6:log_add_sample	2
