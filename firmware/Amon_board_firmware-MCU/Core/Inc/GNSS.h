@@ -9,11 +9,13 @@
 #ifndef INC_GNSS_H_
 #define INC_GNSS_H_
 
-#include <drone_data.h>
 #include "stm32f4xx_hal.h"
 
 /*###########################################################################################################################################################*/
 /* Structs */
+
+// Used hardware
+//	- NEO-6M
 
 // GPS sub-packed - GGA format
 typedef struct {
@@ -33,7 +35,6 @@ typedef struct {
 	uint8_t		AgeOfDiffCorr;		// can be null(when DGPS not used) (unit: sec)
 	uint8_t		DiffRefStationId;	// 0000
 	uint8_t 	checksum;			// checksum
-
 } s_GGA;
 
 
@@ -48,7 +49,6 @@ typedef struct {
 	char 		Status;				// A=data valid / V=data not valid
 	char 		Mode;				// A = Autonomous, D = DGPS, E = DR (Only present in NMEA v3.00)
 	uint8_t 	checksum;			// chacksum
-
 } s_GLL;
 
 
@@ -74,7 +74,6 @@ typedef struct {
 	float 		HDOP;				// Horizontal Dilution of Precision
 	float 		VDOP;				// Vertical Dilution of Precision
 	uint8_t 	checksum;			// chacksum
-
 } s_GSA;
 
 
@@ -113,7 +112,6 @@ typedef struct {
 	char 		MagEWIndicator;		// E=east
 	char 		Mode;				// A = Autonomous, D = DGPS, E = DR
 	uint8_t 	checksum;			// chacksum
-
 } s_RMC;
 
 
@@ -131,7 +129,6 @@ typedef struct {
 	char 		UnitsKmH;			// K = km / h
 	char 		Mode;				// A = Autonomous, D = DGPS, E = DR
 	uint8_t 	checksum;			// chacksum
-
 } s_VTG;
 
 
@@ -139,27 +136,25 @@ typedef struct {
 
 // Main GPS packed
 typedef struct {
-
 	uint8_t  	GPS_RX_buffer[426];	// GPS data buffer
-	s_GGA		gga;				// Packet format data - GGA
-	s_GLL		gll;				// Packet format data - GLL
-	s_GSA		gsa;				// Packet format data - GSA
-	s_GSV		gsv;				// Packet format data - GSV
-	s_RMC		rmc;				// Packet format data - RMC
-	s_VTG		vtg;				// Packet format data - VTG
-
-} s_GPS;
+	s_GGA		gga;				// Packet format data - GGA (Position + altitude)
+	s_GLL		gll;				// Packet format data - GLL (Lat/Lon)
+	s_GSA		gsa;				// Packet format data - GSA (Fix type + DOP)
+	s_GSV		gsv;				// Packet format data - GSV (SNR, elevation)
+	s_RMC		rmc;				// Packet format data - RMC (Position + speed + time)
+	s_VTG		vtg;				// Packet format data - VTG (Speed over ground)
+} s_GNSS;
 
 
 
 /*###########################################################################################################################################################*/
 /* Functions */
 
-void GPS_Decode_GGA(uint8_t *GPSData, s_GPS *gps_gga, s_drone_data *AmonDrone);
-void GPS_Decode_GLL(uint8_t *GPSData, s_GPS *gps_gll, s_drone_data *AmonDrone);
-void GPS_Decode_GSA(uint8_t *GPSData, s_GPS *gps_gll, s_drone_data *AmonDrone);
-void GPS_Decode_GSV(uint8_t *GPSData, s_GPS *gps_gll, s_drone_data *AmonDrone);
-void GPS_Decode_RMC(uint8_t *GPSData, s_GPS *gps_gll, s_drone_data *AmonDrone);
-void GPS_Decode_VTG(uint8_t *GPSData, s_GPS *gps_gll, s_drone_data *AmonDrone);
+void GPS_Decode_GGA(uint8_t *GPSData, s_GGA *gps_gga);
+void GPS_Decode_GLL(uint8_t *GPSData, s_GLL *gps_gll);
+void GPS_Decode_GSA(uint8_t *GPSData, s_GSA *gps_gsa);
+void GPS_Decode_GSV(uint8_t *GPSData, s_GSV *gps_gsv);
+void GPS_Decode_RMC(uint8_t *GPSData, s_RMC *gps_rmc);
+void GPS_Decode_VTG(uint8_t *GPSData, s_VTG *gps_vtg);
 
 #endif /* INC_GNSS_H_ */

@@ -72,11 +72,14 @@ extern "C" {
 #define CODE_DATA_WRITEN        0x10    // Succesfuly writen data packet
 
 // TRANSCODE RETURN
-#define TRANSCODE_OK            0x00    // No error / no response
+#define TRANSCODE_OK            0x00    // No error / no response / not used
 #define TRANSCODE_CRC_ERR       0x01    // CRC error
 #define TRANSCODE_VER_ERR       0x02    // Packet version error
 #define TRANSCODE_DEST_ERR      0x03    // Destination address error
 #define TRANSCODE_BROADCAST     0x04    // Broadcast command
+#define TRANSCODE_DEST_LINK     0x05    // Link command
+#define TRANSCODE_DEST_RF       0x06    // Packet for RF transmition
+#define TRANSCODE_DEST_PC       0x07    // Packet for PC-UART transmition
 #define TRANSCODE_BOOT_PKT      0x0A    // Bootloader packet received
 
 // Address / IDs (1 byte)
@@ -126,6 +129,7 @@ extern "C" {
 #define TVL_ERR                 0x22    // Error code (u8) + detail (optional ascii)
 #define TVL_DATE_TIME			0x23	// Date and time aquired from gps
 #define TVL_TLM					0x24	// Telemetry frequency
+#define TVL_FLIGHT_MODE			0x25	// Flight state
 
 #define TVL_THP					0x30	// Temperature, humidity, pressure (i16, u8, u16)
 #define TVL_ANGL           		0x31    // Roll/pitch/yaw (i16 each, deg*100)
@@ -133,9 +137,15 @@ extern "C" {
 #define TVL_IMU                 0x33    // IMU raw ax/ay/az,gx/gy/gz (i16 each)
 #define TVL_IMU_TEMP			0x34	// IMU temperature
 #define TVL_GPS                 0x35    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
-#define TVL_ALT_PRESS			0x36	// Altitude in m from pressure
-
 // TODO: TBD
+
+#define TVL_STATE_STARTUP       0x40    // Drone state - startup (OPT_DRONE_SET_STATE)
+#define TVL_STATE_IDLE          0x41    // Drone state - idel (OPT_DRONE_SET_STATE)
+#define TVL_STATE_ERROR         0x42    // Drone state - error (OPT_DRONE_SET_STATE)
+#define TVL_STATE_ARM           0x43    // Drone state - arm (OPT_DRONE_SET_STATE)
+#define TVL_STATE_FLY           0x44    // Drone state - fly (OPT_DRONE_SET_STATE)
+#define TVL_STATE_FLY_OVER      0x45    // Drone state - fly_over (OPT_DRONE_SET_STATE)
+#define TVL_STATE_CALIB         0x46    // Drone state - calib (OPT_DRONE_SET_STATE)
 
 /*###########################################################################################################################################################*/
 /* Structs */

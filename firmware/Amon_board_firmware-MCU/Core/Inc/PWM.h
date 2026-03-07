@@ -28,7 +28,7 @@
  */
 
 // Offsets on motor to make them straight
-#define SERVO_XP_OFFSET 	-3
+#define SERVO_XP_OFFSET 	-2
 #define SERVO_XN_OFFSET 	1
 #define SERVO_YP_OFFSET 	-3
 #define SERVO_YN_OFFSET 	0

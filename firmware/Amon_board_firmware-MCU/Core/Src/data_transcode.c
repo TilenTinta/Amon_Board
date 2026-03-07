@@ -21,6 +21,47 @@ static void packetDataReset(void);
 
 
 /*********************************************************************
+ * @fcn     crc16_cal
+ *
+ * @param *data: pointer to data over which you want to calculate crc
+ * @param lenght: lenght of data you provide to function
+ *
+ * @brief   Calculates 2 byte crc over data
+ *          Modbus RTU-style CRC-16 algorithm
+ *          x^16 + x^15 + x^2 + 1
+ *          https://ctlsys.com/support/how_to_compute_the_modbus_rtu_message_crc/
+ *
+ * @return  crc value
+ */
+uint16_t crc16_cal(const uint8_t *data, uint16_t length)
+{
+    uint16_t crc = 0xFFFF;                  // don't start with zero, this would make some leading zeros in data invisible
+
+    for (uint16_t i = 0; i < length; i++)
+    {
+        crc ^= *(data+i);                   // XOR byte into least sig. byte of crc
+
+        for (uint8_t j = 8; j != 0; j--)    // Loop over each bit
+        {
+            if ((crc & 0x0001) != 0)        // If the LSB is set
+            {
+                crc >>= 1;                  // Shift right and XOR 0xA001
+                crc ^= 0xA001;
+            }
+            else                            // Else LSB is not set
+            {
+                crc >>= 1;                  // Just shift right
+            }
+        }
+    }
+
+    // Note, this number has low and high bytes swapped, so use it accordingly
+    return crc;
+}
+
+
+
+/*********************************************************************
  * @fn      UART_packetDataReset
  *
  * @brief   Clear data in all packet structs
@@ -212,33 +253,19 @@ uint8_t UART_decode(uint8_t *raw_uart_data, s_packets *packets, uint8_t *rf_tx_f
 
         // Destination device: link main application
         case ID_LINK_SW:
-            //...
-            return TRANSCODE_OK;
+            return TRANSCODE_DEST_ERR;
             break;
 
         // Destination device: drone
         case ID_DRONE:
 
-            *rf_tx_flag = 1;    // indicate that new data to send is available
-            
-            // save in fields of RF packet
-            packets->rf_packet.version = packets->uart_packet.version;
-            packets->rf_packet.flags = packets->uart_packet.flags;
-            packets->rf_packet.src_id = packets->uart_packet.src_id;
-            packets->rf_packet.dest_id = packets->uart_packet.dest_id;
-            packets->rf_packet.opcode = packets->uart_packet.opcode;
-            packets->rf_packet.plen = packets->uart_packet.plen;
-            for (int i = 0; i < packets->uart_packet.plen; i++)
-            {
-                packets->rf_packet.payload[i] = packets->uart_packet.payload[i];
-            }
 
             return TRANSCODE_OK;
             break;
 
         // Destination device: broadcast - triger connecting/search...
         case ID_BROADCAST:
-            return TRANSCODE_BROADCAST;
+            return TRANSCODE_DEST_ERR;
             break;
 
         default:
@@ -380,41 +407,4 @@ void RF_encode(s_packets *packets, uint8_t *raw_rf_data, uint8_t *tx_lenght)
 
 
 
-/*********************************************************************
- * @fcn     crc16_cal
- *
- * @param *data: pointer to data over which you want to calculate crc
- * @param lenght: lenght of data you provide to function
- *
- * @brief   Calculates 2 byte crc over data
- *          Modbus RTU-style CRC-16 algorithm
- *          x^16 + x^15 + x^2 + 1
- *          https://ctlsys.com/support/how_to_compute_the_modbus_rtu_message_crc/
- *
- * @return  crc value
- */
-uint16_t crc16_cal(const uint8_t *data, uint16_t length)
-{
-    uint16_t crc = 0xFFFF;                  // don't start with zero, this would make some leading zeros in data invisible
 
-    for (uint16_t i = 0; i < length; i++)
-    {
-        crc ^= *(data+i);                   // XOR byte into least sig. byte of crc
-
-        for (uint8_t j = 8; j != 0; j--)    // Loop over each bit
-        {
-            if ((crc & 0x0001) != 0)        // If the LSB is set
-            {
-                crc >>= 1;                  // Shift right and XOR 0xA001
-                crc ^= 0xA001;
-            }       
-            else                            // Else LSB is not set
-            {
-                crc >>= 1;                  // Just shift right
-            }                            
-        }
-    }
-    
-    // Note, this number has low and high bytes swapped, so use it accordingly
-    return crc;
-}

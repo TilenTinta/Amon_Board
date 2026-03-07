@@ -42,13 +42,16 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o: \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
  ../Core/Inc/MPU6050.h ../Core/Inc/BME280.h ../Core/Inc/PWM.h \
- ../Core/Inc/GNSS.h ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h \
  ../Core/Inc/NRF24L01.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_calibration.h \
- ../Core/Inc/drone_data.h ../Core/Inc/filters.h ../Core/Inc/regulators.h \
+ ../Core/Inc/logging.h ../Core/Inc/flash_W25QXXX.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h \
+ ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
+ ../Core/Inc/filters.h ../Core/Inc/regulators.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h \
@@ -98,15 +101,18 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o: \
 ../Core/Inc/MPU6050.h:
 ../Core/Inc/BME280.h:
 ../Core/Inc/PWM.h:
-../Core/Inc/GNSS.h:
-../Core/Inc/drone_data.h:
-../Core/Inc/data_transcode.h:
 ../Core/Inc/NRF24L01.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_calibration.h:
+../Core/Inc/logging.h:
+../Core/Inc/flash_W25QXXX.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h:
 ../Core/Inc/drone_data.h:
+../Core/Inc/data_transcode.h:
+../Core/Inc/GNSS.h:
 ../Core/Inc/filters.h:
 ../Core/Inc/regulators.h:
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h:

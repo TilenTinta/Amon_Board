@@ -33,8 +33,35 @@ void PowerToPWMValue(uint8_t power);
 void DegresToCCR(float degrees, uint8_t Servo)
 {
 	// Clamp degrees
-	if (degrees < 0.0f)   degrees = 0.0f;
-	if (degrees > 180.0f) degrees = 180.0f;
+	if (degrees < -90.0f)   degrees = -90.0f;
+	if (degrees > 90.0f) degrees = 90.0f;
+
+	// Add offset and zero correction
+	switch(Servo)
+	{
+		case SERVO_XN:			// X-
+			degrees = degrees + SERVOS_ZERO + SERVO_XN_OFFSET;
+			break;
+
+		case SERVO_XP:			// X+
+			degrees = degrees + SERVOS_ZERO + SERVO_XP_OFFSET;
+			break;
+
+		case SERVO_YN:			// Y-
+			degrees = degrees + SERVOS_ZERO + SERVO_YN_OFFSET;
+			break;
+
+		case SERVO_YP:			// Y+
+			degrees = degrees + SERVOS_ZERO + SERVO_YP_OFFSET;
+			break;
+
+		case PWM_EDF:			// EDF
+			degrees = degrees + PWM_EDF;
+			break;
+
+		default:
+			break;
+		}
 
 	// Calculate degrees to CCR value (capture and compare register)
 	float pulse_us = SERVO_MIN_US + (degrees / 180.0f) * SERVO_RANGE_US;

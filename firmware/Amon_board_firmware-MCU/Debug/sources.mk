@@ -41,6 +41,7 @@ SUBDIRS := \
 Core/Src \
 Core/Startup \
 Drivers/STM32F4xx_HAL_Driver/Src \
+Drivers/littlefs \
 Drivers/vl53l1x/core \
 Drivers/vl53l1x/platform \
 FATFS/App \

@@ -3,27 +3,34 @@
  * Author             : Tinta T.
  * Version            : V1.0.0
  * Date               : 2023/05/17
- * Description        : All drone data and variables
+ * Description        : All drone data and data logic for telemetry
 *****************************************************************/
 
 #ifndef INC_DRONE_DATA_H_
 #define INC_DRONE_DATA_H_
 
 #include <stdint.h>
+#include <math.h>
 #include "data_transcode.h"
-//#include "GNSS.h"
+#include "GNSS.h"
 
 
 /*###########################################################################################################################################################*/
 /* Defines */
 
+// Calibration
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode
-#define CAL_GYRO_X			0
-#define CAL_GYRO_Y			0
-#define CAL_GYRO_Z			0
-#define CAL_ACCEL_X			0
-#define CAL_ACCEL_Y			0
-#define CAL_ACCEL_Z			0
+
+#define TUNE_KALMAN
+#ifdef TUNE_KALMAN
+	#define CAL_GYRO_X			1
+	#define CAL_GYRO_Y			1
+	#define CAL_GYRO_Z			1
+	#define CAL_ACCEL_X			1
+	#define CAL_ACCEL_Y			1
+	#define CAL_ACCEL_Z			1
+#endif
+
 #define CAL_PITCH			0
 #define CAL_ROLL			0
 #define CAL_LIDAR			0
@@ -46,26 +53,22 @@
 
 #define ALTITUDE_M			98		// Height where drone will take off
 
+#define MAIN_BOARD_V		3.3		// Main board voltage
 #define R1_MAIN_BAT			100000	// Voltage divider resistor R1 - main battery
 #define R2_MAIN_BAT		 	10000	// Voltage divider resistor R2 - main battery
 #define R1_EDF_BAT			100000	// Voltage divider resistor R1 - EDF battery
 #define R2_EDF_BAT		 	10000	// Voltage divider resistor R2 - EDF battery
 
-#define MAIN_BOARD_V		3.3		// Main board voltage
+#define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
+
+#define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
+
+#define LOG_ENABLE					// Enable logging of telemetry data
 
 
 
 /*###########################################################################################################################################################*/
 /* Structs and enums */
-
-//typedef enum {
-//	SERVO_XP = 1,
-//	SERVO_XN = 2,
-//	SERVO_YP = 3,
-//	SERVO_YN = 4,
-//	PWM_EDF = 5
-//}e_servos;
-
 
 // Drone: status
 typedef enum {
@@ -75,8 +78,17 @@ typedef enum {
 	STATUS_ARM,							// State before flight
 	STATUS_FLY,							// Flying
 	STATUS_FLY_OVER,					// After slight
-	STATUS_GYRO_CALIB					// When calibrating gyro, not for flight
+	STATUS_CALIB						// When calibrating gyro, not for flight
 } e_drone_status;
+
+
+// Drone flight status
+typedef enum {
+	STATUS_FLIGHT_GROUND,				// Drone still on the ground
+	STATUS_FLIGHT_TAKEOFF,				// Take-off event
+	STATUS_FLIGHT_FLYING,				// Flying
+	STATUS_FLIGHT_LANDING				// Landing event
+} e_flight_status;
 
 
 // Drone: date-time
@@ -113,7 +125,6 @@ typedef struct {
 
     // PC -> Drone and Drone -> PC //
     uint8_t     		data_buffer[64];        // Buffer for saving data
-
 } s_radios;
 
 
@@ -132,28 +143,38 @@ typedef struct {
 	float				gyro_z;		// Raw data - gyro z
 
 	/* Data before flight to initialize orientation */
-	float 				PitchMean;
-	float 				RollMean;
+//	float 				PitchMean;
+//	float 				RollMean;
 
 	/* Height of drone (when on ground the height is 0, offset on sensor set to 130mm) */
-	uint16_t 			height_TOF_cm;
+	uint16_t 			height_TOF_mm;
 	uint16_t			height_baro_m;
 
 	// Compass
 	uint16_t			heading_deg;
-
 } s_position;
 
 
+// Drone: environment and vehicle status
 typedef struct {
+	uint16_t			bat_main_v[10];			// Main battery voltage averaging array
+	uint16_t			bat_edf_v[10];			// EDF battery voltage averaging array
 	uint16_t 			battery_main_voltage;	// Voltage of main board battery
 	uint16_t 			battery_edf_voltage;	// Voltage of EDF fan battery
 	uint16_t			temperature;			// Temperature
 	uint8_t				humidity;				// Humidity
 	uint32_t			pressure;				// Pressure
 	uint16_t			take_off_alt_m;			// Take off altitude in meters
-
 }s_data;
+
+
+typedef struct {
+	uint8_t				buffer_temp[2];			// Small buffer for received byte
+    uint8_t     		buffer_UART[64];        // Buffer for saving USB data
+    uint8_t     		flag_new_uart_rx_data;  // Flag indicating a new data has arrived (packet is not complete)
+    uint8_t     		flag_new_uart_tx_data;  // Flag indicating a new data is ready to send
+    uint8_t     		flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
+} s_uart_buffers;
 
 
 // Drone: Error codes
@@ -165,25 +186,24 @@ typedef struct {
 	uint8_t				err_vl53l1x;			// Error flag - vl53l1x sensor error
 	uint8_t				err_radio1;				// Error flag - radio1 / nrf24l01 radio error
 	uint8_t				err_radio2;				// Error flag - radio2 / nrf24l01 radio error
-
 } s_errors;
 
 
 typedef struct {
-
 	/* Base data */
 	volatile e_drone_status DroneStatus;	 	// Status of drone
+	volatile e_flight_status flight_status;		// Status of drone when flying
 	s_date_time 		date_time;				// Current time - GPS
 	s_errors			error_code;				// Error codes of drone
+	s_uart_buffers		uart_buffer;			// Buffer for uart data
 
 	/* Radio */
 	s_radios			radio_data;				// All data for radio communication
 
 	/* Data */
 	s_position			position;				// Drone position (angled, speed, etc.)
-	//s_GPS				gps_data;				// GPS data
+	s_GNSS				gps_data;				// GPS data
 	s_data				data;					// Other drone data (batterys, temp, hum, press...)
-
 
 } s_drone_data;
 

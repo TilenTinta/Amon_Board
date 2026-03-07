@@ -34,6 +34,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define RGB_MAX 500      // match your PWM max
+#define STEP    1        // speed of transition
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -140,20 +144,19 @@ uint8_t  Reg200HzLoopEN = 0;
 
 
 /* STRUCTS */
-s_MPU6050 	mpu6050; 		// MPU6050 device driver
-s_BME280 	bme280;			// bme280 device driver
-VL53L1_DEV 	vl53l1Dev;		// VL53L1 device driver
+s_MPU6050 			mpu6050; 		// MPU6050 device driver
+s_BME280 			bme280;			// bme280 device driver
+VL53L1_DEV 			vl53l1Dev;		// VL53L1 device driver
 //VL53L1X_Version_t vl53l1xVersion_t; // Lidar - unused
 //VL53L1X_Result_t vl53l1xResult_t; // Lidar - unused
-s_nRF24L01 	radio1;			// nRF24L01 device driver
-s_nRF24L01 	radio2;			// nRF24L01 device driver
-s_drone_data AmonDrone; 	// All drone data
-s_packets 	data_packets;	// Data structure for communication packets
-s_GPS 		gps;			// Decoded GPS data - packet type in struct
+s_nRF24L01 			radio1;			// nRF24L01 device driver
+s_nRF24L01 			radio2;			// nRF24L01 device driver
+s_drone_data 		AmonDrone; 		// All drone data
+s_packets 			data_packets;	// Data structure for communication packets
 
-s_Kalman	kalman_pitch;	// Kalman values for pitch
-s_Kalman	kalman_roll;	// Kalman values for roll
-s_Kalman	kalman_yaw;		// Kalman values for yaw
+s_Kalman			kalman_pitch;	// Kalman values for pitch
+s_Kalman			kalman_roll;	// Kalman values for roll
+s_Kalman			kalman_yaw;		// Kalman values for yaw
 
 
 /* USER CODE END 0 */
@@ -204,7 +207,8 @@ int main(void)
 
 
   // Init
-  AmonDrone.DroneStatus = 0;
+  AmonDrone.DroneStatus = STATUS_STARTUP;
+  AmonDrone.flight_status = STATUS_FLIGHT_GROUND;
 
   // Radio 1 configurations (application specific)
   static const s_nrf_config radio_tx_normal_cfg = {
@@ -287,10 +291,12 @@ int main(void)
 	  /*##### RGB cycling when calibrating #####*/
 #ifdef CALIBRATION
 
-		  AmonDrone.DroneStatus = STATUS_GYRO_CALIB;
+		  AmonDrone.DroneStatus = STATUS_CALIB;
 		  DroneStatusLocal = AmonDrone.DroneStatus;
 
 #endif
+
+
 
 
 /*#############################################################################################################################################
@@ -404,7 +410,16 @@ int main(void)
 			}
 
 			// Detect successful connection
-			if (AmonDrone.radio_data.flag_connection_begin == 1) AmonDrone.radio_data.conn_status = CONN_STATUS_CONNECTED;
+			if (AmonDrone.radio_data.flag_connection_begin == 1)
+			{
+				AmonDrone.radio_data.conn_status = CONN_STATUS_CONNECTED;
+				HAL_GPIO_WritePin(LED_Brd_GPIO_Port, LED_Brd_Pin, GPIO_PIN_SET);
+			}
+			else
+			{
+				HAL_GPIO_WritePin(LED_Brd_GPIO_Port, LED_Brd_Pin, GPIO_PIN_RESET);
+			}
+
 
 			break;
 
@@ -432,6 +447,54 @@ int main(void)
 			break;
 		}
 
+
+
+/*##############################################################################################################################################
+##################################################################### UART #####################################################################
+##############################################################################################################################################*/
+
+
+	  /* USB TRANSCODING HANDLING */
+	  if (AmonDrone.uart_buffer.flag_new_uart_rx_data == 1)
+	  {
+		  AmonDrone.uart_buffer.flag_new_uart_rx_data = 0;
+
+		  uint8_t ret = UART_decode(AmonDrone.uart_buffer.buffer_UART, &data_packets, &AmonDrone.uart_buffer.flag_new_uart_tx_data);
+		  memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+
+		  // Based on return values trigger events
+		  switch (ret)
+		  {
+			  case TRANSCODE_BOOT_PKT:
+				  // Unused
+				  break;
+
+			  case TRANSCODE_BROADCAST:
+				  // Unused
+				  break;
+
+			  case TRANSCODE_VER_ERR:                 // Wrong version of packet
+				  break;
+
+			  case TRANSCODE_DEST_ERR:                // Wrong destination address
+				  break;
+
+			  case TRANSCODE_CRC_ERR:                 // Corupted frame / CRC
+				  break;
+
+			  case TRANSCODE_DEST_RF:                 // Packet for RF transmit
+				  // Unused
+				  break;
+
+			  case TRANSCODE_DEST_LINK:               // Packet for link device
+				  // Unused
+				  break;
+
+			  default:                                // Default state
+				  break;
+		  }
+	  }
+
 /*##############################################################################################################################################
 #################################################################### TIMERS ####################################################################
 ##############################################################################################################################################*/
@@ -447,7 +510,28 @@ int main(void)
 			  Reg200HzLoopEN = 0;
 
 			  MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
+
+#ifndef GYRO_KALMAN
+			  // Complementary filter
 			  Complementary_deg(&mpu6050, &AmonDrone); // calculate data to pitch and roll (and yaw)
+#else
+			  // Kalman Filter - angles and axis described in filters.h
+			  float roll_angle_accel  = 0;
+			  float pitch_angle_accel = 0;
+
+			  Kalman_rawToAngles(&mpu6050, &roll_angle_accel, &pitch_angle_accel);
+
+			  // Unwrap accel based on current estimation
+			  roll_angle_accel  = unwrap_to_ref(roll_angle_accel,  kalman_roll.angle);
+			  pitch_angle_accel = unwrap_to_ref(pitch_angle_accel, kalman_pitch.angle);
+
+			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, mpu6050.GYRO_Y, pitch_angle_accel, DT);
+			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, mpu6050.GYRO_Z, roll_angle_accel, DT);
+			  //AmonDrone.position.Yaw += mpu6050.GYRO_X * DT; // Yaw (gyro only)
+			  AmonDrone.position.Yaw = mpu6050.GYRO_X * DT; // Yaw (gyro only)
+#endif
+
+			  // Save raw data for telemetry
 			  AmonDrone.position.gyroTemp = (uint16_t)mpu6050.Temp_C;
 			  AmonDrone.position.accel_x = mpu6050.ACCEL_X;
 			  AmonDrone.position.accel_y = mpu6050.ACCEL_Y;
@@ -456,7 +540,8 @@ int main(void)
 			  AmonDrone.position.gyro_y = mpu6050.GYRO_Y;
 			  AmonDrone.position.gyro_z = mpu6050.GYRO_Z;
 
-		  }
+		  } // TIMER 200Hz
+
 
 
 		  // --- Timer 5 - 50Hz / 20ms ---
@@ -473,7 +558,7 @@ int main(void)
 			  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
 			  if (dataRdy)
 			  {
-				  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.height_TOF_cm);
+				  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.position.height_TOF_mm);
 				  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
 			  }
 
@@ -493,15 +578,12 @@ int main(void)
 			  {
 				  AmonDrone.radio_data.flag_telemetry_send = 1;
 			  }
-		  }
 
-		  // ADC read - DMA trigger
-		  if (ADC_DMA_DataRdy)
-		  {
-			  AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
-			  AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
-			  ADC_DMA_DataRdy = 0;
-		  }
+			  // Logging
+//			  if (AmonDrone.DroneStatus == STATUS_ARM || AmonDrone.DroneStatus == STATUS_FLY) log_add_sample(&AmonDrone.position, &AmonDrone.data);
+
+		  } // TIMER 50Hz
+
 
 
 		  // --- Timer 6 - 1Hz / 1sec ---
@@ -537,6 +619,34 @@ int main(void)
 					  HAL_Delay(10);
 				  }
 			  }
+		  } // TIMER 1Hz
+
+
+
+		  // --- ADC read - DMA trigger ---
+		  if (ADC_DMA_DataRdy)
+		  {
+			  for (uint8_t i = 1; i < 10; i++)
+			  {
+				  AmonDrone.data.bat_main_v[i-1] = AmonDrone.data.bat_main_v[i];
+				  AmonDrone.data.bat_edf_v[i-1] = AmonDrone.data.bat_edf_v[i];
+			  }
+
+			  AmonDrone.data.bat_main_v[9] = ADC_Read_Main_Battery();
+			  AmonDrone.data.bat_edf_v[9] = ADC_Read_EDF_Battery();
+
+			  uint16_t main_v_temp = 0;
+			  uint16_t edf_v_temp = 0;
+			  for (uint8_t i = 0; i < 10; i++)
+			  {
+				  main_v_temp += AmonDrone.data.bat_main_v[i];
+				  edf_v_temp += AmonDrone.data.bat_edf_v[i];
+			  }
+
+			  AmonDrone.data.battery_main_voltage = main_v_temp / (sizeof(AmonDrone.data.bat_main_v) / sizeof(uint16_t));
+			  AmonDrone.data.battery_edf_voltage = edf_v_temp / (sizeof(AmonDrone.data.bat_edf_v) / sizeof(uint8_t));
+
+			  ADC_DMA_DataRdy = 0;
 		  }
 
 
@@ -551,35 +661,37 @@ int main(void)
 		  if (NewGPSData == 1)
 		  {
 			  NewGPSData = 0;
-			  memcpy(USART4_GPSRX_DMA, gps.GPS_RX_buffer, sizeof(USART4_GPSRX_DMA));
+			  memcpy(USART4_GPSRX_DMA, AmonDrone.gps_data.GPS_RX_buffer, sizeof(USART4_GPSRX_DMA));
 			  memset(USART4_GPSRX_DMA, 0, sizeof(USART4_GPSRX_DMA));
 
 	#ifdef USE_GPS_GGA
-			  GPS_Decode_GGA(gps.GPS_RX_buffer, &gps, &AmonDrone);
+			  GPS_Decode_GGA(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.gga);
 	#endif
 
 	#ifdef USE_GPS_GLL
-			  GPS_Decode_GLL(gps.GPS_RX_buffer, &gps, &AmonDrone);
+			  GPS_Decode_GLL(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.gll);
 	#endif
 
 	#ifdef USE_GPS_GSA
-			  GPS_Decode_GSA(gps.GPS_RX_buffer, &gps, &AmonDrone);
+			  GPS_Decode_GSA(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.gsa);
 	#endif
 
 	#ifdef USE_GPS_GSV
-			  GPS_Decode_GSV(gps.GPS_RX_buffer, &gps, &AmonDrone);
+			  GPS_Decode_GSV(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.gsv);
 	#endif
 
 	#ifdef USE_GPS_RMC
-			  GPS_Decode_RMC(gps.GPS_RX_buffer, &gps, &AmonDrone);
+			  GPS_Decode_RMC(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.rmc);
 	#endif
 
 	#ifdef USE_GPS_VTG
-			  GPS_Decode_VTG(gps.GPS_RX_buffer, &gps, &AmonDrone);
+			  GPS_Decode_VTG(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.vtg);
 	#endif
 		  }
 #endif
-	  }
+
+
+	  } // TIMERS / Boot done
 
 
 /*#####################################################################################################################################################
@@ -598,37 +710,42 @@ int main(void)
 
 		/* Align all motors */
 		// Set motors on neutral position
-		DegresToCCR(SERVOS_ZERO + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(SERVOS_ZERO + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(SERVOS_ZERO + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(SERVOS_ZERO + SERVO_YP_OFFSET, SERVO_YP);
+		DegresToCCR(0, SERVO_XN);
+		DegresToCCR(0, SERVO_XP);
+		DegresToCCR(0, SERVO_YN);
+		DegresToCCR(0, SERVO_YP);
 		HAL_Delay(500); // wait on motors to stop moving
 
 		TVCServoEnable();	// Enable Servo timer
 
-		DegresToCCR(SERVOS_ZERO - 10 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(SERVOS_ZERO - 10 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(SERVOS_ZERO - 10 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(SERVOS_ZERO - 10 + SERVO_YP_OFFSET, SERVO_YP);
-		HAL_Delay(500); // wait on motors to stop moving
+		float test_angles[4] = {-10.0f, 0.0f, 10.0f, 0.0f};
 
-		DegresToCCR(SERVOS_ZERO + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(SERVOS_ZERO + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(SERVOS_ZERO + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(SERVOS_ZERO + SERVO_YP_OFFSET, SERVO_YP);
-		HAL_Delay(500); // wait on motors to stop moving
+		for (uint8_t i = 0; i < 4; i++) // test steps
+		{
+			for (uint8_t j = 0; j <= SERVO_YN; j++) // servos
+			{
+				switch (j)
+				{
+					case SERVO_XP:
+						DegresToCCR(test_angles[i], SERVO_XP);
+						break;
 
-		DegresToCCR(SERVOS_ZERO + 10 + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(SERVOS_ZERO + 10 + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(SERVOS_ZERO + 10 + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(SERVOS_ZERO + 10 + SERVO_YP_OFFSET, SERVO_YP);
-		HAL_Delay(500); // wait on motors to stop moving
+					case SERVO_XN:
+						DegresToCCR(test_angles[i], SERVO_XN);
+						break;
 
-		DegresToCCR(SERVOS_ZERO + SERVO_XN_OFFSET, SERVO_XN);
-		DegresToCCR(SERVOS_ZERO + SERVO_XP_OFFSET, SERVO_XP);
-		DegresToCCR(SERVOS_ZERO + SERVO_YN_OFFSET, SERVO_YN);
-		DegresToCCR(SERVOS_ZERO + SERVO_YP_OFFSET, SERVO_YP);
-		HAL_Delay(500); // wait on motors to stop moving
+					case SERVO_YP:
+						DegresToCCR(test_angles[i], SERVO_YP);
+						break;
+
+					case SERVO_YN:
+						DegresToCCR(test_angles[i], SERVO_YN);
+						break;
+				}
+			}
+
+			HAL_Delay(500); // wait on motors to stop moving
+		}
 
 		// Start timers for sensors and LEDs
 		HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
@@ -645,7 +762,7 @@ int main(void)
 		AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
 		ADC_DMA_DataRdy = 0;
 
-
+		// TODO: set voltage
 		//if (AmonDrone.battery_main_voltage < 1000) status++; // check board battery voltage (more than XV)
 		//if (AmonDrone.battery_edf_voltage < 2000) status++; // check board battery voltage (more than XV)
 
@@ -674,18 +791,22 @@ int main(void)
 		status += MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
 		status += MPU6050_SelfTest(&mpu6050, &hi2c3);
 
+#ifdef GYRO_KALMAN
+		Kalman_Init(&kalman_pitch);
+		Kalman_Init(&kalman_roll);
+		Kalman_Init(&kalman_yaw);
+#endif
+
 		/* vl53l1x */
 		uint8_t bootOK = 0;
-		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c3);
-
-
 		while (bootOK == 0)
 		{
 			status += VL53L1X_BootState(&vl53l1Dev, &hi2c3, &bootOK);
 		}
+		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c3);
 		status += VL53L1X_SensorInit(&vl53l1Dev, &hi2c3);
 		status += VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c3, 200); // 140ms is min for 4m distance
-		status += VL53L1X_SetOffset(&vl53l1Dev, &hi2c3, -130); // Set height from ground to get zero
+		status += VL53L1X_SetOffset(&vl53l1Dev, &hi2c3, -121); // Set height from ground to get zero -130
 		VL53L1X_StartRanging(&vl53l1Dev, &hi2c3);
 
 		/* NRF24L01 */
@@ -762,9 +883,27 @@ int main(void)
 		HAL_TIM_Base_Start_IT(&htim6); // Second timer - time
 
 #ifndef CALIBRATION
-
+	#ifdef USE_GPS
 		// Do not enable UART DMA if calibrating
 		HAL_UART_Receive_DMA(&huart4, USART4_GPSRX_DMA, sizeof(USART4_GPSRX_DMA)); //426
+	#else
+		memset(AmonDrone.uart_buffer.buffer_temp, 0, sizeof(AmonDrone.uart_buffer.buffer_temp));
+		memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+		HAL_UART_Receive_IT(&huart4, AmonDrone.uart_buffer.buffer_temp, 1);
+	#endif
+
+#endif
+
+
+		/* Logging */
+#ifdef LOG_ENABLE
+
+//		Flash_Init();     	// if not inside LOG_Init
+//		log_init();       	// mount filesystem
+
+		// test
+//		log_test_write();  	// write test file
+//		log_test_read();	// read test file back
 
 #endif
 
@@ -785,7 +924,6 @@ int main(void)
 		{
 			StartupInit = 1;
 			AmonDrone.DroneStatus = STATUS_ERROR; // ERROR
-			HAL_GPIO_WritePin(LED_Brd_GPIO_Port, LED_Brd_Pin, GPIO_PIN_SET);
 		}
 	 }
 
@@ -816,6 +954,7 @@ int main(void)
 			  // STATE: Drone armed and ready to take off
 			  case STATUS_ARM:
 
+				  //TODO: Check sensor values and check flying path
 				  if (TVCServoEnableFlag == 0) TVCServoEnable();
 				  if (EDFEnableFlag == 0) EDFEnable();
 
@@ -826,10 +965,28 @@ int main(void)
 			  // STATE: Flying
 			  case STATUS_FLY:
 
-				  DegresToCCR(90.0f + AmonDrone.position.Pitch + (AmonDrone.position.PitchMean) + SERVO_XN_OFFSET, SERVO_XN);
-				  DegresToCCR(90.0f - AmonDrone.position.Pitch + (AmonDrone.position.PitchMean) + SERVO_XP_OFFSET, SERVO_XP);
-				  DegresToCCR(90.0f - AmonDrone.position.Roll + (AmonDrone.position.RollMean) + SERVO_YN_OFFSET, SERVO_YN);
-				  DegresToCCR(90.0f + AmonDrone.position.Roll + (AmonDrone.position.RollMean) + SERVO_YP_OFFSET, SERVO_YP);
+				  // TODO: Regulator
+				  switch (AmonDrone.flight_status) {
+					case STATUS_FLIGHT_GROUND:
+
+						break;
+
+					case STATUS_FLIGHT_TAKEOFF:
+
+						break;
+
+					case STATUS_FLIGHT_FLYING:
+
+						break;
+
+					case STATUS_FLIGHT_LANDING:
+
+						break;
+
+					default:
+						// Undefined
+						break;
+				}
 
 				  break;
 
@@ -880,54 +1037,33 @@ int main(void)
 
 		  StatusLED(AmonDrone.DroneStatus);
 
-		  if (Reg200HzLoopEN == 1 && (CAL_GYRO_X == 1 || CAL_GYRO_Y == 1 || CAL_GYRO_Z == 1 || CAL_ACCEL_X == 1 || CAL_ACCEL_Y == 1 || CAL_ACCEL_Z == 1))
-		  {
-
-			  MPU6050_ReadAllDirect(&mpu6050, &hi2c3); // Read all raw data from sensor
-		  	  MPU6050_RawToDeg(&mpu6050, &AmonDrone); // calculate data to pitch and roll (and yaw)
-
-		  	  Reg200HzLoopEN = 0;
-		  }
-
-
-		  if (Reg50HzLoopEN == 1 && CAL_LIDAR == 1)
-		  {
-
-			  uint8_t dataRdy = 0;
-			  while(dataRdy == 0)
-			  {
-				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c3, &dataRdy);
-			  }
-
-			  dataRdy = 0;
-			  VL53L1X_GetDistance(&vl53l1Dev, &hi2c3, &AmonDrone.Height);
-			  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c3);
-
-			  Reg50HzLoopEN = 0;
-		  }
-
 		  if (GyroCalibTrig == 1)
 		  {
-
 			  // Print data
-			  char message[50] = {'\0'};
+			  char message[100] = {'\0'};
+
+#ifdef TUNE_KALMAN
+
+			  sprintf((char *)message, "Accel X = %.3f , Y = %.3f, Z = %.3f\r\nGyro X = %.3f , Y = %.3f, Z = %.3f\r\n", mpu6050.ACCEL_X, mpu6050.ACCEL_Y, mpu6050.ACCEL_Z, mpu6050.GYRO_X, mpu6050.GYRO_Y, mpu6050.GYRO_Z);
+
+#else
 
 			  if (CAL_ACCEL_X == 1 || CAL_ACCEL_Y == 1 || CAL_ACCEL_Z == 1) sprintf((char *)message, "Accel X = %.3f , Y = %.3f, Z = %.3f\r\n", mpu6050.ACCEL_X, mpu6050.ACCEL_Y, mpu6050.ACCEL_Z);
 
 			  if (CAL_GYRO_X == 1 || CAL_GYRO_Y == 1 || CAL_GYRO_Z == 1) sprintf((char *)message, "Gyro X = %.3f , Y = %.3f, Z = %.3f\r\n", mpu6050.GYRO_X, mpu6050.GYRO_Y, mpu6050.GYRO_Z);
 
-		  	  if (CAL_PITCH == 1 && CAL_ROLL == 1) sprintf((char *)message, "Pitch = %.3f, Roll = %.3f\r\n", AmonDrone.Pitch, AmonDrone.Roll);
+		  	  if (CAL_PITCH == 1 && CAL_ROLL == 1) sprintf((char *)message, "Pitch = %.3f, Roll = %.3f\r\n", AmonDrone.position.Pitch, AmonDrone.position.Roll);
 
-		  	  if (CAL_ROLL == 1) sprintf((char *)message, "Roll = %.3f\r\n", AmonDrone.Roll);
+		  	  if (CAL_ROLL == 1 && CAL_PITCH == 0) sprintf((char *)message, "Roll = %.3f\r\n", AmonDrone.position.Roll);
 
-		  	  if (CAL_PITCH == 1) sprintf((char *)message, "Pitch = %.3f\r\n", AmonDrone.Pitch);
+		  	  if (CAL_PITCH == 1 && CAL_ROLL == 0) sprintf((char *)message, "Pitch = %.3f\r\n", AmonDrone.position.Pitch);
 
-		  	  if (CAL_LIDAR == 1) sprintf((char *)message, "Height = %dmm\r\n", AmonDrone.Height);
+		  	  if (CAL_LIDAR == 1) sprintf((char *)message, "Height = %dmm\r\n", AmonDrone.position.height_TOF_mm);
 
+#endif
 	  	  	  HAL_UART_Transmit(&huart4, (uint8_t*)message, strlen((char*)message), 100);
 
 	  	  	  GyroCalibTrig = 0;
-
 		  }
 
 #endif
@@ -1531,7 +1667,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LED_Brd_Pin|CS_Flash_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_Brd_GPIO_Port, LED_Brd_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(CS_Flash_GPIO_Port, CS_Flash_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, CS_Ext_Pin|CS_SD_Pin, GPIO_PIN_RESET);
@@ -1592,8 +1731,47 @@ static void MX_GPIO_Init(void)
 // UART interrupt
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+
+#ifdef USE_GPS
+
 	HAL_UART_Receive_DMA(&huart4, USART4_GPSRX_DMA, 426); // enable USART Receive again
 	NewGPSData = 1;		// set flag that new data has arrived
+
+#else
+
+	static uint8_t len_new_rx_data = 0;
+	static uint8_t cntBuffer_UART = 0;
+
+	// Save received data
+	uint8_t data = AmonDrone.uart_buffer.buffer_temp[0];                   // Read only once
+	AmonDrone.uart_buffer.buffer_UART[cntBuffer_UART] = data;
+	memset(AmonDrone.uart_buffer.buffer_temp, 0, 2);
+	cntBuffer_UART++;
+
+	// Detect start of frame and set flags
+	if (data == SIG_SOF && len_new_rx_data == 0)    						// No flag for new packet and SOA packet
+	{
+		AmonDrone.uart_buffer.flag_USB_RX_new = 1;                          // Indicate new data received
+		AmonDrone.uart_buffer.flag_new_uart_rx_data = 0;                    // Clear end of packet flag
+		len_new_rx_data = 0;                                                // Clear packet counter
+	}
+	else if (AmonDrone.uart_buffer.flag_USB_RX_new == 1 && len_new_rx_data == 0) // Flag for new packet, but no lenght of packet yet
+	{
+		len_new_rx_data = data;                                             // Save packet lenght
+		AmonDrone.uart_buffer.flag_USB_RX_new = 0;                          // Clear flag for new data
+	}
+	else if (cntBuffer_UART >= (len_new_rx_data + 2))                       // Detect end of complete packet
+	{
+		AmonDrone.uart_buffer.flag_new_uart_rx_data = 1;                    // Indicate end of packet
+		cntBuffer_UART = 0;                                                 // Clear UART counter
+		len_new_rx_data = 0;
+	}
+
+	HAL_UART_Receive_IT(&huart4, AmonDrone.uart_buffer.buffer_temp, 1);		// Re-arm UART interrupt
+
+#endif
+
+
 }
 
 
@@ -1672,49 +1850,43 @@ void StatusLED(uint8_t Status)
 	// ON (medium): 1000
 
 	switch(Status){
-	case 0: // STARTUP (red)
+	case STATUS_STARTUP: // STARTUP (red)
 		TIM1->CCR2 = 0; // LED-RGB (blue)
 		TIM1->CCR3 = 0; // LED-RGB (green)
-		TIM2->CCR3 = 2400; // LED-RGB (red)
+		TIM2->CCR3 = 500; // LED-RGB (red)
 		break;
 
-	case 1: // IDLE - no RF connection (blue)
+	case STATUS_IDLE: // IDLE (blue)
 		TIM1->CCR2 = 1000; // LED-RGB (blue)
 		TIM1->CCR3 = 0; // LED-RGB (green)
 		TIM2->CCR3 = 0; // LED-RGB (red)
 		break;
 
-	case 2: // IDLE - RF connected (green)
-		TIM1->CCR2 = 0; // LED-RGB (blue)
-		TIM1->CCR3 = 500; // LED-RGB (green)
-		TIM2->CCR3 = 0; // LED-RGB (red)
-		break;
-
-	case 3: // ERROR (red + brd led on)
+	case STATUS_ERROR: // ERROR (red + brd led on)
 		TIM1->CCR2 = 0; // LED-RGB (blue)
 		TIM1->CCR3 = 0; // LED-RGB (green)
 		TIM2->CCR3 = 1000; // LED-RGB (red)
 		break;
 
-	case 4: // ARM (all - pink)
-		TIM1->CCR2 = 100; // LED-RGB (blue)
+	case STATUS_ARM: // ARM (yellow-green)
+		TIM1->CCR2 = 0; // LED-RGB (blue)
 		TIM1->CCR3 = 100; // LED-RGB (green)
 		TIM2->CCR3 = 100; // LED-RGB (red)
 		break;
 
-	case 5: // FLY ()
-		TIM1->CCR2 = 500; // LED-RGB (blue)
-		TIM1->CCR3 = 500; // LED-RGB (green)
-		TIM2->CCR3 = 0; // LED-RGB (red)
+	case STATUS_FLY: // FLY ()
+		TIM1->CCR2 = 100; // LED-RGB (blue)
+		TIM1->CCR3 = 0; // LED-RGB (green)
+		TIM2->CCR3 = 100; // LED-RGB (red)
 		break;
 
-	case 6: // FLY OVER (green)
+	case STATUS_FLY_OVER: // FLY OVER (green)
 		TIM1->CCR2 = 0; // LED-RGB (blue)
-		TIM1->CCR3 = 500; // LED-RGB (green)
-		TIM2->CCR3 = 0; // LED-RGB (red)
+		TIM1->CCR3 = 100; // LED-RGB (green)
+		TIM2->CCR3 = 500; // LED-RGB (red)
 		break;
 
-	case 7: // FLY OVER (green)
+	case STATUS_CALIB: // CALIBRATION - RGB
 		TIM1->CCR2 = RGB_Blue; // LED-RGB (blue)
 		TIM1->CCR3 = RGB_Green; // LED-RGB (green)
 		TIM2->CCR3 = RGB_Red; // LED-RGB (red)
@@ -1769,7 +1941,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
 	/* TIMER 4 - 50Hz */
-
 	if (htim->Instance == TIM4)
 	{
 
@@ -1786,7 +1957,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			}
 			else
 			{
-				if (LED_blink_cnt_OFF < 10) // LED ON for short time
+				if (LED_blink_cnt_OFF < 5) // LED ON for short time
 				{
 					if (LED_blink_cnt_OFF == 0)
 					{
@@ -1845,22 +2016,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 
 #ifdef CALIBRATION
-
-		/* GYRO Calibration */
-		if (GyroCalibTrig == 0 && CALIBRATION == 1)
+		/* Calibration RGB cycling */
+		if (GyroCalibTrig == 0)
 		{
 			if (LED_blink_cnt_ON >= 5)
 			{
 				LED_blink_cnt_ON = 0;
-				GyroCalibTrig = 1;
 			}
-
 			LED_blink_cnt_ON++;
 		}
-
 #endif
 
 	} // TIM4
+
 
 
 	/* TIMER 5 - 200Hz */
@@ -1869,47 +2037,84 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		Reg200HzLoopEN = 1;
 
-		/* RGB Cycling */
-		// Red
-		if (RGB_RedMax == 0)
+
+#ifdef CALIBRATION
+
+		/* GYRO Calibration */
+		if (GyroCalibTrig == 0)
 		{
-			RGB_Red += 1;
-			if (RGB_Red == 1000) RGB_RedMax = 1;
+			GyroCalibTrig = 1;
 		}
 
-		if (RGB_RedMax == 1)
-		{
-			RGB_Red -= 1;
-			if (RGB_Red == 0) RGB_RedMax = 0;
-		}
+#endif
 
-		// Green
-		if (RGB_GreenMax == 0 || (RGB_Green == 300 && RGB_GreenMax == 0 ))
-		{
-			RGB_Green += 1;
-			if (RGB_Green == 900) RGB_GreenMax = 1;
-		}
 
-		if (RGB_GreenMax == 1)
-		{
-			RGB_Green -= 1;
-			if (RGB_Green == 0) RGB_GreenMax = 0;
-		}
+		static uint16_t value = 0;
+		static uint8_t phase = 0;
 
-		// Blue
-		if (RGB_BlueMax == 0 || (RGB_Blue == 600 && RGB_BlueMax == 0 ))
+		switch (phase)
 		{
-			RGB_Blue += 1;
-			if (RGB_Blue == 900) RGB_BlueMax = 1;
-		}
+		    case 0: // Red -> Yellow (increase Green)
+		        RGB_Red   = RGB_MAX;
+		        RGB_Green += STEP;
+		        RGB_Blue  = 0;
+		        if (RGB_Green >= RGB_MAX)
+		        {
+		            RGB_Green = RGB_MAX;
+		            phase = 1;
+		        }
+		        break;
 
-		if (RGB_BlueMax == 1)
-		{
-			RGB_Blue -= 1;
-			if (RGB_Blue == 0) RGB_BlueMax = 0;
+		    case 1: // Yellow -> Green (decrease Red)
+		        RGB_Red   -= STEP;
+		        RGB_Green = RGB_MAX;
+		        RGB_Blue  = 0;
+		        if (RGB_Red == 0)
+		            phase = 2;
+		        break;
+
+		    case 2: // Green -> Cyan (increase Blue)
+		        RGB_Red   = 0;
+		        RGB_Green = RGB_MAX;
+		        RGB_Blue  += STEP;
+		        if (RGB_Blue >= RGB_MAX)
+		        {
+		            RGB_Blue = RGB_MAX;
+		            phase = 3;
+		        }
+		        break;
+
+		    case 3: // Cyan -> Blue (decrease Green)
+		        RGB_Red   = 0;
+		        RGB_Green -= STEP;
+		        RGB_Blue  = RGB_MAX;
+		        if (RGB_Green == 0)
+		            phase = 4;
+		        break;
+
+		    case 4: // Blue -> Magenta (increase Red)
+		        RGB_Red   += STEP;
+		        RGB_Green = 0;
+		        RGB_Blue  = RGB_MAX;
+		        if (RGB_Red >= RGB_MAX)
+		        {
+		            RGB_Red = RGB_MAX;
+		            phase = 5;
+		        }
+		        break;
+
+		    case 5: // Magenta -> Red (decrease Blue)
+		        RGB_Red   = RGB_MAX;
+		        RGB_Green = 0;
+		        RGB_Blue  -= STEP;
+		        if (RGB_Blue == 0)
+		            phase = 0;
+		        break;
 		}
 
 	} // TIM5
+
+
 
 	/* TIMER 6 - 1Hz */
 	if (htim->Instance == TIM6)

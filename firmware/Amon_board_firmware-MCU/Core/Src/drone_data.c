@@ -3,7 +3,7 @@
  * Author             : Tinta T.
  * Version            : V1.0.0
  * Date               : 2023/05/17
- * Description        : All drone data, variables and data logic
+ * Description        : All drone data and data logic for telemetry
 *****************************************************************/
 
 #include "drone_data.h"
@@ -11,7 +11,7 @@
 /*###########################################################################################################################################################*/
 /* Private functions */
 static void decode_opcode(s_packets *packets, s_drone_data *drone_data);
-static void packet_create_pair_start(s_packets *packets);
+static void packet_create_ack_nopayload(s_packets *packets, uint8_t opcode);
 static void packet_create_pair_status(s_packets *packets, s_drone_data *drone_data);
 static void packet_create_ping_pong(s_packets *packets);
 
@@ -102,7 +102,7 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_PAIR_START:
-			packet_create_pair_start(packets);
+			packet_create_ack_nopayload(packets, OPT_PAIR_START);
 #ifdef CONN_STEPS_2
 			drone_data->radio_data.flag_connection_begin = 2;
 #else
@@ -111,11 +111,11 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_LINK_GET_PARAMS:
-			// Wrong device
+			//
 			break;
 
 		case OPT_LINK_SET_PARAMS:
-			// Wrong device
+			//
 			break;
 
 		case OPT_DRONE_GET_PARAMS:
@@ -127,7 +127,9 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_DRONE_SET_STATE:
-			//
+			drone_data->DroneStatus = (packets->rf_packet.payload[0] & 0x0F); // Keep only last 4bits (0000|xxxx)
+			packet_create_ack_nopayload(packets, OPT_DRONE_SET_STATE);
+
 			break;
 
 		case OPT_DRONE_COMMAND:
@@ -148,21 +150,22 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 
 
 /*********************************************************************
- * @fcn   	packet_create_pair_start
+ * @fcn   	packet_create_ack_nopayload
  *
  * @param 	*packets: pointer to all data packets
+ * @param 	opcode: opcode on which ack is based on
  *
  * @brief   Assemble packet for pairing ACK
  *
  * @return  none
  */
-static void packet_create_pair_start(s_packets *packets)
+static void packet_create_ack_nopayload(s_packets *packets, uint8_t opcode)
 {
 	packets->rf_packet_drone.version = PROTOCOL_VER;
 	packets->rf_packet_drone.flags = FLAG_ACK;
 	packets->rf_packet_drone.src_id = ID_DRONE;
 	packets->rf_packet_drone.dest_id = ID_PC;
-	packets->rf_packet_drone.opcode = OPT_PAIR_START;
+	packets->rf_packet_drone.opcode = opcode;
 	packets->rf_packet_drone.plen = 0;
 	//packets->rf_packet_drone.payload = NULL;
 }
@@ -389,9 +392,28 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			packets->rf_packet_drone.payload[payload_cnt++] = (gyro_z >> 8) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] =  gyro_z       & 0xFF;
 
+
+			/* TOF height in mm */
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_ALT;
+			packets->rf_packet_drone.payload[payload_cnt++] = (drone_data->position.height_TOF_mm >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  drone_data->position.height_TOF_mm       & 0xFF;
+
+			packets->rf_packet_drone.plen = payload_cnt;
+
+			packet_num++;
+			break;
+
+		case 3:
+			// DATA_3
+
+			/* Flight status */
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_FLIGHT_MODE;
+			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->flight_status;
+
 			packets->rf_packet_drone.plen = payload_cnt;
 
 			packet_num = 0;
+			break;
 
 		case 100:
 			// Last packet
