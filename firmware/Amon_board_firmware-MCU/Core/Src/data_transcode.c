@@ -16,6 +16,7 @@ s_packets packets;
 static void UART_packet_parse(s_packets *data, uint8_t *raw_data);
 static void RF_packet_parse(s_packets *data, uint8_t *raw_data);
 static void packetDataReset(void);
+uint8_t uart_opcode_decode(s_packets *packets);
 //uint16_t crc16_cal(const uint8_t *data, uint16_t length);
 
 
@@ -259,8 +260,15 @@ uint8_t UART_decode(uint8_t *raw_uart_data, s_packets *packets, uint8_t *rf_tx_f
         // Destination device: drone
         case ID_DRONE:
 
-
-            return TRANSCODE_OK;
+        	uint8_t ret = uart_opcode_decode(packets);
+        	if (ret <= 0)
+        	{
+        		return TRANSCODE_OK;
+        	}
+        	else
+        	{
+        		return ret;
+        	}
             break;
 
         // Destination device: broadcast - triger connecting/search...
@@ -277,6 +285,29 @@ uint8_t UART_decode(uint8_t *raw_uart_data, s_packets *packets, uint8_t *rf_tx_f
     return 0;
 }
 
+
+
+/*********************************************************************
+ * @fcn     uart_opcode_decode
+ *
+ * @param 	*packets: pointer to struct of all packets data
+ *
+ * @brief   Decode opcode field of a packet
+ *
+ * @return  opcode value
+ */
+uint8_t uart_opcode_decode(s_packets *packets)
+{
+	switch (packets->uart_packet.opcode)
+	{
+		case OPT_LOG_DUMP:
+			return TRANSCODE_LOG_DUMP;
+			break;
+
+		default:
+			break;
+	}
+}
 
 
 /*********************************************************************

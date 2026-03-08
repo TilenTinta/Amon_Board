@@ -43,14 +43,14 @@ static lfs_file_t file;
 s_logging_buffer log_buffer[LOG_BUFFER_SIZE]; // buffer where data is stored before logging to NVM
 
 
-
-/*###########################################################################################################################################################*/
-/* Functions */
 int log_flash_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size);
 int log_flash_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size);
 int log_flash_erase(const struct lfs_config *c, lfs_block_t block);
 int log_flash_sync(const struct lfs_config *c);
 
+
+/*###########################################################################################################################################################*/
+/* Functions - helpers */
 
 /*********************************************************************
  * @fcn     log_addr
@@ -173,6 +173,10 @@ int log_flash_sync(const struct lfs_config *c)
 
 
 
+/*###########################################################################################################################################################*/
+/* Functions - API */
+
+
 /*********************************************************************
  * @fcn    log_init
  *
@@ -279,21 +283,54 @@ void log_list_files(void)
 
 
 /*********************************************************************
+ * @fcn    log_open_file
+ *
+ * @brief  Open file where logs will be saved
+ *
+ * @return  0: OK, else: NOK
+ */
+int log_open_file(void)
+{
+    int err = lfs_file_open(&lfs, &file,
+                  "log.txt",
+                  LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
+    return err;
+}
+
+
+
+/*********************************************************************
+ * @fcn    log_close_file
+ *
+ * @brief  Close file where logs were saved
+ *
+ * @return  0: OK, else: NOK
+ */
+int log_close_file(void)
+{
+    int err = lfs_file_close(&lfs, &file);
+    return err;
+}
+
+
+
+/*********************************************************************
  * @fcn    log_flush
  *
- * @brief  add data to buffer
+ * @brief  Save data to flash
  *
  * @param	size: amount of data instance
  *
  * @return  none
  */
-void log_flush(uint8_t size)
+void log_write_buffer(uint8_t size)
 {
     lfs_file_write(&lfs,
                    &file,
 				   log_buffer,
                    size * sizeof(s_logging_buffer));
 }
+
 
 
 /*********************************************************************
@@ -333,7 +370,72 @@ void log_add_sample(s_position *pos, s_data *data)
 
     if (index >= LOG_BUFFER_SIZE)
     {
-        log_flush(index);
+    	log_write_buffer(index);
         index = 0;
     }
 }
+
+
+
+// Sends full LittleFS file over UART as raw bytes.
+// Return: 0 on success, negative littlefs error on FS failure, -1000 on UART failure.
+
+/*********************************************************************
+ * @fcn    	log_dump_uart
+ *
+ * @brief  	Sends full LittleFS file over UART as raw bytes.
+ *
+ * @param	path: pointer to file you want to read
+ * @param	huart: pointer to uart data struct
+ *
+ * @return  0: OK, else: NOK
+ */
+int log_dump_uart(const char *path, UART_HandleTypeDef *huart)
+{
+    lfs_file_t f;
+    uint8_t txbuf[128];
+
+    int err = lfs_file_open(&lfs, &f, path, LFS_O_RDONLY);
+    if (err < 0)
+    {
+        return err;
+    }
+
+    // Read starts at beginning of file
+    lfs_soff_t s = lfs_file_seek(&lfs, &f, 0, LFS_SEEK_SET);
+    if (s < 0)
+    {
+        lfs_file_close(&lfs, &f);
+        return (int)s;
+    }
+
+    while (1)
+    {
+        lfs_ssize_t rd = lfs_file_read(&lfs, &f, txbuf, sizeof(txbuf));
+        if (rd < 0)
+        {
+            err = (int)rd;
+            break;
+        }
+        if (rd == 0)
+        {
+            err = 0; // EOF
+            break;
+        }
+
+        if (HAL_UART_Transmit(huart, txbuf, (uint16_t)rd, HAL_MAX_DELAY) != HAL_OK)
+        {
+            err = -100; // UART transmit error
+            break;
+        }
+    }
+
+	int cerr = lfs_file_close(&lfs, &f);
+	if (err == 0 && cerr < 0)
+	{
+		err = cerr;
+	}
+
+    return err;
+}
+

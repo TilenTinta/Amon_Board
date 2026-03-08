@@ -100,7 +100,10 @@ typedef struct {
 void log_init(void);
 void log_test_write(void);
 void log_test_read(void);
+int log_open_file(void);
+int log_close_file(void);
 void log_add_sample(s_position *pos, s_data *data);
+int log_dump_uart(const char *path, UART_HandleTypeDef *huart);
 
 
 #endif /* INC_LOGGING_H_ */

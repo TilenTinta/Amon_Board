@@ -473,26 +473,36 @@ int main(void)
 				  // Unused
 				  break;
 
-			  case TRANSCODE_VER_ERR:                 // Wrong version of packet
+			  case TRANSCODE_VER_ERR:                 	// Wrong version of packet
 				  break;
 
-			  case TRANSCODE_DEST_ERR:                // Wrong destination address
+			  case TRANSCODE_DEST_ERR:                	// Wrong destination address
 				  break;
 
-			  case TRANSCODE_CRC_ERR:                 // Corupted frame / CRC
+			  case TRANSCODE_CRC_ERR:                	// Corupted frame / CRC
 				  break;
 
-			  case TRANSCODE_DEST_RF:                 // Packet for RF transmit
+			  case TRANSCODE_DEST_RF:                 	// Packet for RF transmit
 				  // Unused
 				  break;
 
-			  case TRANSCODE_DEST_LINK:               // Packet for link device
+			  case TRANSCODE_DEST_LINK:               	// Packet for link device
 				  // Unused
 				  break;
 
-			  default:                                // Default state
+			  case TRANSCODE_LOG_DUMP:					// Serial request for flight log dump
+			  	  AmonDrone.uart_buffer.flag_log_dump = 1;
+			  	  break;
+
+			  default:                                	// Default state
 				  break;
 		  }
+	  }
+
+	  if (AmonDrone.uart_buffer.flag_log_dump == 1)
+	  {
+		  AmonDrone.uart_buffer.flag_log_dump = 0;
+		  (void)log_dump_uart("log.txt", &huart4); // &AmonDrone.uart_buffer.log_file
 	  }
 
 /*##############################################################################################################################################
@@ -580,7 +590,7 @@ int main(void)
 			  }
 
 			  // Logging
-//			  if (AmonDrone.DroneStatus == STATUS_ARM || AmonDrone.DroneStatus == STATUS_FLY) log_add_sample(&AmonDrone.position, &AmonDrone.data);
+			  if (AmonDrone.uart_buffer.flag_logging_active == 1) log_add_sample(&AmonDrone.position, &AmonDrone.data);
 
 		  } // TIMER 50Hz
 
@@ -762,9 +772,16 @@ int main(void)
 		AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
 		ADC_DMA_DataRdy = 0;
 
-		// TODO: set voltage
-		//if (AmonDrone.battery_main_voltage < 1000) status++; // check board battery voltage (more than XV)
-		//if (AmonDrone.battery_edf_voltage < 2000) status++; // check board battery voltage (more than XV)
+		/* Check battery voltage */
+		if (AmonDrone.data.battery_main_voltage < 1000)
+		{
+			AmonDrone.error_code.err_main_bat = 1;
+			status++;
+		}
+		if (AmonDrone.data.battery_edf_voltage < 2000)
+		{
+			AmonDrone.error_code.err_edf_bat = 1;
+		}
 
 		HAL_Delay(500);
 
@@ -818,6 +835,9 @@ int main(void)
 		radio1.irq_on_pipe = 0xFF;
 		radio2.irq_on_pipe = 0xFF;
 		AmonDrone.radio_data.flag_stream_data = 0;
+		AmonDrone.uart_buffer.flag_log_available = 0;
+		AmonDrone.uart_buffer.flag_logging_active = 0;
+		AmonDrone.uart_buffer.log_file = "log.txt";
 
 		// Radios initialization and setup
 		NRF24_pin_config(&radio1, &hspi1, CS_RF1_GPIO_Port, CS_RF1_Pin, EN_RF1_GPIO_Port, EN_RF1_Pin);        // Map pins for radio 1
@@ -898,8 +918,8 @@ int main(void)
 		/* Logging */
 #ifdef LOG_ENABLE
 
-//		Flash_Init();     	// if not inside LOG_Init
-//		log_init();       	// mount filesystem
+		Flash_Init();     	// if not inside LOG_Init
+		log_init();       	// mount filesystem
 
 		// test
 //		log_test_write();  	// write test file
@@ -958,6 +978,13 @@ int main(void)
 				  if (TVCServoEnableFlag == 0) TVCServoEnable();
 				  if (EDFEnableFlag == 0) EDFEnable();
 
+				  // Logging
+				  if (AmonDrone.uart_buffer.flag_logging_active == 0)
+				  {
+					  AmonDrone.uart_buffer.flag_logging_active = 1;
+					  log_open_file();
+				  }
+
 
 				  break;
 
@@ -996,6 +1023,18 @@ int main(void)
 
 				  if (TVCServoEnableFlag == 1) TVCServoDisable();
 				  if (EDFEnableFlag == 1) EDFDisable();
+
+				  // Logging
+				  if (AmonDrone.uart_buffer.flag_logging_active == 1)
+				  {
+					  // TODO: add last sample save
+					  log_close_file();
+					  AmonDrone.uart_buffer.flag_logging_active = 0;
+				  }
+
+				  if (AmonDrone.uart_buffer.flag_logging_active == 0 && AmonDrone.uart_buffer.flag_log_available == 0) AmonDrone.uart_buffer.flag_log_available = 1;
+
+
 
 
 				  break;

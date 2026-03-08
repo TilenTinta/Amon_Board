@@ -19,31 +19,35 @@
 /* Defines */
 
 // Calibration
-//#define CALIBRATION				// Uncomment to enable gyro calibration mode
+//#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
 
 #define TUNE_KALMAN
 #ifdef TUNE_KALMAN
-	#define CAL_GYRO_X			1
-	#define CAL_GYRO_Y			1
-	#define CAL_GYRO_Z			1
-	#define CAL_ACCEL_X			1
-	#define CAL_ACCEL_Y			1
-	#define CAL_ACCEL_Z			1
+	#define CAL_GYRO_X		1
+	#define CAL_GYRO_Y		1
+	#define CAL_GYRO_Z		1
+	#define CAL_ACCEL_X		1
+	#define CAL_ACCEL_Y		1
+	#define CAL_ACCEL_Z		1
 #endif
 
 #define CAL_PITCH			0
 #define CAL_ROLL			0
 #define CAL_LIDAR			0
 
+#define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
+
+#define LOG_ENABLE					// Enable logging of telemetry data
+
 #define ANGLE_SCALE			100.0f	// Factor for angle scaling of angle
 
-#define RADIO_NUM			2 	// Set number of radios mounted on board
-#define CONN_TIMEOUT_SEC	3	// Amount off seconds that triggers timeout/lost connection
-//#define CONN_STEPS_2			// If using only OPT_PAIR_START signal for pairing comment this
-#define STREAM_EN_TIME		3	// Time in seconds over which stream mode is enabled
+#define RADIO_NUM			2 		// Set number of radios mounted on board
+#define CONN_TIMEOUT_SEC	3		// Amount off seconds that triggers timeout/lost connection
+//#define CONN_STEPS_2				// If using only OPT_PAIR_START signal for pairing comment this
+#define STREAM_EN_TIME		3		// Time in seconds over which stream mode is enabled
 
 // Select GPS decoding (comment/uncomment for enable/disable)
-#define USE_GPS
+//#define USE_GPS
 #define USE_GPS_GGA
 #define USE_GPS_GLL
 #define USE_GPS_GSA
@@ -60,11 +64,6 @@
 #define R2_EDF_BAT		 	10000	// Voltage divider resistor R2 - EDF battery
 
 #define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
-
-#define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
-
-#define LOG_ENABLE					// Enable logging of telemetry data
-
 
 
 /*###########################################################################################################################################################*/
@@ -168,12 +167,19 @@ typedef struct {
 }s_data;
 
 
+// UART buffers and flags
 typedef struct {
 	uint8_t				buffer_temp[2];			// Small buffer for received byte
     uint8_t     		buffer_UART[64];        // Buffer for saving USB data
     uint8_t     		flag_new_uart_rx_data;  // Flag indicating a new data has arrived (packet is not complete)
     uint8_t     		flag_new_uart_tx_data;  // Flag indicating a new data is ready to send
     uint8_t     		flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
+
+    uint8_t				flag_logging_active;	// Flag for logging in progress
+    uint8_t				flag_log_available;		// Flag for indicating log available in flash
+
+    char		     	log_file;				// Name of log file
+    uint8_t				flag_log_dump;			// Flag indication complete log dump over UART
 } s_uart_buffers;
 
 
@@ -189,6 +195,7 @@ typedef struct {
 } s_errors;
 
 
+// Main drone struct with all data
 typedef struct {
 	/* Base data */
 	volatile e_drone_status DroneStatus;	 	// Status of drone
