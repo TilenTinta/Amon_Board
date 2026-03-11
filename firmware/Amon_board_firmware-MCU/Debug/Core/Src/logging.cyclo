@@ -12,3 +12,4 @@
 ../Core/Src/logging.c:326:6:log_write_buffer	1
 ../Core/Src/logging.c:346:6:log_add_sample	2
 ../Core/Src/logging.c:393:5:log_dump_uart	8
+../Core/Src/logging.c:451:6:log_remove	2

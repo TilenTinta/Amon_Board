@@ -1,6 +1,8 @@
-../Core/Src/GNSS.c:16:6:GPS_Decode_GGA	1
-../Core/Src/GNSS.c:21:6:GPS_Decode_GLL	1
-../Core/Src/GNSS.c:26:6:GPS_Decode_GSA	1
-../Core/Src/GNSS.c:31:6:GPS_Decode_GSV	1
-../Core/Src/GNSS.c:36:6:GPS_Decode_RMC	1
-../Core/Src/GNSS.c:41:6:GPS_Decode_VTG	1
+../Core/Src/GNSS.c:27:13:gps_split_packet	9
+../Core/Src/GNSS.c:70:14:gps_parse_float	6
+../Core/Src/GNSS.c:118:6:GPS_Decode_GGA	53
+../Core/Src/GNSS.c:395:6:GPS_Decode_GLL	28
+../Core/Src/GNSS.c:564:6:GPS_Decode_GSA	30
+../Core/Src/GNSS.c:738:6:GPS_Decode_GSV	45
+../Core/Src/GNSS.c:937:6:GPS_Decode_RMC	42
+../Core/Src/GNSS.c:1180:6:GPS_Decode_VTG	33

@@ -19,6 +19,14 @@ extern "C" {
 #include <string.h>
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
+#include "spi_bus_config.h"
+
+
+//#define NRF_SPI_PRESCALER SPI_BAUDRATEPRESCALER_16   // safe for nRF24L01 max SPI
+//static spi_bus_token_t nrf_spi_token;
+//
+//SPI_Bus_Begin(&nrf_spi_token, dev->SPIx, NRF_SPI_PRESCALER);
+//SPI_Bus_End(&nrf_spi_token);
 
 
 /*###########################################################################################################################################################*/
@@ -327,8 +335,8 @@ typedef struct {
     uint8_t             rx_lenght;      // lenght of rx data in buffer 
     uint8_t             pipe_data;      // Number of pipe from where data was received
 
-    uint8_t             flag_new_rx;    // New RX data available
-    uint8_t             flag_tx_done;   // Data transmited sucessfuly
+    volatile uint8_t    flag_new_rx;    // New RX data available
+    volatile uint8_t    flag_tx_done;   // Data transmited sucessfuly
     uint8_t             flag_max_rxs_reached; // Maximum nuber of retransmitions reached
 
 } s_nrf_payloads;
@@ -344,7 +352,7 @@ typedef struct {
     uint16_t            CE_Pin;         // CE pin
 
     e_nrf_error         radioErr;       // Error flag - block device 
-    uint8_t             irq_flag;       // IRQ flag - interrupt detected
+    volatile uint8_t    irq_flag;       // IRQ flag - interrupt detected
     uint8_t             irq_on_pipe;    // number of pipe where irq is detected
     uint8_t             irq_status;     // Flag that indicates interrupt
     uint8_t             flag_tx_in_progress;    // Flag that blocks next uart receive if old one not finished yet

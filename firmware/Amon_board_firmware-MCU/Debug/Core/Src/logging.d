@@ -1,8 +1,5 @@
 Core/Src/logging.o: ../Core/Src/logging.c ../Core/Inc/logging.h \
- ../Core/Inc/flash_W25QXXX.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h \
- ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
+ ../Core/Inc/flash_W25QXXX.h ../Core/Inc/spi_bus_config.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -39,14 +36,13 @@ Core/Src/logging.o: ../Core/Src/logging.c ../Core/Inc/logging.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h \
+ ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h
 ../Core/Inc/logging.h:
 ../Core/Inc/flash_W25QXXX.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h:
-../Core/Inc/drone_data.h:
-../Core/Inc/data_transcode.h:
-../Core/Inc/GNSS.h:
+../Core/Inc/spi_bus_config.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h:
@@ -84,3 +80,8 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h:
+../Core/Inc/drone_data.h:
+../Core/Inc/data_transcode.h:
+../Core/Inc/GNSS.h:

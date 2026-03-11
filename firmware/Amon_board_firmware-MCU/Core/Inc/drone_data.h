@@ -47,9 +47,9 @@
 #define STREAM_EN_TIME		3		// Time in seconds over which stream mode is enabled
 
 // Select GPS decoding (comment/uncomment for enable/disable)
-//#define USE_GPS
+#define USE_GPS
 #define USE_GPS_GGA
-#define USE_GPS_GLL
+//#define USE_GPS_GLL
 #define USE_GPS_GSA
 #define USE_GPS_GSV
 #define USE_GPS_RMC
@@ -178,8 +178,9 @@ typedef struct {
     uint8_t				flag_logging_active;	// Flag for logging in progress
     uint8_t				flag_log_available;		// Flag for indicating log available in flash
 
-    char		     	log_file;				// Name of log file
+    const char		    *log_file;				// Name of log file
     uint8_t				flag_log_dump;			// Flag indication complete log dump over UART
+    uint8_t				flag_log_remove;		// Flag for deleting log file
 } s_uart_buffers;
 
 

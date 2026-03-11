@@ -18,14 +18,12 @@
 
 #define SPI_IS_BUSY 					(HAL_GPIO_ReadPin(CS_Flash_GPIO_Port, CS_Flash_Pin) == GPIO_PIN_RESET)
 
-#define FLASH_PRESCALER 				SPI_BAUDRATEPRESCALER_2     //prescaler assigned to display SPI port
+//#define FLASH_PRESCALER 				SPI_BAUDRATEPRESCALER_2     //prescaler assigned to display SPI port
+#define FLASH_PRESCALER SPI_BAUDRATEPRESCALER_16
 #define SET_FLASH_SPI_BAUDRATE			FLASH_SPI->CR1 &= (uint16_t) ~SPI_CR1_BR_Msk; \
 										FLASH_SPI->CR1 |= FLASH_PRESCALER
 
 extern SPI_HandleTypeDef FLASH_SPI_PORT;
-
-
-
 
 
 /******************************************

@@ -494,16 +494,29 @@ int main(void)
 			  	  AmonDrone.uart_buffer.flag_log_dump = 1;
 			  	  break;
 
+			  case TRANSCODE_LOG_RM:					// Serial request for flight log remove
+				  AmonDrone.uart_buffer.flag_log_remove = 1;
+				  break;
+
 			  default:                                	// Default state
 				  break;
 		  }
 	  }
 
+
+#ifdef LOG_ENABLE
 	  if (AmonDrone.uart_buffer.flag_log_dump == 1)
 	  {
 		  AmonDrone.uart_buffer.flag_log_dump = 0;
-		  (void)log_dump_uart("log.txt", &huart4); // &AmonDrone.uart_buffer.log_file
+		  (void)log_dump_uart(AmonDrone.uart_buffer.log_file, &huart4); // "log.txt"
 	  }
+
+	  if (AmonDrone.uart_buffer.flag_log_remove == 1)
+	  {
+		  AmonDrone.uart_buffer.flag_log_remove = 0;
+		  log_remove();
+	  }
+#endif
 
 /*##############################################################################################################################################
 #################################################################### TIMERS ####################################################################
@@ -671,8 +684,6 @@ int main(void)
 		  if (NewGPSData == 1)
 		  {
 			  NewGPSData = 0;
-			  memcpy(USART4_GPSRX_DMA, AmonDrone.gps_data.GPS_RX_buffer, sizeof(USART4_GPSRX_DMA));
-			  memset(USART4_GPSRX_DMA, 0, sizeof(USART4_GPSRX_DMA));
 
 	#ifdef USE_GPS_GGA
 			  GPS_Decode_GGA(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.gga);
@@ -697,6 +708,7 @@ int main(void)
 	#ifdef USE_GPS_VTG
 			  GPS_Decode_VTG(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.vtg);
 	#endif
+
 		  }
 #endif
 
@@ -1773,7 +1785,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 #ifdef USE_GPS
 
-	HAL_UART_Receive_DMA(&huart4, USART4_GPSRX_DMA, 426); // enable USART Receive again
+	// Copy data to buffer for later decoding
+	memset(AmonDrone.gps_data.GPS_RX_buffer, 0, sizeof(AmonDrone.gps_data.GPS_RX_buffer));
+	memcpy(AmonDrone.gps_data.GPS_RX_buffer, USART4_GPSRX_DMA, 426);
+	memset(USART4_GPSRX_DMA, 0, sizeof(USART4_GPSRX_DMA));
+
+	HAL_UART_Receive_DMA(&huart4, USART4_GPSRX_DMA, 426); // enable USART receive again
 	NewGPSData = 1;		// set flag that new data has arrived
 
 #else

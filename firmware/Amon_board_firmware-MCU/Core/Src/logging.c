@@ -439,3 +439,21 @@ int log_dump_uart(const char *path, UART_HandleTypeDef *huart)
     return err;
 }
 
+
+
+/*********************************************************************
+ * @fcn     log_delete
+ *
+ * @brief   Delete flight log file from flash
+ *
+ * @return  none
+ */
+void log_remove(void)
+{
+    int err = lfs_remove(&lfs, "log.txt");
+
+    if (err < 0)
+    {
+        printf("Delete failed: %d\n", err);
+    }
+}

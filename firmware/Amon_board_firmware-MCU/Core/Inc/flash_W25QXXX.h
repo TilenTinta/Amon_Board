@@ -18,7 +18,13 @@
 
 
 #include <stdint.h>
+#include "spi_bus_config.h"
 
+//static spi_bus_token_t flash_spi_token;
+//#define FLASH_PRESCALER SPI_BAUDRATEPRESCALER_2
+
+//SPI_Bus_Begin(&flash_spi_token, &FLASH_SPI_PORT, FLASH_PRESCALER);
+//SPI_Bus_End(&flash_spi_token);
 
 /*||||||||||| USER/PROJECT PARAMETERS |||||||||||*/
 

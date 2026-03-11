@@ -39,7 +39,7 @@ USB_DEVICE/Target/usbd_conf.o: ../USB_DEVICE/Target/usbd_conf.c \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_def.h \
  ../USB_DEVICE/Target/usbd_conf.h ../Core/Inc/main.h \
  ../Core/Inc/MPU6050.h ../Core/Inc/BME280.h ../Core/Inc/PWM.h \
- ../Core/Inc/NRF24L01.h \
+ ../Core/Inc/NRF24L01.h ../Core/Inc/spi_bus_config.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h \
@@ -100,6 +100,7 @@ USB_DEVICE/Target/usbd_conf.o: ../USB_DEVICE/Target/usbd_conf.c \
 ../Core/Inc/BME280.h:
 ../Core/Inc/PWM.h:
 ../Core/Inc/NRF24L01.h:
+../Core/Inc/spi_bus_config.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h:

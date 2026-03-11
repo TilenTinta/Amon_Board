@@ -11,6 +11,7 @@
 "./Core/Src/logging.o"
 "./Core/Src/main.o"
 "./Core/Src/regulators.o"
+"./Core/Src/spi_bus_config.o"
 "./Core/Src/stm32f4xx_hal_msp.o"
 "./Core/Src/stm32f4xx_it.o"
 "./Core/Src/syscalls.o"

@@ -82,6 +82,7 @@ extern "C" {
 #define TRANSCODE_DEST_PC       0x07    // Packet for PC-UART transmition
 #define TRANSCODE_BOOT_PKT      0x0A    // Bootloader packet received
 #define TRANSCODE_LOG_DUMP		0x10	// Trugger log dump over uart
+#define TRANSCODE_LOG_RM		0x11	// Trugger log remove over uart
 
 // Address / IDs (1 byte)
 #define ID_PC                   0x01    // Address: PC
@@ -112,6 +113,7 @@ extern "C" {
 #define OPT_DRONE_COMMAND       0x33    // Send command to drone (calibrate, save��)
 #define OPT_TELEMETRY           0x40    // Telemetry data from drone (STREAM; sub-type via TLVs)
 #define OPT_LOG_DUMP			0x50	// Flight log dump
+#define OPT_LOG_RM 				0x51	// Flight log remove
 
 // Payload format - TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
 #define TVL_FW_VER              0x01    // FW version (ascii)

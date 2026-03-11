@@ -16,6 +16,15 @@
 
 #include "drone_data.h"
 
+/* IDEAS:
+ * - Use multiple logs and delete the oldest:
+ * 		- flight_0001.bin
+ *		- flight_0002.bin
+ *		- flight_0003.bin
+ *
+ *
+ * */
+
 /*###########################################################################################################################################################*/
 /* Defines */
 #define LOG_BUFFER_SIZE		50	// data size is aligned with frequency at which data is collected (saved at 1Hz)
@@ -104,6 +113,7 @@ int log_open_file(void);
 int log_close_file(void);
 void log_add_sample(s_position *pos, s_data *data);
 int log_dump_uart(const char *path, UART_HandleTypeDef *huart);
+void log_remove(void);
 
 
 #endif /* INC_LOGGING_H_ */

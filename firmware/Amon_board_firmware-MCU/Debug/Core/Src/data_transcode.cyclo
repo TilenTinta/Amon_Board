@@ -3,7 +3,7 @@
 ../Core/Src/data_transcode.c:122:6:UART_packet_parse	4
 ../Core/Src/data_transcode.c:189:6:RF_packet_parse	3
 ../Core/Src/data_transcode.c:220:9:UART_decode	14
-../Core/Src/data_transcode.c:299:9:uart_opcode_decode	2
-../Core/Src/data_transcode.c:324:9:RF_decode	9
-../Core/Src/data_transcode.c:381:6:UART_encode	3
-../Core/Src/data_transcode.c:420:6:RF_encode	3
+../Core/Src/data_transcode.c:299:9:uart_opcode_decode	3
+../Core/Src/data_transcode.c:328:9:RF_decode	9
+../Core/Src/data_transcode.c:385:6:UART_encode	3
+../Core/Src/data_transcode.c:424:6:RF_encode	3

@@ -304,6 +304,10 @@ uint8_t uart_opcode_decode(s_packets *packets)
 			return TRANSCODE_LOG_DUMP;
 			break;
 
+		case OPT_LOG_RM:
+			return TRANSCODE_LOG_RM;
+			break;
+
 		default:
 			break;
 	}
