@@ -4,8 +4,10 @@
 
 # Description:
 Flight controller hardware and firmware used in the Amon Lander project. Two hardware lines are maintained:
-- **Board v1 (STM32F405)** — the current, working design.
-- **Board v2 (STM32xxx (Zephyr) + Raspberry Pi CM4)** — the next-gen design with a new MCU running Zephyr RTOS and a companion **Raspberry Pi Compute Module 4 (CM4)**.
+- **Board v1 (ESP32 WROOM-32)** — never released (critical error).
+- **Board v2 (STM32F405)** — the current, working design.
+- **Board v3 (STM32H743VIT6)** — in development.
+- **Board v4 (STM32xxx (Zephyr) + Raspberry Pi CM4)** — the next-gen design with a new MCU running Zephyr RTOS and a companion **Raspberry Pi Compute Module 4 (CM4)**.
 
 > Part of the Amon Lander project:
 >
@@ -22,13 +24,14 @@ Flight controller hardware and firmware used in the Amon Lander project. Two har
 
 - [Overview](#overview)
 - [Hardware Versions](#hardware-versions)
-  - [Board v1 — STM32F405](#board-v1--stm32f405)
-  - [Board v2 — Zephyr + CM4](#board-v2--zephyr--cm4)
+  - [Board v2 — STM32F405](#board-v1--stm32f405)
+  - [Board v3 — STM32H743](#board-v1--stm32h743)
+  - [Board v4 — Zephyr + CM4](#board-v2--zephyr--cm4)
 - [Version Matrix](#version-matrix)
 - [Repository Structure](#repository-structure)
 - [Getting Started](#getting-started)
-  - [Build & Flash: Board v1](#build--flash-board-v1)
-  - [Build & Flash: Board v2 (Zephyr)](#build--flash-board-v2-zephyr)
+  - [Build & Flash: Board v2 & v3](#build--flash-board-v1)
+  - [Build & Flash: Board v4 (Zephyr)](#build--flash-board-v2-zephyr)
   - [First Boot: CM4 Companion](#first-boot-cm4-companion)
 - [Calibration & Testing](#calibration--testing)
 - [Roadmap](#roadmap)
@@ -40,7 +43,7 @@ Flight controller hardware and firmware used in the Amon Lander project. Two har
 
 ## Overview
 
-This board is a custom flight controller for **Amon Lander**. The **v1** generation uses an **STM32F405RGT6 (LQFP-64)** and a hand-written firmware stack (drivers from scratch, for learning and control). A **v2** generation is being designed around a **Zephyr-supported MCU** for real-time control, paired with a **Raspberry Pi CM4** for high-level tasks (GCS link, logging, navigation stack, future CV/ML, etc.).
+This board is a custom flight controller for **Amon Lander**. The **v2** generation uses an **STM32F405RGT6 (LQFP-64)** and a hand-written firmware stack (drivers from scratch, for learning and control). Because of the flight algorithm planned to be used in this project, the decision was made to modify the current **v2** PCB with a new MCU. This is the **STM32H743VIT6 (LQFP-100)** and to fix some issues and add features that were missing or incorrect in the previous version. A **v3** generation is being designed around a **Zephyr-supported MCU** for real-time control, paired with a **Raspberry Pi CM4** for high-level tasks (GCS link, logging, navigation stack, future CV/ML, etc.).
 
 Everything was built from the ground up — **electronics, firmware, and software**. Most tools used are **free** and widely available to makers. Expect a learning-first approach over simplicity: some solutions could be easier, but the point is to **learn and explore**.
 
@@ -48,13 +51,43 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 
 ## Hardware Versions
 
-### Board v1 — STM32F405
+### Board v1 — ESP32 WROOM-32
+
+**Highlights**
+
+- **MCU:** ESP32 WROOM-32 module
+- **Power & Protection**
+  - Dual vertical **XT60** inputs (PCB PWR and EDF voltage)
+  - **Reverse-polarity diode**
+  - Max input tested: **12 V**
+  - Two **LDO regulators**: 3.3V (MCU/sensors) & 5V/5A (servos)
+- **Sensors**
+  - **MPU6050** (IMU)
+  - **BME280** (temp/pressure/humidity)
+  - TOF connector for **VL53L1X (TOF400C)**
+- **Navigation & Comms**
+  - **GPS** connector (GY-NEO6MV2; also reused for calibration)
+  - **single NRF24L01+ PA/LNA** (RX–TX)
+- **I/O**
+  - **PWM:** 4× servos + 1× EDF
+  - Expansion: **SPI** & **I²C** headers
+  - **USB** with surge protection (over CH340C)
+  - **4-pin JTAG** header
+  - **RGB status LED**
+  - **Buzzer**
+- **Storage:** **microSD** slot
+- **PCB:** 4-layer
+
+**Firmware (v1)**
+- **Status:** Never really worked (ESP32 was eliminated from the project)
+
+### Board v2 — STM32F405
 
 **Highlights**
 
 - **MCU:** STM32F405RGT6 (LQFP-64)
 - **Power & Protection**
-  - Dual **XT60** inputs (PCB PWR and EDF voltage)
+  - Dual vertical **XT60** inputs (PCB PWR and EDF voltage)
   - **Reverse-polarity diode**
   - Max input tested: **12 V**
   - Two **buck regulators**: 3.3 V (MCU/sensors) & 5 V (servos), ~5 A each
@@ -63,7 +96,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - **Sensors**
   - **MPU6050** (IMU)
   - **BME280** (temp/pressure/humidity)
-  - **HMC5883L** (compass)
+  - **HMC5883L** (compass) *added later
   - TOF connector for **VL53L1X (TOF400C)**
 - **Navigation & Comms**
   - **GPS** connector (GY-NEO6MV2; also reused for calibration)
@@ -77,17 +110,53 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - **Storage:** External flash (telemetry) + **microSD** slot
 - **PCB:** 4-layer, working but slated for a future revision/refresh
 
-> ![PCBv1_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v1_1.PNG)
-
-**Firmware (v1)**
+**Firmware (v2)**
 
 - **Approach:** Minimal dependencies; **drivers from scratch** (for learning)  
 - **Status:** Runs and evolves; some drivers may still have rough edges  
-- **Focus:** Bring-up, sensor fusion, basic control loops, telemetry logging
+- **Focus:** Bring-up, sensor fusion, basic control loops, telemetry logging and transmition...
+
+> ![PCBv1_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v1_1.PNG)
+
+### Board v3 — STM32H743
+
+**Highlights**
+
+- **MCU:** STM32H743VIT66 (LQFP-100)
+- **Power & Protection**
+  - Dual horiyontal **XT60** inputs (PCB PWR and EDF voltage)
+  - **Reverse-polarity diode**
+  - Max input tested: **12 V**
+  - Two **buck regulators**: 3.3 V (MCU/sensors) & 5 V (servos), ~5 A each + more stable voltage
+- **Switching/Startup:** Power-on by battery insertion or external switch on a terminal
+- **Grounding:** Grounded mounting holes
+- **Sensors**
+  - **MPU6050** (IMU)
+  - **BME280** (temp/pressure/humidity)
+  - **HMC5883L** (compass)
+  - TOF connector for **VL53L1X (TOF400C)**
+- **Navigation & Comms**
+  - **GPS** connector (GY-NEO6MV2; also reused for calibration)
+  - **2× NRF24L01+ PA/LNA** (RX–TX)
+  - **USB OTG** with surge protection + **USB** over serial chip (CH340G)
+- **I/O**
+  - **PWM:** 4× servos + 1× EDF (configurable)
+  - Expansion: **SPI** & **I²C** headers
+  - **10-pin JTAG** header (Olimex HAB-VCR-010-LF)
+  - **RGB status LED**
+- **Storage:** External flash (telemetry) + **microSD** slot
+- **PCB:** 4-layer
+
+**Firmware (v3)**
+
+- **Base:** Firmware is fully based on **Firmware v2**
+- **Approach:** Minimal dependencies; **drivers from scratch** (for learning)  
+- **Status:** Runs and evolves; some drivers may still have rough edges  
+- **Focus:** sensor fusion, advance control algorithms, telemetry logging and transmition...
 
 ---
 
-### Board v2 — Zephyr + CM4
+### Board v4 — Zephyr + CM4
 
 **Architecture (planned / in development)**
 
@@ -118,7 +187,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - On-board mass storage for logs (eMMC on CM4 + SD/QSPI on MCU)
 - External debug: SWD/JTAG for MCU; USB-C or Ethernet for CM4
 
-**Firmware (v2)**
+**Firmware (v4)**
 
 - **Zephyr** application (modules: sensors, control, comms, storage)
 - **IPC format:** CBOR/Protobuf frame over UART (CRC-guarded)
@@ -129,19 +198,26 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 
 ## Version Matrix
 
-| Capability                  | Board v1 — STM32F405 | Board v2 — Zephyr + CM4 |
-|----------------------------|----------------------|--------------------------|
-| MCU                         | STM32F405 (F4)       | **TBD** (Zephyr-supported) |
-| RTOS                        | None (bare-metal)    | **Zephyr RTOS**          |
-| Companion Computer          | —                    | **Raspberry Pi CM4**     |
-| Sensors                     | MPU6050, BME280, HMC5883L, VL53L1X (TOF) | Same class; final selection TBD |
-| Radio                       | 2× NRF24L01+ PA/LNA  | TBD (NRF/2.4G/5G/Ethernet via CM4) |
-| Navigation                  | GPS connector        | GPS via MCU or CM4 module |
-| Storage                     | Flash + microSD      | CM4 eMMC + MCU flash/SD  |
-| Programming/Debug           | 10-pin JTAG, USB OTG | SWD/JTAG (MCU), SSH/USB/Ethernet (CM4) |
-| Power                       | Dual XT60, 3.3V/5V bucks | Segregated rails, higher headroom (TBD) |
-| Firmware Updates            | JTAG/SWD/DFU         | MCU bootloader + CM4 package/container |
+## Version Matrix
 
+| Capability                  | Board v1 — ESP32 | Board v2 — STM32F405 | Board v3 — STM32H743 | Board v4 — Zephyr + CM4 |
+|----------------------------|------------------|----------------------|----------------------|--------------------------|
+| MCU                         | ESP32 WROOM-32   | STM32F405RGT6        | STM32H743VIT6        | **TBD (Zephyr-supported)** |
+| RTOS                        | None             | None (bare-metal)    | None (bare-metal)    | **Zephyr RTOS**          |
+| Companion Computer          | —                | —                    | —                    | **Raspberry Pi CM4**     |
+| Sensors                     | MPU6050, BME280, VL53L1X | MPU6050, BME280, HMC5883L, VL53L1X | MPU6050, BME280, HMC5883L, VL53L1X | Same class; final selection TBD |
+| Radio                       | 1× NRF24L01+ PA/LNA | 2× NRF24L01+ PA/LNA | 2× NRF24L01+ PA/LNA | TBD (NRF / other via MCU or CM4) |
+| Navigation                  | GPS (GY-NEO6MV2) | GPS (GY-NEO6MV2)     | GPS (GY-NEO6MV2)     | GPS via MCU or CM4 module |
+| Storage                     | microSD          | Flash + microSD      | Flash + microSD      | CM4 eMMC + MCU flash/SD  |
+| USB                         | USB (CH340C)     | USB OTG              | USB OTG + CH340G     | USB (MCU + CM4)          |
+| Programming / Debug         | 4-pin JTAG       | 10-pin JTAG          | 10-pin JTAG          | SWD/JTAG (MCU) + SSH/USB/Ethernet (CM4) |
+| PWM Outputs                 | 4× servos + 1× EDF | 4× servos + 1× EDF | 4× servos + 1× EDF | Same (handled by MCU)    |
+| Expansion                   | SPI, I²C         | SPI, I²C             | SPI, I²C             | SPI, I²C, UART, CAN (planned) |
+| Power                       | XT60, LDO (3.3V + 5V/5A) | XT60, buck (3.3V + 5V/5A) | XT60, improved buck (3.3V + 5V/5A) | Segregated rails, higher headroom (TBD) |
+| PCB                         | 4-layer          | 4-layer              | 4-layer              | TBD                      |
+| Firmware Status             | Not working    | Working, evolving | Working, evolving | In development        |
+| Firmware Approach           | —                | Bare-metal, custom drivers | Based on v2, improved | Zephyr modules + Linux services |
+| Firmware Updates            | USB              | JTAG/SWD/DFU         | JTAG/SWD/DFU         | MCU bootloader + CM4 (apt/container) |
 
 ---
 
@@ -224,8 +300,8 @@ Instructions bellow are only "place holder". Detailed instructions will be provi
 
 ## Calibration & Testing
 
-- **GPS/Calibration Port:** The v1 GPS connector doubles as a calibration interface during bring-up.  
-- **Telemetry:** Log to external flash/microSD (v1) or CM4 eMMC + MCU storage (v2).  
+- **GPS/Calibration Port:** The v2 & v3 GPS connector doubles as a calibration interface during bring-up.  
+- **Telemetry:** Log to external flash/microSD (v2 & v3) or CM4 eMMC + MCU storage (v4).  
 - **LED Status:** On-board RGB LED signals power, init, errors, and link status.  
 - **HIL/Replay (v2):** Reproduce flights by streaming recorded sensor frames back into the MCU (for controller tuning).
 
@@ -234,9 +310,14 @@ Instructions bellow are only "place holder". Detailed instructions will be provi
 ## Roadmap
 
 - **v1**
+   - Failed design
+- **v2**
   - Incremental driver fixes and documentation cleanup
   - Manufacturing files refresh (Gerbers/BOM/PNP)
-- **v2**
+- **v3**
+   - Modified v2 design with new MCU, connectors, sensors
+   - Modified v2 firmware for new MCU (much higher clock: 168 MHz -> 480MHz)
+- **v4**
   - Finalize MCU choice and Zephyr board port
   - Define IPC schema (CBOR/Proto) & reliability (CRC/seq/ACK)
   - CM4 services (logger, bridge, config UI)
