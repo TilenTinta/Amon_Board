@@ -1,5 +1,6 @@
 "./Core/Src/BME280.o"
 "./Core/Src/GNSS.o"
+"./Core/Src/HMC5883L.o"
 "./Core/Src/MPU6050.o"
 "./Core/Src/NRF24L01.o"
 "./Core/Src/PWM.o"

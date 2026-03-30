@@ -84,17 +84,21 @@ void DegresToCCR(float degrees, uint8_t Servo)
 */
 void PowerToPWMValue(uint8_t power)
 {
-	// 50Hz PWM
-	// 0% =0.5ms, 100% = 2.5ms; delta 100% = 2ms
+    if (power > 100) power = 100;
+
+    // 0% =0.870us, 100% = 2.12ms; delta 100% = 1.25ms
 	// Must be set by user (HTIRC HORNET 100A)
-	uint32_t value;
+    // TIM2 tick is ~100us with PSC=8399 at 84MHz, period=20ms (50Hz)
+    const float min_ms = 0.87f;
+    const float max_ms = 2.12f;
+    const float tick_ms = 0.10f; // 100us
 
-	float TimePerPercent = 0.02; // time of PWM for one percent of power
+    float pulse_ms = min_ms + (max_ms - min_ms) * ((float)power / 100.0f);
+    uint32_t ccr = (uint32_t)(pulse_ms / tick_ms + 0.5f); // round to nearest tick
 
-	value = power * TimePerPercent;
-
-	SetPWMValue(PWM_EDF, value);
+    SetPWMValue(PWM_EDF, ccr);
 }
+
 
 
 

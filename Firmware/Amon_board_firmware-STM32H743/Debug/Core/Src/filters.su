@@ -1,7 +1,0 @@
-../Core/Src/filters.c:30:6:Complementary_deg	40	static
-../Core/Src/filters.c:185:6:Kalman_Init	16	static
-../Core/Src/filters.c:214:6:Kalman_rawToAngles	40	static
-../Core/Src/filters.c:241:7:Kalman_Update	80	static
-../Core/Src/filters.c:336:20:accel_normalize	32	static
-../Core/Src/filters.c:359:21:wrap180	16	static
-../Core/Src/filters.c:379:7:unwrap_to_ref	24	static

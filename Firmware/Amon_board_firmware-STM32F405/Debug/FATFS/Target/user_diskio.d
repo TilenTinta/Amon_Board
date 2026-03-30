@@ -42,15 +42,16 @@ FATFS/Target/user_diskio.o: ../FATFS/Target/user_diskio.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
  ../Core/Inc/MPU6050.h ../Core/Inc/BME280.h ../Core/Inc/PWM.h \
  ../Core/Inc/NRF24L01.h ../Core/Inc/spi_bus_config.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_calibration.h \
- ../Core/Inc/logging.h ../Core/Inc/flash_W25QXXX.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h \
- ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
- ../Core/Inc/filters.h ../Core/Inc/regulators.h
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_api.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_platform.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_types.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_calibration.h \
+ ../Core/Inc/HMC5883L.h ../Core/Inc/drone_data.h \
+ ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h ../Core/Inc/filters.h \
+ ../Core/Inc/regulators.h ../Core/Inc/logging.h \
+ ../Core/Inc/flash_W25QXXX.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h
 ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h:
 ../Middlewares/Third_Party/FatFs/src/diskio.h:
 ../Middlewares/Third_Party/FatFs/src/integer.h:
@@ -99,16 +100,17 @@ FATFS/Target/user_diskio.o: ../FATFS/Target/user_diskio.c \
 ../Core/Inc/PWM.h:
 ../Core/Inc/NRF24L01.h:
 ../Core/Inc/spi_bus_config.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_api.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_platform.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/platform/vl53l1_types.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/vl53l1x/core/VL53L1X_calibration.h:
-../Core/Inc/logging.h:
-../Core/Inc/flash_W25QXXX.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-MCU/Drivers/../Drivers/littlefs/lfs_util.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_api.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_platform.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_types.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_calibration.h:
+../Core/Inc/HMC5883L.h:
 ../Core/Inc/drone_data.h:
 ../Core/Inc/data_transcode.h:
 ../Core/Inc/GNSS.h:
 ../Core/Inc/filters.h:
 ../Core/Inc/regulators.h:
+../Core/Inc/logging.h:
+../Core/Inc/flash_W25QXXX.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h:

@@ -37,12 +37,13 @@ extern "C" {
 #include "NRF24L01.h"
 #include "VL53L1X_api.h"
 #include "VL53L1X_calibration.h"
-#include "logging.h"
+#include "HMC5883L.h"
 
 #include "drone_data.h"
 #include "data_transcode.h"
 #include "filters.h"
 #include "regulators.h"
+#include "logging.h"
 
 /* USER CODE END Includes */
 

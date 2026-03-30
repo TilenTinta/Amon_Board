@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2022 STMicroelectronics.
+  * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -27,22 +27,10 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
+#include "stm32h7xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "MPU6050.h"
-#include "BME280.h"
-#include "PWM.h"
-#include "NRF24L01.h"
-#include "VL53L1X_api.h"
-#include "VL53L1X_calibration.h"
-#include "logging.h"
-
-#include "drone_data.h"
-#include "data_transcode.h"
-#include "filters.h"
-#include "regulators.h"
 
 /* USER CODE END Includes */
 
@@ -61,8 +49,6 @@ extern "C" {
 
 /* USER CODE END EM */
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -71,59 +57,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define EDF_BAT_Pin GPIO_PIN_0
-#define EDF_BAT_GPIO_Port GPIOA
-#define BRD_BAT_Pin GPIO_PIN_1
-#define BRD_BAT_GPIO_Port GPIOA
-#define TIM2_CH3_RGB_B_Pin GPIO_PIN_2
-#define TIM2_CH3_RGB_B_GPIO_Port GPIOA
-#define LED_Brd_Pin GPIO_PIN_3
-#define LED_Brd_GPIO_Port GPIOA
-#define CS_Flash_Pin GPIO_PIN_4
-#define CS_Flash_GPIO_Port GPIOA
-#define CS_Ext_Pin GPIO_PIN_4
-#define CS_Ext_GPIO_Port GPIOC
-#define CS_SD_Pin GPIO_PIN_5
-#define CS_SD_GPIO_Port GPIOC
-#define TIM3_CH3_Y__Pin GPIO_PIN_0
-#define TIM3_CH3_Y__GPIO_Port GPIOB
-#define TIM3_CH4_Y__Pin GPIO_PIN_1
-#define TIM3_CH4_Y__GPIO_Port GPIOB
-#define LED_Red_Pin GPIO_PIN_2
-#define LED_Red_GPIO_Port GPIOB
-#define LED_White_Pin GPIO_PIN_10
-#define LED_White_GPIO_Port GPIOB
-#define TIM2_CH4_EDF_Pin GPIO_PIN_11
-#define TIM2_CH4_EDF_GPIO_Port GPIOB
-#define TIM3_CH1_X__Pin GPIO_PIN_6
-#define TIM3_CH1_X__GPIO_Port GPIOC
-#define TIM3_CH2_X__Pin GPIO_PIN_7
-#define TIM3_CH2_X__GPIO_Port GPIOC
-#define TIM1_CH2_RGB_G_Pin GPIO_PIN_9
-#define TIM1_CH2_RGB_G_GPIO_Port GPIOA
-#define TIM1_CH3_RGB_R_Pin GPIO_PIN_10
-#define TIM1_CH3_RGB_R_GPIO_Port GPIOA
-#define UART4_TX_GPS_Pin GPIO_PIN_10
-#define UART4_TX_GPS_GPIO_Port GPIOC
-#define UART4_RX_GPS_Pin GPIO_PIN_11
-#define UART4_RX_GPS_GPIO_Port GPIOC
-#define RF_IRQ2_Pin GPIO_PIN_2
-#define RF_IRQ2_GPIO_Port GPIOD
-#define RF_IRQ2_EXTI_IRQn EXTI2_IRQn
-#define CS_RF2_Pin GPIO_PIN_4
-#define CS_RF2_GPIO_Port GPIOB
-#define EN_RF2_Pin GPIO_PIN_5
-#define EN_RF2_GPIO_Port GPIOB
-#define RF_IRQ1_Pin GPIO_PIN_7
-#define RF_IRQ1_GPIO_Port GPIOB
-#define RF_IRQ1_EXTI_IRQn EXTI9_5_IRQn
-#define EN_RF1_Pin GPIO_PIN_8
-#define EN_RF1_GPIO_Port GPIOB
-#define CS_RF1_Pin GPIO_PIN_9
-#define CS_RF1_GPIO_Port GPIOB
+#define LED_Pin GPIO_PIN_9
+#define LED_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
-
 
 /* USER CODE END Private defines */
 

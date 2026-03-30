@@ -2,7 +2,7 @@
 	(version 20250114)
 	(generator "eeschema")
 	(generator_version "9.0")
-	(uuid "1c193ba0-28c8-4c30-8e88-0304c76f68cd")
+	(uuid "90fe8be8-2536-43ad-96e3-1669d1670fdb")
 	(paper "A4")
 	(lib_symbols
 		(symbol "Connector_Generic:Conn_02x05_Odd_Even"
@@ -4305,6 +4305,18 @@
 			(justify left bottom)
 		)
 		(uuid "a74939dd-7951-4b60-b721-79c1b7bc80dc")
+	)
+	(text "make PWR copper pour on pins"
+		(exclude_from_sim no)
+		(at 143.002 146.558 0)
+		(effects
+			(font
+				(size 2 2)
+				(color 255 3 60 1)
+			)
+			(justify left bottom)
+		)
+		(uuid "aa8fcc70-5575-43ac-bfa0-d3dc9c121ffb")
 	)
 	(junction
 		(at 171.45 101.6)

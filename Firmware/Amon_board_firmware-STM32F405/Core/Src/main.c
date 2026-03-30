@@ -147,6 +147,7 @@ uint8_t  Reg200HzLoopEN = 0;
 s_MPU6050 			mpu6050; 		// MPU6050 device driver
 s_BME280 			bme280;			// bme280 device driver
 VL53L1_DEV 			vl53l1Dev;		// VL53L1 device driver
+s_HMC5883L			hmc5883l;		// HMC5883L device driver
 //VL53L1X_Version_t vl53l1xVersion_t; // Lidar - unused
 //VL53L1X_Result_t vl53l1xResult_t; // Lidar - unused
 s_nRF24L01 			radio1;			// nRF24L01 device driver
@@ -283,6 +284,7 @@ int main(void)
 		  DroneStatusOld = AmonDrone.DroneStatus;
 		  DroneStatusLocal = AmonDrone.DroneStatus;
 		  StatusLED(AmonDrone.DroneStatus);
+
 	  }
 
 #endif
@@ -500,13 +502,15 @@ int main(void)
 
 			  case TRANSCODE_CAL_COMM:					// Serial calibration commands
 				  // Full packet required (all fields must have value)
-				  EDFEnable();
+#ifdef IDENTIFICATION
+				  if (EDFEnableFlag == 0) EDFEnable();
 				  PowerToPWMValue(data_packets.calib_data.edf_pwr_percent);
-				  TVCServoEnable();
+				  if (TVCServoEnableFlag == 0) TVCServoEnable();
 				  DegresToCCR(data_packets.calib_data.x_plus_angle, SERVO_XP);
 				  DegresToCCR(data_packets.calib_data.x_minus_angle, SERVO_XN);
 				  DegresToCCR(data_packets.calib_data.y_plus_angle, SERVO_YP);
 				  DegresToCCR(data_packets.calib_data.y_minus_angle, SERVO_YN);
+#endif
 				  break;
 
 			  default:                                	// Default state
@@ -609,6 +613,18 @@ int main(void)
 			  AmonDrone.data.pressure = bme280.Press_Pa;
 			  AmonDrone.position.height_baro_m = bme280.altitude_m;
 
+			  // GMC5883L
+			  uint8_t status = 0;
+			  HMC5883L_ReadStatus(&hmc5883l, &hi2c3, &status);
+			  if (hmc5883l.DataReady)
+			  {
+				  HMC5883L_ReadHeading(&hmc5883l, &hi2c3, DECLINATION_DEG);
+				  AmonDrone.position.heading_deg = hmc5883l.HeadingDeg;
+				  AmonDrone.position.x_gauss = hmc5883l.X_Gauss;
+				  AmonDrone.position.y_gauss = hmc5883l.Y_Gauss;
+				  AmonDrone.position.z_gauss = hmc5883l.Z_Gauss;
+			  }
+
 
 			  // Start ADC DMA (read analog value) //
 			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_BAT_Val, 2);
@@ -619,7 +635,6 @@ int main(void)
 			  {
 				  AmonDrone.radio_data.flag_telemetry_send = 1;
 			  }
-
 
 			  // Logging //
 			  if (AmonDrone.uart_buffer.flag_logging_active == 1) log_add_sample(&AmonDrone.position, &AmonDrone.data);
@@ -791,6 +806,11 @@ int main(void)
 			HAL_Delay(500); // wait on motors to stop moving
 		}
 
+#ifdef IDENTIFICATION
+		if (EDFEnableFlag == 0) EDFEnable();
+		PowerToPWMValue(0);
+#endif
+
 		// Start timers for sensors and LEDs
 		HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LED_Brd_GPIO_Port, LED_Brd_Pin, GPIO_PIN_RESET);
@@ -842,6 +862,19 @@ int main(void)
 		status += MPU6050_ReadAllDirect(&mpu6050, &hi2c3);
 		status += MPU6050_SelfTest(&mpu6050, &hi2c3);
 
+		/* HMC5883L */
+		hmc5883l.config.sample_avgeraging = SAMPLES_4;
+		hmc5883l.config.data_rate = DTR_75;
+		hmc5883l.config.measurement_mode = MEAS_MODE_NORMAL;
+		hmc5883l.config.gain = GAIN_1_3GA;
+		hmc5883l.config.operating_mode = OP_MODE_CONTINUOUS;
+		uint8_t tmp = status;
+		status += HMC5883L_CheckID(&hmc5883l, &hi2c3);
+		status += HMC5883L_Init(&hmc5883l, &hi2c3);
+		status += HMC5883L_SelfTest(&hmc5883l, &hi2c3);
+		if (status > tmp) AmonDrone.error_code.err_hmc5883l = 1;
+
+		/* Init Kalman filter */
 #ifdef GYRO_KALMAN
 		Kalman_Init(&kalman_pitch);
 		Kalman_Init(&kalman_roll);
@@ -999,8 +1032,10 @@ int main(void)
 			  // STATE: Drone idling
 			  case STATUS_IDLE:
 
+#ifndef IDENTIFICATION
 				  if (TVCServoEnableFlag == 1) TVCServoDisable();	// Disable TVC servos
 				  if (EDFEnableFlag == 1) EDFDisable();				// Disable EDF
+#endif
 
 				  break;
 
@@ -1008,9 +1043,11 @@ int main(void)
 			  // STATE: Drone armed and ready to take off
 			  case STATUS_ARM:
 
+#ifndef IDENTIFICATION
 				  //TODO: Check sensor values and check flying path
 				  if (TVCServoEnableFlag == 0) TVCServoEnable();
 				  if (EDFEnableFlag == 0) EDFEnable();
+#endif
 
 				  // Logging
 				  if (AmonDrone.uart_buffer.flag_logging_active == 0)
@@ -1055,8 +1092,10 @@ int main(void)
 			  // STATE: End of flight
 			  case STATUS_FLY_OVER:
 
+#ifndef IDENTIFICATION
 				  if (TVCServoEnableFlag == 1) TVCServoDisable();
 				  if (EDFEnableFlag == 1) EDFDisable();
+#endif
 
 				  // Logging
 				  if (AmonDrone.uart_buffer.flag_logging_active == 1)
@@ -1458,6 +1497,7 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
@@ -1818,12 +1858,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 #else
 
 	static uint8_t len_new_rx_data = 0;
-	static uint8_t cntBuffer_UART = 0;
+	static volatile uint8_t cntBuffer_UART = 0;
 
 	// Save received data
-	uint8_t data = AmonDrone.uart_buffer.buffer_temp[0];                   // Read only once
+	volatile uint8_t data = AmonDrone.uart_buffer.buffer_temp[0];                   // Read only once
 	AmonDrone.uart_buffer.buffer_UART[cntBuffer_UART] = data;
-	memset(AmonDrone.uart_buffer.buffer_temp, 0, 2);
+	memset(AmonDrone.uart_buffer.buffer_temp, 0, sizeof(AmonDrone.uart_buffer.buffer_temp));
 	cntBuffer_UART++;
 
 	// Detect start of frame and set flags
@@ -1832,6 +1872,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		AmonDrone.uart_buffer.flag_USB_RX_new = 1;                          // Indicate new data received
 		AmonDrone.uart_buffer.flag_new_uart_rx_data = 0;                    // Clear end of packet flag
 		len_new_rx_data = 0;                                                // Clear packet counter
+
+		// New method
+		cntBuffer_UART = 0;
+		memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+		AmonDrone.uart_buffer.buffer_UART[cntBuffer_UART++] = data;
 	}
 	else if (AmonDrone.uart_buffer.flag_USB_RX_new == 1 && len_new_rx_data == 0) // Flag for new packet, but no lenght of packet yet
 	{
@@ -1902,6 +1947,7 @@ uint8_t TVCServoDisable()
 uint8_t EDFEnable()
 {
 	uint8_t status = 0;
+	EDFEnableFlag = !EDFEnableFlag;
 
 	status += HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 

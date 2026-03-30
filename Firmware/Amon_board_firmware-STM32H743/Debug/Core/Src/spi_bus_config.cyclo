@@ -1,4 +1,0 @@
-../Core/Src/spi_bus_config.c:15:13:lock_spi1	2
-../Core/Src/spi_bus_config.c:27:13:unlock_spi1	1
-../Core/Src/spi_bus_config.c:33:6:SPI_Bus_Begin	5
-../Core/Src/spi_bus_config.c:51:6:SPI_Bus_End	7

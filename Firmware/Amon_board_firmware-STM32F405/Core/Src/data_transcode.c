@@ -9,13 +9,12 @@
 #include "data_transcode.h"
 
 /* Structs */
-s_packets packets;
 
 
 /* Local function */
 static void UART_packet_parse(s_packets *data, uint8_t *raw_data);
 static void RF_packet_parse(s_packets *data, uint8_t *raw_data);
-static void packetDataReset(void);
+static void packetDataReset(s_packets *packets);
 uint8_t uart_opcode_decode(s_packets *packets, s_calib_data_packet *calib_data);
 //uint16_t crc16_cal(const uint8_t *data, uint16_t length);
 
@@ -69,41 +68,48 @@ uint16_t crc16_cal(const uint8_t *data, uint16_t length)
  *
  * @return  none
  */
-void packetDataReset(void)
+void packetDataReset(s_packets *packets)
 {
     // Clear data struct - uart
-    packets.uart_packet.sof = 0;
-    packets.uart_packet.len = 0;
-    packets.uart_packet.version = 0;
-    packets.uart_packet.flags = 0;
-    packets.uart_packet.src_id = 0;
-    packets.uart_packet.dest_id = 0;
-    packets.uart_packet.opcode = 0;
-    for (int i = 0; i < packets.uart_packet.plen; i++)
+    packets->uart_packet.sof = 0;
+    packets->uart_packet.len = 0;
+    packets->uart_packet.version = 0;
+    packets->uart_packet.flags = 0;
+    packets->uart_packet.src_id = 0;
+    packets->uart_packet.dest_id = 0;
+    packets->uart_packet.opcode = 0;
+    for (int i = 0; i < (int)sizeof(packets->uart_packet.payload); i++)
     {
-        packets.uart_packet.payload[i] = 0;
+        packets->uart_packet.payload[i] = 0;
     }
-    packets.uart_packet.plen = 0;
-    packets.uart_packet.crc = 0;
+    packets->uart_packet.plen = 0;
+    packets->uart_packet.crc = 0;
 
     // Clear data struct - boot
-    packets.boot_packet.sof = 0;
-    packets.boot_packet.addr = 0;
-    packets.boot_packet.cmd = 0;
-    packets.boot_packet.plen = 0;
-    packets.boot_packet.crc16 = 0;
+    packets->boot_packet.sof = 0;
+    packets->boot_packet.addr = 0;
+    packets->boot_packet.cmd = 0;
+    packets->boot_packet.plen = 0;
+    packets->boot_packet.crc16 = 0;
 
     // Clear data struct - rf
-    packets.rf_packet.version = 0;
-    packets.rf_packet.flags = 0;
-    packets.rf_packet.src_id = 0;
-    packets.rf_packet.dest_id = 0;
-    packets.rf_packet.opcode = 0;
-    packets.rf_packet.plen = 0;
-    for (int i = 0; i < sizeof(packets.rf_packet.payload); i++)
+    packets->rf_packet.version = 0;
+    packets->rf_packet.flags = 0;
+    packets->rf_packet.src_id = 0;
+    packets->rf_packet.dest_id = 0;
+    packets->rf_packet.opcode = 0;
+    packets->rf_packet.plen = 0;
+    for (int i = 0; i < (int)sizeof(packets->rf_packet.payload); i++)
     {
-        packets.rf_packet.payload[i] = 0;
+        packets->rf_packet.payload[i] = 0;
     }
+
+    // Clear data for PWM settings of identification
+    packets->calib_data.edf_pwr_percent = 0;
+    packets->calib_data.x_minus_angle = 0;
+    packets->calib_data.x_plus_angle = 0;
+    packets->calib_data.y_minus_angle = 0;
+    packets->calib_data.y_plus_angle = 0;
 }
 
 
@@ -148,7 +154,7 @@ void UART_packet_parse(s_packets *data, uint8_t *raw_data)
 
         uint16_t crc1_tmp = (uint16_t)*(raw_data + data->uart_packet.len);
         uint16_t crc2_tmp = (uint16_t)*(raw_data + data->uart_packet.len + 1) << 8;
-         data->boot_packet.crc16 = crc1_tmp | crc2_tmp;
+        data->boot_packet.crc16 = crc1_tmp | crc2_tmp;
         return;
     }
 
@@ -220,11 +226,11 @@ void RF_packet_parse(s_packets *data, uint8_t *raw_data)
 uint8_t UART_decode(uint8_t *raw_uart_data, s_packets *packets, uint8_t *rf_tx_flag, s_calib_data_packet *calib_data)
 {
     // Parse received buffer
-    packetDataReset();
+    packetDataReset(packets);
     UART_packet_parse(packets, &raw_uart_data[0]);
 
     // CRC check
-    if (packets->boot_packet.plen != 0)
+    if (packets->uart_packet.len == 4)
     {
         // Bootloader format
         if (crc16_cal(&raw_uart_data[1], packets->boot_packet.plen - 1) != packets->boot_packet.crc16) return TRANSCODE_CRC_ERR;
@@ -337,7 +343,7 @@ uint8_t uart_opcode_decode(s_packets *packets, s_calib_data_packet *calib_data)
 uint8_t RF_decode(uint8_t *raw_rf_data, s_packets *packets,  uint8_t *uart_tx_flag)
 {
     // Parse received buffer
-    packetDataReset();
+    packetDataReset(packets);
     RF_packet_parse(packets, &raw_rf_data[0]);
 
     // Check version

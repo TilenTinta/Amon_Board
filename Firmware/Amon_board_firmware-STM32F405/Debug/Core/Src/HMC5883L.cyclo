@@ -1,0 +1,14 @@
+../Core/Src/HMC5883L.c:41:9:HMC5883L_CheckID	5
+../Core/Src/HMC5883L.c:79:9:HMC5883L_Init	3
+../Core/Src/HMC5883L.c:123:9:HMC5883L_SetConfig	4
+../Core/Src/HMC5883L.c:181:9:HMC5883L_SetMode	2
+../Core/Src/HMC5883L.c:213:9:HMC5883L_ReadStatus	2
+../Core/Src/HMC5883L.c:244:9:HMC5883L_ReadRawData	7
+../Core/Src/HMC5883L.c:297:9:HMC5883L_ReadGaussData	3
+../Core/Src/HMC5883L.c:335:9:HMC5883L_ReadHeading	3
+../Core/Src/HMC5883L.c:380:9:HMC5883L_SelfTest	7
+../Core/Src/HMC5883L.c:439:14:HMC5883L_GetLsbPerGauss	15
+../Core/Src/HMC5883L.c:484:14:HMC5883L_NormalizeHeading	3
+../Core/Src/HMC5883L.c:503:26:HMC5883L_ReadRegister	1
+../Core/Src/HMC5883L.c:508:26:HMC5883L_ReadRegisters	1
+../Core/Src/HMC5883L.c:513:26:HMC5883L_WriteRegister	1

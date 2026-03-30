@@ -20,6 +20,7 @@
 
 // Calibration
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
+#define IDENTIFICATION
 
 #define TUNE_KALMAN
 #ifdef TUNE_KALMAN
@@ -56,6 +57,7 @@
 #define USE_GPS_VTG
 
 #define ALTITUDE_M			98		// Height where drone will take off
+#define DECLINATION_DEG		4.34f	// Deskle declination = +4.28deg (+4.34deg) (source: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml?)
 
 #define MAIN_BOARD_V		3.3		// Main board voltage
 #define R1_MAIN_BAT			100000	// Voltage divider resistor R1 - main battery
@@ -150,7 +152,11 @@ typedef struct {
 	uint16_t			height_baro_m;
 
 	// Compass
-	uint16_t			heading_deg;
+    float               x_gauss;	// X axis in Gauss
+    float               y_gauss;	// Y axis in Gauss
+    float               z_gauss;	// Z axis in Gauss
+    float				heading_deg;// Heading direction in degrees
+
 } s_position;
 
 
@@ -169,7 +175,7 @@ typedef struct {
 
 // UART buffers and flags
 typedef struct {
-	uint8_t				buffer_temp[2];			// Small buffer for received byte
+	uint8_t				buffer_temp[1];			// Small buffer for received byte //2
     uint8_t     		buffer_UART[64];        // Buffer for saving USB data
     uint8_t     		flag_new_uart_rx_data;  // Flag indicating a new data has arrived (packet is not complete)
     uint8_t     		flag_new_uart_tx_data;  // Flag indicating a new data is ready to send
@@ -194,6 +200,7 @@ typedef struct {
 	uint8_t				err_vl53l1x;			// Error flag - vl53l1x sensor error
 	uint8_t				err_radio1;				// Error flag - radio1 / nrf24l01 radio error
 	uint8_t				err_radio2;				// Error flag - radio2 / nrf24l01 radio error
+	uint8_t				err_hmc5883l;			// Error flag - hmc5883l sensor error
 } s_errors;
 
 
