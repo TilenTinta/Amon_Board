@@ -111,7 +111,8 @@ extern "C" {
 #define OPT_DRONE_GET_PARAMS    0x30    // Get parameters from drone
 #define OPT_DRONE_SET_PARAMS    0x31    // Set parameters on drone
 #define OPT_DRONE_SET_STATE 	0x32    // Change rurrent state of drone (arm/disarm/modes)
-#define OPT_DRONE_COMMAND       0x33    // Send command to drone (calibrate, save��)
+#define OPT_DRONE_COMMAND       0x33    // Send command to drone (calibrate, save)
+#define OPT_DRONE_FLIGHT_PATH	0x34	// Send flight path command
 #define OPT_TELEMETRY           0x40    // Telemetry data from drone (STREAM; sub-type via TLVs)
 #define OPT_LOG_DUMP			0x50	// Flight log dump
 #define OPT_LOG_RM 				0x51	// Flight log remove

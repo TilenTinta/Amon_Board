@@ -48,7 +48,8 @@ Core/Src/flash_W25QXXX.o: ../Core/Src/flash_W25QXXX.c \
  ../Core/Inc/regulators.h ../Core/Inc/logging.h \
  ../Core/Inc/flash_W25QXXX.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h \
+ ../Core/Inc/autopilot.h
 ../Core/Inc/flash_W25QXXX.h:
 ../Core/Inc/spi_bus_config.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
@@ -107,3 +108,4 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l
 ../Core/Inc/flash_W25QXXX.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h:
+../Core/Inc/autopilot.h:

@@ -550,7 +550,20 @@
       "version": 4
     },
     "net_colors": null,
-    "netclass_assignments": null,
+    "netclass_assignments": {
+      "Net-(C63-Pad1)": [
+        "RF"
+      ],
+      "Net-(C65-Pad1)": [
+        "RF"
+      ],
+      "Net-(J2-In)": [
+        "RF"
+      ],
+      "Net-(J5-In)": [
+        "RF"
+      ]
+    },
     "netclass_patterns": []
   },
   "pcbnew": {
@@ -694,6 +707,10 @@
     [
       "be8c2cdb-09df-4a7e-af09-0768543ea498",
       "Microcontroller"
+    ],
+    [
+      "3cb937dc-40e0-4d58-a06e-4737bc5d3280",
+      "RF"
     ]
   ],
   "text_variables": {}

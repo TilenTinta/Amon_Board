@@ -51,7 +51,7 @@ Middlewares/Third_Party/FatFs/src/ff.o: \
  ../Core/Inc/flash_W25QXXX.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h \
- ../Middlewares/Third_Party/FatFs/src/diskio.h
+ ../Core/Inc/autopilot.h ../Middlewares/Third_Party/FatFs/src/diskio.h
 ../Middlewares/Third_Party/FatFs/src/ff.h:
 ../Middlewares/Third_Party/FatFs/src/integer.h:
 ../FATFS/Target/ffconf.h:
@@ -112,4 +112,5 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l
 ../Core/Inc/flash_W25QXXX.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h:
+../Core/Inc/autopilot.h:
 ../Middlewares/Third_Party/FatFs/src/diskio.h:

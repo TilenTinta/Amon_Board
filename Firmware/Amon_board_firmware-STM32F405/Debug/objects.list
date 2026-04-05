@@ -4,6 +4,7 @@
 "./Core/Src/MPU6050.o"
 "./Core/Src/NRF24L01.o"
 "./Core/Src/PWM.o"
+"./Core/Src/autopilot.o"
 "./Core/Src/data_transcode.o"
 "./Core/Src/drone_data.o"
 "./Core/Src/filters.o"

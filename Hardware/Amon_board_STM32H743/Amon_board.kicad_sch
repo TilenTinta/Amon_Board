@@ -11058,6 +11058,48 @@
 		)
 	)
 	(sheet
+		(at 193.04 149.86)
+		(size 38.1 16.51)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "3cb937dc-40e0-4d58-a06e-4737bc5d3280")
+		(property "Sheetname" "RF"
+			(at 193.04 149.1484 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "rf.kicad_sch"
+			(at 193.04 166.9546 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "Amon_board"
+				(path "/a73fde48-ba79-4d3c-8816-668d8180a86c"
+					(page "5")
+				)
+			)
+		)
+	)
+	(sheet
 		(at 21.59 158.75)
 		(size 38.1 16.51)
 		(exclude_from_sim no)

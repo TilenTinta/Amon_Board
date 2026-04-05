@@ -51,7 +51,8 @@ FATFS/Target/user_diskio.o: ../FATFS/Target/user_diskio.c \
  ../Core/Inc/regulators.h ../Core/Inc/logging.h \
  ../Core/Inc/flash_W25QXXX.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h \
+ ../Core/Inc/autopilot.h
 ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h:
 ../Middlewares/Third_Party/FatFs/src/diskio.h:
 ../Middlewares/Third_Party/FatFs/src/integer.h:
@@ -114,3 +115,4 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l
 ../Core/Inc/flash_W25QXXX.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h:
+../Core/Inc/autopilot.h:

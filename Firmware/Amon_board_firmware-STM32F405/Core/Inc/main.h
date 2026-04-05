@@ -44,6 +44,7 @@ extern "C" {
 #include "filters.h"
 #include "regulators.h"
 #include "logging.h"
+#include "autopilot.h"
 
 /* USER CODE END Includes */
 
