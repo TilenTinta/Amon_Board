@@ -1,4 +1,4 @@
-25214004650270334
+25215780238561955
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -88850,6 +88850,13 @@ Skyworks
 0
 7
 7
+RFX2401C
+QFN50P300X300X60-17N
+
+
+0
+17
+17
 RF_Antenna
 AVX_M620720
 868Mhz, 915Mhz ISM antenna, 6 x 2 x 1.08mm, http://datasheets.avx.com/ethertronics/AVX-E_M620720.pdf

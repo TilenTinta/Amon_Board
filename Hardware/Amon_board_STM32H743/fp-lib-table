@@ -4,4 +4,5 @@
   (lib (name "XT60")(type "KiCad")(uri "${KIPRJMOD}/Library/XT60.pretty")(options "")(descr ""))
   (lib (name "Library")(type "KiCad")(uri "${KIPRJMOD}/Library/MicroSD_slot.pretty/Library.pretty")(options "")(descr ""))
   (lib (name "HMC5883L")(type "KiCad")(uri "${KIPRJMOD}/Library/HMC5883L.pretty")(options "")(descr ""))
+  (lib (name "RFX2401C")(type "KiCad")(uri "${KIPRJMOD}/Library/RFX2401C.pretty")(options "")(descr ""))
 )

@@ -158,7 +158,7 @@ s_packets 			data_packets;	// Data structure for communication packets
 s_Kalman			kalman_pitch;	// Kalman values for pitch
 s_Kalman			kalman_roll;	// Kalman values for roll
 s_Kalman			kalman_yaw;		// Kalman values for yaw
-
+s_Quaternion		quaternion;		// Quaternion based on Euler angles
 
 /* USER CODE END 0 */
 
@@ -455,8 +455,17 @@ int main(void)
 ##################################################################### UART #####################################################################
 ##############################################################################################################################################*/
 
+	  /* USB TX - TRANSMITING HANDLING */
+	  if (AmonDrone.uart_buffer.flag_new_uart_tx_data == 1)
+	  {
+		  AmonDrone.uart_buffer.flag_new_uart_tx_data = 0;
+		  packet_create_uart_data(&data_packets, &AmonDrone);
+		  UART_encode(&data_packets, AmonDrone.uart_buffer.buffer_UART);
+		  HAL_UART_Transmit(&huart4, (uint8_t*)AmonDrone.uart_buffer.buffer_UART, sizeof(AmonDrone.uart_buffer.buffer_UART), HAL_MAX_DELAY);
+		  memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+	  }
 
-	  /* USB TRANSCODING HANDLING */
+	  /* USB RX - TRANSCODING HANDLING */
 	  if (AmonDrone.uart_buffer.flag_new_uart_rx_data == 1)
 	  {
 		  AmonDrone.uart_buffer.flag_new_uart_rx_data = 0;
@@ -493,23 +502,43 @@ int main(void)
 				  break;
 
 			  case TRANSCODE_LOG_DUMP:					// Serial request for flight log dump
-			  	  AmonDrone.uart_buffer.flag_log_dump = 1;
+			  	  //AmonDrone.uart_buffer.flag_log_dump = 1;
+				  (void)log_dump_uart(AmonDrone.uart_buffer.log_file, &huart4); // "log.txt"
 			  	  break;
 
 			  case TRANSCODE_LOG_RM:					// Serial request for flight log remove
-				  AmonDrone.uart_buffer.flag_log_remove = 1;
+				  //AmonDrone.uart_buffer.flag_log_remove = 1;
+				  log_remove();
+				  break;
+
+			  case TRANSCODE_EN_IDENTI:					// Enable identification flag
+				  AmonDrone.identifications.flag_test_identification = 1;
+				  break;
+
+			  case TRANSCODE_IDENTI_EDF:				// Enable edf identification flag
+				  AmonDrone.identifications.flag_test_edf = 1;
+				  break;
+
+			  case TRANSCODE_IDENTI_SERVO:				// Enable servo identification flag
+				  AmonDrone.identifications.flag_test_servo = 1;
+				  break;
+
+			  case TRANSCODE_IDENTI_MOMENT:				// Enable moment identification flag
+				  AmonDrone.identifications.flag_test_moment = 1;
 				  break;
 
 			  case TRANSCODE_CAL_COMM:					// Serial calibration commands
 				  // Full packet required (all fields must have value)
 #ifdef IDENTIFICATION
+				  // Identification test - EDF and Servos - UART RX
 				  if (EDFEnableFlag == 0) EDFEnable();
-				  PowerToPWMValue(data_packets.calib_data.edf_pwr_percent);
+				  PowerToPWMValue(data_packets.calib_data.edf_pwr_percent, &AmonDrone.actuators);
+				  AmonDrone.data.edf_throttle = data_packets.calib_data.edf_pwr_percent;
 				  if (TVCServoEnableFlag == 0) TVCServoEnable();
-				  DegresToCCR(data_packets.calib_data.x_plus_angle, SERVO_XP);
-				  DegresToCCR(data_packets.calib_data.x_minus_angle, SERVO_XN);
-				  DegresToCCR(data_packets.calib_data.y_plus_angle, SERVO_YP);
-				  DegresToCCR(data_packets.calib_data.y_minus_angle, SERVO_YN);
+				  DegresToCCR(data_packets.calib_data.x_plus_angle, SERVO_XP, &AmonDrone.actuators);
+				  DegresToCCR(data_packets.calib_data.x_minus_angle, SERVO_XN, &AmonDrone.actuators);
+				  DegresToCCR(data_packets.calib_data.y_plus_angle, SERVO_YP, &AmonDrone.actuators);
+				  DegresToCCR(data_packets.calib_data.y_minus_angle, SERVO_YN, &AmonDrone.actuators);
 #endif
 				  break;
 
@@ -519,19 +548,20 @@ int main(void)
 	  }
 
 
-#ifdef LOG_ENABLE
-	  if (AmonDrone.uart_buffer.flag_log_dump == 1)
-	  {
-		  AmonDrone.uart_buffer.flag_log_dump = 0;
-		  (void)log_dump_uart(AmonDrone.uart_buffer.log_file, &huart4); // "log.txt"
-	  }
 
-	  if (AmonDrone.uart_buffer.flag_log_remove == 1)
-	  {
-		  AmonDrone.uart_buffer.flag_log_remove = 0;
-		  log_remove();
-	  }
-#endif
+//#ifdef LOG_ENABLE
+//	  if (AmonDrone.uart_buffer.flag_log_dump == 1)
+//	  {
+//		  AmonDrone.uart_buffer.flag_log_dump = 0;
+//		  (void)log_dump_uart(AmonDrone.uart_buffer.log_file, &huart4); // "log.txt"
+//	  }
+//
+//	  if (AmonDrone.uart_buffer.flag_log_remove == 1)
+//	  {
+//		  AmonDrone.uart_buffer.flag_log_remove = 0;
+//		  log_remove();
+//	  }
+//#endif
 
 /*##############################################################################################################################################
 #################################################################### TIMERS ####################################################################
@@ -561,15 +591,24 @@ int main(void)
 			  float pitch_angle_accel = 0;
 
 			  Kalman_rawToAngles(&mpu6050, &roll_angle_accel, &pitch_angle_accel);
+			  float mag_yaw = AmonDrone.position.heading_deg;
 
 			  // Unwrap accel based on current estimation
 			  roll_angle_accel  = unwrap_to_ref(roll_angle_accel,  kalman_roll.angle);
 			  pitch_angle_accel = unwrap_to_ref(pitch_angle_accel, kalman_pitch.angle);
+			  mag_yaw = unwrap_to_ref(mag_yaw, AmonDrone.position.Yaw);
+
 
 			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, mpu6050.GYRO_Y, pitch_angle_accel, DT);
 			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, mpu6050.GYRO_Z, roll_angle_accel, DT);
-			  //AmonDrone.position.Yaw += mpu6050.GYRO_X * DT; // Yaw (gyro only)
-			  AmonDrone.position.Yaw = mpu6050.GYRO_X * DT; // Yaw (gyro only)
+			  AmonDrone.position.Yaw = Kalman_Update(&kalman_yaw, mpu6050.GYRO_X, mag_yaw, DT);
+			  //AmonDrone.position.Yaw = mpu6050.GYRO_X * DT; // Yaw (gyro only)
+
+			  quaternion = eulerToQuaternion(AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw);
+			  AmonDrone.position.quaternion[0] = quaternion.w;
+			  AmonDrone.position.quaternion[1] = quaternion.x;
+			  AmonDrone.position.quaternion[2] = quaternion.y;
+			  AmonDrone.position.quaternion[3] = quaternion.z;
 #endif
 
 			  // Save raw data for telemetry
@@ -580,6 +619,8 @@ int main(void)
 			  AmonDrone.position.gyro_x = mpu6050.GYRO_X;
 			  AmonDrone.position.gyro_y = mpu6050.GYRO_Y;
 			  AmonDrone.position.gyro_z = mpu6050.GYRO_Z;
+
+			  if (AmonDrone.identifications.flag_test_moment) AmonDrone.uart_buffer.flag_new_uart_tx_data = 1; // Enable data transition over UART for identification
 
 		  } // TIMER 200Hz
 
@@ -613,7 +654,7 @@ int main(void)
 			  AmonDrone.data.pressure = bme280.Press_Pa;
 			  AmonDrone.position.height_baro_m = bme280.altitude_m;
 
-			  // GMC5883L
+			  // HMC5883L
 			  uint8_t status = 0;
 			  HMC5883L_ReadStatus(&hmc5883l, &hi2c3, &status);
 			  if (hmc5883l.DataReady)
@@ -637,7 +678,13 @@ int main(void)
 			  }
 
 			  // Logging //
-			  if (AmonDrone.uart_buffer.flag_logging_active == 1) log_add_sample(&AmonDrone.position, &AmonDrone.data);
+			  if (AmonDrone.uart_buffer.flag_logging_active == 1) log_add_sample(&AmonDrone.position, &AmonDrone.data, &AmonDrone.actuators);
+
+			  // EDF ramp-up //
+#ifdef EDF_RAMP_UP_EN
+			  if (!AmonDrone.actuators.rampUpDone) EDFSlowRamp(&AmonDrone.actuators);
+#endif
+
 
 		  } // TIMER 50Hz
 
@@ -702,7 +749,7 @@ int main(void)
 			  }
 
 			  AmonDrone.data.battery_main_voltage = main_v_temp / (sizeof(AmonDrone.data.bat_main_v) / sizeof(uint16_t));
-			  AmonDrone.data.battery_edf_voltage = edf_v_temp / (sizeof(AmonDrone.data.bat_edf_v) / sizeof(uint8_t));
+			  AmonDrone.data.battery_edf_voltage = edf_v_temp / (sizeof(AmonDrone.data.bat_edf_v) / sizeof(uint16_t));
 
 			  ADC_DMA_DataRdy = 0;
 		  }
@@ -767,12 +814,20 @@ int main(void)
 		//AmonDrone.DroneStatus = STATUS_STARTUP;
 		uint8_t status = 0;
 
+#ifdef IDENTIFICATION
+		AmonDrone.identifications.flag_test_identification = 1;
+#endif
+
+#ifdef TEST_MOMENTS
+		AmonDrone.identifications.flag_test_moment = 1;
+#endif
+
 		/* Align all motors */
 		// Set motors on neutral position
-		DegresToCCR(0, SERVO_XN);
-		DegresToCCR(0, SERVO_XP);
-		DegresToCCR(0, SERVO_YN);
-		DegresToCCR(0, SERVO_YP);
+		DegresToCCR(0, SERVO_XN, &AmonDrone.actuators);
+		DegresToCCR(0, SERVO_XP, &AmonDrone.actuators);
+		DegresToCCR(0, SERVO_YN, &AmonDrone.actuators);
+		DegresToCCR(0, SERVO_YP, &AmonDrone.actuators);
 		HAL_Delay(500); // wait on motors to stop moving
 
 		TVCServoEnable();	// Enable Servo timer
@@ -786,19 +841,19 @@ int main(void)
 				switch (j)
 				{
 					case SERVO_XP:
-						DegresToCCR(test_angles[i], SERVO_XP);
+						DegresToCCR(test_angles[i], SERVO_XP, &AmonDrone.actuators);
 						break;
 
 					case SERVO_XN:
-						DegresToCCR(test_angles[i], SERVO_XN);
+						DegresToCCR(test_angles[i], SERVO_XN, &AmonDrone.actuators);
 						break;
 
 					case SERVO_YP:
-						DegresToCCR(test_angles[i], SERVO_YP);
+						DegresToCCR(test_angles[i], SERVO_YP, &AmonDrone.actuators);
 						break;
 
 					case SERVO_YN:
-						DegresToCCR(test_angles[i], SERVO_YN);
+						DegresToCCR(test_angles[i], SERVO_YN, &AmonDrone.actuators);
 						break;
 				}
 			}
@@ -808,7 +863,7 @@ int main(void)
 
 #ifdef IDENTIFICATION
 		if (EDFEnableFlag == 0) EDFEnable();
-		PowerToPWMValue(0);
+		PowerToPWMValue(0, &AmonDrone.actuators);
 #endif
 
 		// Start timers for sensors and LEDs
@@ -827,12 +882,12 @@ int main(void)
 		ADC_DMA_DataRdy = 0;
 
 		/* Check battery voltage */
-		if (AmonDrone.data.battery_main_voltage < 1000)
+		if (AmonDrone.data.battery_main_voltage < 1050) // minimal voltage: 10.5V
 		{
 			AmonDrone.error_code.err_main_bat = 1;
 			status++;
 		}
-		if (AmonDrone.data.battery_edf_voltage < 2000)
+		if (AmonDrone.data.battery_edf_voltage < 2100) // minimal voltage per battery: 10.5V -> x2 = 21V
 		{
 			AmonDrone.error_code.err_edf_bat = 1;
 		}
@@ -1465,9 +1520,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 8399;
+  htim2.Init.Prescaler = 167;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 199;
+  htim2.Init.Period = 19999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -2040,7 +2095,7 @@ uint16_t ADC_Read_Main_Battery()
 uint16_t ADC_Read_EDF_Battery()
 {
 	uint16_t adcVal = ADC_BAT_Val[0];
-	float temp = ((float)adcVal * 3.3) / 4095;
+	float temp = ((float)adcVal * MAIN_BOARD_V) / 4095;
 	float voltage = (((100000+10000)/10000) * temp);
 
 	return (uint16_t)(voltage*100);
@@ -2173,7 +2228,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 #endif
 
 
-		static uint16_t value = 0;
+		//static uint16_t value = 0;
 		static uint8_t phase = 0;
 
 		switch (phase)

@@ -314,18 +314,35 @@ uint8_t uart_opcode_decode(s_packets *packets, s_calib_data_packet *calib_data)
 			return TRANSCODE_LOG_RM;
 			break;
 
+		case OPT_TELEMETRY:
+			return TRANSCODE_EN_IDENTI;
+			break;
+
+		case OPT_IDENTI_EDF:
+			return TRANSCODE_IDENTI_EDF;
+			break;
+
+		case OPT_IDENTI_SERVO:
+			return TRANSCODE_IDENTI_SERVO;
+			break;
+
+		case OPT_IDENTI_MOMENT:
+			return TRANSCODE_IDENTI_MOMENT;
+			break;
+
 		case OPT_CAL_PARAM:
-			calib_data->edf_pwr_percent = packets->uart_packet.payload[0];				// Value 0-100
+			calib_data->edf_pwr_percent = packets->uart_packet.payload[0];			// Value 0-100
 			calib_data->x_plus_angle = packets->uart_packet.payload[1] - 90;		// value 0-180 -> -90 - 90
 			calib_data->x_minus_angle = packets->uart_packet.payload[2] - 90;		// value 0-180 -> -90 - 90
 			calib_data->y_plus_angle = packets->uart_packet.payload[3]  - 90;		// value 0-180 -> -90 - 90
-			calib_data->y_minus_angle = packets->uart_packet.payload[4]  - 90;	// value 0-180 -> -90 - 90
+			calib_data->y_minus_angle = packets->uart_packet.payload[4]  - 90;		// value 0-180 -> -90 - 90
 			return TRANSCODE_CAL_COMM;
 			break;
 
 		default:
 			break;
 	}
+	return 0;
 }
 
 
@@ -454,6 +471,10 @@ void RF_encode(s_packets *packets, uint8_t *raw_rf_data, uint8_t *tx_lenght)
 
     *tx_lenght = HEADER_SHIFT_RF + packets->rf_packet_drone.plen;
 }
+
+
+
+
 
 
 

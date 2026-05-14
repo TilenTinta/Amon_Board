@@ -96,7 +96,7 @@ main-build: Amon_board_firmware_v2.elf secondary-outputs
 
 # Tool invocations
 Amon_board_firmware_v2.elf Amon_board_firmware_v2.map: $(OBJS) $(USER_OBJS) C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32F405\STM32F405RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "Amon_board_firmware_v2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32F405\STM32F405RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Amon_board_firmware_v2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+	arm-none-eabi-g++ -o "Amon_board_firmware_v2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32F405\STM32F405RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Amon_board_firmware_v2.map" -Wl,--gc-sections -static -L"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32F405\acados\lib\hpipm\lib" -L"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32F405\acados\lib\blasfeo\lib" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

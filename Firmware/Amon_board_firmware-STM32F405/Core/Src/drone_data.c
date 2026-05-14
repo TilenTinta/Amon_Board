@@ -14,6 +14,7 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data);
 static void packet_create_ack_nopayload(s_packets *packets, uint8_t opcode);
 static void packet_create_pair_status(s_packets *packets, s_drone_data *drone_data);
 static void packet_create_ping_pong(s_packets *packets);
+static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data);
 
 
 
@@ -76,7 +77,6 @@ uint8_t RF_packet_decode(s_packets *packets, s_drone_data *drone_data)
  */
 static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 {
-
 	switch(packets->rf_packet.opcode){
 
 		case OPT_NOP:
@@ -84,6 +84,7 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_PING:
+			// Ping command
 			packet_create_ping_pong(packets);
 			break;
 
@@ -92,6 +93,7 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_PAIR_STATUS:
+			// check connection status
 			packet_create_pair_status(packets, drone_data);
 			if (drone_data->radio_data.flag_connection_begin == 2)
 			{
@@ -102,6 +104,7 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_PAIR_START:
+			// Pairing of drone with link
 			packet_create_ack_nopayload(packets, OPT_PAIR_START);
 #ifdef CONN_STEPS_2
 			drone_data->radio_data.flag_connection_begin = 2;
@@ -127,13 +130,27 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case OPT_DRONE_SET_STATE:
+			// Change status of drone (fly, land, ground...)
 			drone_data->DroneStatus = (packets->rf_packet.payload[0] & 0x0F); // Keep only last 4bits (0000|xxxx)
 			packet_create_ack_nopayload(packets, OPT_DRONE_SET_STATE);
 
 			break;
 
 		case OPT_DRONE_COMMAND:
-			//
+			// Change drone parameters
+			break;
+
+		case OPT_DRONE_FLIGHT_PATH:
+			// Extract flight path commands from payload
+			packet_set_flight_path(packets, drone_data);
+			packet_create_ack_nopayload(packets, OPT_DRONE_FLIGHT_PATH);
+
+			break;
+
+		case OPT_DRONE_FPATH_CLEAR:
+			// Clear current flight path
+			memset(drone_data->flight_path.flight_path, 0, sizeof(drone_data->flight_path.flight_path));
+			packet_create_ack_nopayload(packets, OPT_DRONE_FPATH_CLEAR);
 			break;
 
 		case OPT_TELEMETRY:
@@ -410,6 +427,10 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_FLIGHT_MODE;
 			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->flight_status;
 
+			/* Throttle level */
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_THROTTLE;
+			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->data.edf_throttle;
+
 			packets->rf_packet_drone.plen = payload_cnt;
 
 			packet_num = 0;
@@ -429,6 +450,262 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 }
 
 
+
+/*********************************************************************
+ * @fcn    	packet_set_flight_path
+ *
+ * @param 	*packets: pointer to all data packets
+ * @param 	*drone_data: pointer to all drone data
+ *
+ * @brief   Parse payload and set flight path
+ *
+ * @return  none
+ */
+static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
+{
+	s_flight_command cmd;
+
+	cmd.command = packets->rf_packet.payload[0];	// Save command
+	cmd.command_id = packets->rf_packet.payload[1]; // Save command id
+
+	// Parse command parameter
+	switch (cmd.command)
+	{
+		case COMM_TAKE_OFF:
+			cmd.takeoff.height_cm = (packets->rf_packet.payload[2] << 8) |
+									 packets->rf_packet.payload[3];
+			break;
+
+		case COMM_LAND:
+			cmd.land.delay_s = (packets->rf_packet.payload[2] << 8) |
+								packets->rf_packet.payload[3];
+			break;
+
+		case COMM_HEIGHT:
+			cmd.height.height_cm = (packets->rf_packet.payload[2] << 8) |
+									packets->rf_packet.payload[3];
+
+			cmd.height.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
+									 packets->rf_packet.payload[5];
+			break;
+
+		case COMM_FORWARD:
+			cmd.forward.distance_cm = (packets->rf_packet.payload[2] << 8) |
+									   packets->rf_packet.payload[3];
+
+			cmd.forward.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
+									  packets->rf_packet.payload[5];
+			break;
+
+		case COMM_BACKWARD:
+			cmd.backward.distance_cm = (packets->rf_packet.payload[2] << 8) |
+										packets->rf_packet.payload[3];
+
+			cmd.backward.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
+									   packets->rf_packet.payload[5];
+			break;
+
+		case COMM_LEFT:
+			cmd.left.distance_cm = (packets->rf_packet.payload[2] << 8) |
+									packets->rf_packet.payload[3];
+
+			cmd.left.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
+								   packets->rf_packet.payload[5];
+			break;
+
+		case COMM_RIGHT:
+			cmd.right.distance_cm = (packets->rf_packet.payload[2] << 8) |
+									 packets->rf_packet.payload[3];
+
+			cmd.right.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
+									packets->rf_packet.payload[5];
+			break;
+
+		case COMM_ROTATE_CW:
+			cmd.rotate_cw.angle_deg = (packets->rf_packet.payload[2] << 8) |
+									   packets->rf_packet.payload[3];
+
+			cmd.rotate_cw.speed_deg_s = (packets->rf_packet.payload[4] << 8) |
+										 packets->rf_packet.payload[5];
+			break;
+
+		case COMM_ROTATE_CCW:
+			cmd.rotate_ccw.angle_deg = (packets->rf_packet.payload[2] << 8) |
+										packets->rf_packet.payload[3];
+
+			cmd.rotate_ccw.speed_deg_s = (packets->rf_packet.payload[4] << 8) |
+										  packets->rf_packet.payload[5];
+			break;
+
+		case COMM_WAIT:
+			cmd.wait.time_s = (packets->rf_packet.payload[2] << 8) |
+							   packets->rf_packet.payload[3];
+
+		case COMM_HOVER:
+			cmd.hover.height_cm = (packets->rf_packet.payload[2] << 8) |
+								   packets->rf_packet.payload[3];
+
+			cmd.hover.time_s = (packets->rf_packet.payload[4] << 8) |
+								packets->rf_packet.payload[5];
+			break;
+
+		case COMM_FOLLOW:
+			cmd.follow.follow_mode = packets->rf_packet.payload[2] << 8;
+
+			cmd.follow.distance_cm = (packets->rf_packet.payload[3] << 8) |
+									  packets->rf_packet.payload[4];
+
+			cmd.follow.timeout_s = (packets->rf_packet.payload[5] << 8) |
+									packets->rf_packet.payload[6];
+			break;
+
+		case COMM_ACTION:
+			cmd.action.action_id = packets->rf_packet.payload[2] << 8;
+
+			cmd.action.parameter1 = (packets->rf_packet.payload[3] << 8) |
+									 packets->rf_packet.payload[4];
+
+			cmd.action.parameter2 = (packets->rf_packet.payload[5] << 8) |
+									 packets->rf_packet.payload[6];
+			break;
+
+		case COMM_RETURN_HOME:
+			cmd.return_home.height_cm = (packets->rf_packet.payload[2] << 8) |
+										 packets->rf_packet.payload[3];
+
+			cmd.return_home.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
+										  packets->rf_packet.payload[5];
+			break;
+
+		default:
+			return; // unknown command
+	}
+
+	// Save command to flight path
+	uint8_t index = drone_data->flight_path.path_index;
+
+	if (index < sizeof(drone_data->flight_path.flight_path))
+	{
+		drone_data->flight_path.flight_path[index] = cmd;
+		drone_data->flight_path.path_index++;
+	}
+
+}
+
+
+
+/*********************************************************************
+ * @fcn    	packet_create_uart_data
+ *
+ * @param 	*packets: pointer to all data packets
+ * @param 	*drone_data: pointer to all drone data
+ *
+ * @brief   Assemble packet for sending over UART
+ * 			Mostly used only for testing
+ *
+ * @return  none
+ */
+void packet_create_uart_data(s_packets *packets, s_drone_data *drone_data)
+{
+
+	// Moment identification test printout
+	if (drone_data->identifications.flag_test_moment)
+	{
+		uint8_t payload_cnt = 0;
+
+		packets->uart_packet.sof = SIG_SOF;
+		packets->uart_packet.version = PROTOCOL_VER;
+		packets->uart_packet.flags = FLAG_STREAM;
+		packets->uart_packet.src_id = ID_DRONE;
+		packets->uart_packet.dest_id = ID_PC;
+		packets->uart_packet.opcode = OPT_TELEMETRY;
+
+		// WARNING! Max packet size is 64-bytes only, needs to be repaired //
+
+		/* Tick timer */
+		uint32_t tickTimerVal = HAL_GetTick(); // miliseconds
+		packets->uart_packet.payload[payload_cnt++] = (tickTimerVal >> 24) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] = (tickTimerVal >> 16) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] = (tickTimerVal >>  8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  tickTimerVal		   & 0xFF;
+
+		/* EDF power*/
+		packets->uart_packet.payload[payload_cnt++] =  drone_data->actuators.edf_percent;
+
+		/* Servo angle */
+		int16_t servo_xp = (int16_t)(drone_data->actuators.servo_xp * ANGLE_SCALE);
+		int16_t servo_xn = (int16_t)(drone_data->actuators.servo_xn * ANGLE_SCALE);
+		int16_t servo_yp = (int16_t)(drone_data->actuators.servo_yp * ANGLE_SCALE);
+		int16_t servo_yn = (int16_t)(drone_data->actuators.servo_yn * ANGLE_SCALE);
+
+		packets->uart_packet.payload[payload_cnt++] = (servo_xp >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  servo_xp       & 0xFF;
+
+		packets->uart_packet.payload[payload_cnt++] = (servo_xn >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  servo_xn       & 0xFF;
+
+		packets->uart_packet.payload[payload_cnt++] = (servo_yp >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  servo_yp       & 0xFF;
+
+		packets->uart_packet.payload[payload_cnt++] = (servo_yn >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  servo_yn       & 0xFF;
+
+		/* IMU angles */
+		int16_t roll  = (int16_t)(drone_data->position.Roll  * ANGLE_SCALE);
+		int16_t pitch = (int16_t)(drone_data->position.Pitch * ANGLE_SCALE);
+		int16_t yaw   = (int16_t)(drone_data->position.Yaw   * ANGLE_SCALE);
+
+		/* - Roll */
+		packets->uart_packet.payload[payload_cnt++] = (roll >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  roll       & 0xFF;
+
+		/* - Pitch */
+		packets->uart_packet.payload[payload_cnt++] = (pitch >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  pitch       & 0xFF;
+
+		/* - Yaw */
+		packets->uart_packet.payload[payload_cnt++] = (yaw >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  yaw       & 0xFF;
+
+
+		/* IMU raw values */
+		int16_t acc_x = (int16_t)(drone_data->position.accel_x * ANGLE_SCALE);
+		int16_t acc_y = (int16_t)(drone_data->position.accel_y * ANGLE_SCALE);
+		int16_t acc_z = (int16_t)(drone_data->position.accel_z * ANGLE_SCALE);
+
+		/* - acceleration x */
+		packets->uart_packet.payload[payload_cnt++] = (acc_x >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  acc_x       & 0xFF;
+
+		/* - acceleration y */
+		packets->uart_packet.payload[payload_cnt++] = (acc_y >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  acc_y       & 0xFF;
+
+		/* - acceleration z */
+		packets->uart_packet.payload[payload_cnt++] = (acc_z >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  acc_z       & 0xFF;
+
+
+		int16_t gyro_x = (int16_t)(drone_data->position.gyro_x * ANGLE_SCALE);
+		int16_t gyro_y = (int16_t)(drone_data->position.gyro_y * ANGLE_SCALE);
+		int16_t gyro_z = (int16_t)(drone_data->position.gyro_z * ANGLE_SCALE);
+
+		/* - gyroscope x */
+		packets->uart_packet.payload[payload_cnt++] = (gyro_x >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  gyro_x       & 0xFF;
+
+		/* - gyroscope y */
+		packets->uart_packet.payload[payload_cnt++] = (gyro_y >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  gyro_y       & 0xFF;
+
+		/* - gyroscope z */
+		packets->uart_packet.payload[payload_cnt++] = (gyro_z >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  gyro_z       & 0xFF;
+
+		packets->uart_packet.plen = payload_cnt;
+		packets->uart_packet.len = packets->uart_packet.plen + HEADER_SHIFT_UART;
+	}
+}
 
 
 

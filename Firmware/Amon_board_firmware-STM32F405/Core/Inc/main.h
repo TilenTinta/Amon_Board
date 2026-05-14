@@ -42,9 +42,9 @@ extern "C" {
 #include "drone_data.h"
 #include "data_transcode.h"
 #include "filters.h"
-#include "regulators.h"
+#include <NMPC.h>
 #include "logging.h"
-#include "autopilot.h"
+//#include "autopilot.h"
 
 /* USER CODE END Includes */
 

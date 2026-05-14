@@ -62,7 +62,7 @@ typedef enum {
 	ACTION_LED_ON,
 	ACTION_LED_OFF
 
-} e_follow_mode;
+} e_action_id;
 
 
 // Command data - take off
@@ -144,8 +144,8 @@ typedef struct {
 
 // Command data - hover
 typedef struct {
+	uint16_t height_cm;
     uint16_t time_s;
-    uint16_t height_cm;
 
 } s_data_hover;
 
@@ -161,9 +161,9 @@ typedef struct {
 
 // Command data - action (TBD)
 typedef struct {
-    uint8_t  action_id;
-    uint16_t parameter1;
-    uint16_t parameter2;
+    e_action_id action_id;
+    uint16_t 	parameter1;
+    uint16_t 	parameter2;
 
 } s_data_action;
 
@@ -203,7 +203,6 @@ typedef struct {
 
 		s_data_return_home   return_home;
 
-
     };
 
 } s_flight_command;
@@ -214,7 +213,6 @@ typedef struct {
 	s_flight_command		flight_path[100];			// Complete flight path
 
 	uint8_t 				path_index;					// Current active command from flight - counter
-	uint8_t					path_count;					// Counter of sucessfull commands
 
 	uint16_t				path_stage_time;			// Current time elapsed when current command/position is reached
 	uint32_t 				flight_start_time;			// Start time of flight

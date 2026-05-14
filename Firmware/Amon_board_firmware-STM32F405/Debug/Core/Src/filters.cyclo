@@ -5,3 +5,5 @@
 ../Core/Src/filters.c:336:20:accel_normalize	2
 ../Core/Src/filters.c:359:21:wrap180	3
 ../Core/Src/filters.c:379:7:unwrap_to_ref	3
+../Core/Src/filters.c:400:21:degToRad	1
+../Core/Src/filters.c:418:14:eulerToQuaternion	1

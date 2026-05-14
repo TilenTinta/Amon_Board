@@ -10,9 +10,9 @@
 
 /*###########################################################################################################################################################*/
 /* Private functions */
-
 static inline void accel_normalize(float *ax, float *ay, float *az);
 static inline float wrap180(float angle);
+static inline float degToRad(float angle);
 
 /*###########################################################################################################################################################*/
 /* Complementary filter */
@@ -42,14 +42,14 @@ void Complementary_deg(s_MPU6050 *dev, s_drone_data *drone){
 	//accel_roll  = atan2f(dev->ACCEL_Y, sqrtf(dev->ACCEL_Z * dev->ACCEL_Z + dev->ACCEL_X * dev->ACCEL_X)) * RAD_TO_DEG;
 	accel_roll  = atan2f( dev->ACCEL_Y, -dev->ACCEL_X ) * RAD_TO_DEG;
 
-	/* Calculate drone Yaw - add compass*/
-	//mag_yaw = atan2f(dev->MAG_Y, dev->MAG_X) * RAD_TO_DEG;
+	/* Calculate drone Yaw */
+	mag_yaw = unwrap_to_ref(mag_yaw, drone->position.Yaw);
 
 	/* Complementary Filter */
 	drone->position.Pitch = ALPHA * (drone->position.Pitch + dev->GYRO_Y * DT) + (1.0f - ALPHA) * accel_pitch;
 	drone->position.Roll = ALPHA * (drone->position.Roll + dev->GYRO_Z * DT) + (1.0f - ALPHA) * accel_roll;
-	drone->position.Yaw = drone->position.Yaw + dev->GYRO_X * DT;
-	// drone->position.Yaw = ALPHA * (drone->position.Yaw + dev->GYRO_X * DT) + (1.0f - ALPHA) * mag_yaw;
+	//drone->position.Yaw = drone->position.Yaw + dev->GYRO_X * DT;
+	drone->position.Yaw = ALPHA * (drone->position.Yaw + dev->GYRO_X * DT) + (1.0f - ALPHA) * mag_yaw;
 }
 
 
@@ -386,6 +386,60 @@ float unwrap_to_ref(float meas, float ref)
     return meas;
 }
 
+
+
+/*********************************************************************
+* @fn     	degToRad
+*
+* @param 	angles - angle in degrees
+*
+* @brief   	Convert angle from degress to radians
+*
+* @return  	angle - [rad]
+*/
+static inline float degToRad(float angle)
+{
+    return angle * (M_PI / 180.0f);
+}
+
+
+
+/*********************************************************************
+* @fn     	eulerToQuaternion
+*
+ * @param 	roll  - rotation around X axis [rad]
+ * @param 	pitch - rotation around Y axis [rad]
+ * @param 	yaw   - rotation around Z axis [rad]
+*
+* @brief  	Convert euler angles to quaternion
+*
+* @return  	quaternion
+*/
+s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw)
+{
+	float roll_rad  = degToRad(roll);
+	float pitch_rad = degToRad(pitch);
+	float yaw_rad   = degToRad(yaw);
+
+//	q_roll  = [cos(r/2),  sin(r/2),  0,         0        ]
+//	q_pitch = [cos(p/2),  0,         sin(p/2),  0        ]
+//	q_yaw   = [cos(y/2),  0,         0,         sin(y/2) ]
+
+    float cr = cosf(roll_rad  * 0.5f);
+    float sr = sinf(roll_rad  * 0.5f);
+    float cp = cosf(pitch_rad * 0.5f);
+    float sp = sinf(pitch_rad * 0.5f);
+    float cy = cosf(yaw_rad   * 0.5f);
+    float sy = sinf(yaw_rad   * 0.5f);
+
+    s_Quaternion q;
+    q.w = cr * cp * cy + sr * sp * sy;
+    q.x = sr * cp * cy - cr * sp * sy;  // roll
+    q.y = cr * sp * cy + sr * cp * sy;  // pitch
+    q.z = cr * cp * sy - sr * sp * cy;  // yaw
+
+    return q;
+}
 
 
 

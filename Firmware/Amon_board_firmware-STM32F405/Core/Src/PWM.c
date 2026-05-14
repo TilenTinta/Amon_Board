@@ -11,14 +11,11 @@
 
 /*###########################################################################################################################################################*/
 /* Private functions */
-
 void SetPWMValue(uint8_t output, uint32_t val);
-void PowerToPWMValue(uint8_t power);
 
 
 /*###########################################################################################################################################################*/
 /* Functions */
-
 
 /*********************************************************************
 * @fn     DegresToCCR
@@ -30,7 +27,7 @@ void PowerToPWMValue(uint8_t power);
 *
 * @return  none
 */
-void DegresToCCR(float degrees, uint8_t Servo)
+void DegresToCCR(float degrees, uint8_t Servo, s_actuators *actuators)
 {
 	// Clamp degrees
 	if (degrees < -90.0f)   degrees = -90.0f;
@@ -41,22 +38,22 @@ void DegresToCCR(float degrees, uint8_t Servo)
 	{
 		case SERVO_XN:			// X-
 			degrees = degrees + SERVOS_ZERO + SERVO_XN_OFFSET;
+			actuators->servo_xn = degrees;
 			break;
 
 		case SERVO_XP:			// X+
 			degrees = degrees + SERVOS_ZERO + SERVO_XP_OFFSET;
+			actuators->servo_xp = degrees;
 			break;
 
 		case SERVO_YN:			// Y-
 			degrees = degrees + SERVOS_ZERO + SERVO_YN_OFFSET;
+			actuators->servo_yn = degrees;
 			break;
 
 		case SERVO_YP:			// Y+
 			degrees = degrees + SERVOS_ZERO + SERVO_YP_OFFSET;
-			break;
-
-		case PWM_EDF:			// EDF
-			degrees = degrees + PWM_EDF;
+			actuators->servo_yp = degrees;
 			break;
 
 		default:
@@ -77,26 +74,66 @@ void DegresToCCR(float degrees, uint8_t Servo)
 * @fn    PowerToPWMValue
 *
 * @param power: percent of power you want to set
+* @param *actuators: pinter to all actuators parameters
 *
 * @brief   Sets procents of power on EDF motor
 *
 * @return  none
 */
-void PowerToPWMValue(uint8_t power)
+void PowerToPWMValue(uint8_t power, s_actuators *actuators)
 {
     if (power > 100) power = 100;
+    if (power < 5) power = 0;
 
-    // 0% =0.870us, 100% = 2.12ms; delta 100% = 1.25ms
+    actuators->edf_percent = power;
+
+    // 0% =0.870us, 100% = 2.12ms; delta = 1.25ms
 	// Must be set by user (HTIRC HORNET 100A)
     // TIM2 tick is ~100us with PSC=8399 at 84MHz, period=20ms (50Hz)
-    const float min_ms = 0.87f;
-    const float max_ms = 2.12f;
-    const float tick_ms = 0.10f; // 100us
+    uint32_t pulse_us = SERVO_MIN_US + ((SERVO_MAX_US - SERVO_MIN_US) * power) / 100;
 
-    float pulse_ms = min_ms + (max_ms - min_ms) * ((float)power / 100.0f);
-    uint32_t ccr = (uint32_t)(pulse_ms / tick_ms + 0.5f); // round to nearest tick
 
-    SetPWMValue(PWM_EDF, ccr);
+    SetPWMValue(PWM_EDF, pulse_us);
+}
+
+
+
+/*********************************************************************
+* @fn    EDFSlowRamp
+*
+* @param *actuators: pinter to all actuators parameters
+*
+* @brief   Slow ramp-up of EDF, slow/elegant start
+*
+* @return  none
+*/
+void EDFSlowRamp(s_actuators *actuators)
+{
+	if (!actuators->rampUpEnable)
+	{
+		actuators->rampUpEnable = 1;	// Enable flag for rampUp
+
+		uint8_t steps = RAMPUP_TIME_MS / RAMPUP_TIME_STEP_MS;
+		actuators->rampUpStep = (uint8_t)round((float)RAMPUP_TARGET_PERC / steps);
+		actuators->rampUpDone = 0;
+	}
+
+	// Increase for calculated step
+    actuators->edf_percent = actuators->edf_percent + actuators->rampUpStep;
+
+    // 0% =0.870us, 100% = 2.12ms; delta = 1.25ms
+	// Must be set by user (HTIRC HORNET 100A)
+    // TIM2 tick is 1us with PSC=167, ARR=19999 at 84MHz, period=20ms (50Hz)
+    uint32_t pulse_us = SERVO_MIN_US + ((SERVO_MAX_US - SERVO_MIN_US) * actuators->edf_percent) / 100;
+
+    if (actuators->edf_percent >= RAMPUP_TARGET_PERC)
+    {
+    	actuators->rampUpDone = 1;
+    	actuators->rampUpEnable = 0;
+    }
+
+
+    SetPWMValue(PWM_EDF, pulse_us);
 }
 
 

@@ -24,7 +24,7 @@ extern "C" {
  * + Basic framing: SOF | LEN | HEADER | PAYLOAD | CRC16.
  * + Layout (little-endian for multibyte fields):
  *	  - SOF    (1B): 0xAA
- *	  - LEN    (1B): number of bytes in HEADER...PAYLOAD (0..255) - LEN not included
+ *	  - LEN    (1B): number of bytes in HEADER...PAYLOAD (0..255) - LEN not included (payload + 8 (6B header + 2B CRC))
  *	  - HEADER (6B):
  *		- VER    (1B) : protocol version (start with 0x01)
  *		- FLAGS  (1B) : bitfield - "type of frame"
@@ -84,6 +84,10 @@ extern "C" {
 #define TRANSCODE_LOG_DUMP		0x10	// Trigger log dump over uart
 #define TRANSCODE_LOG_RM		0x11	// Trigger log remove over uart
 #define TRANSCODE_CAL_COMM		0x20	// Trigger calibration data setup
+#define TRANSCODE_EN_IDENTI		0x30	// Trigger identification mode
+#define TRANSCODE_IDENTI_EDF	0x31	// Trigger identification mode - EDF
+#define TRANSCODE_IDENTI_SERVO	0x32	// Trigger identification mode - servo
+#define TRANSCODE_IDENTI_MOMENT	0x33	// Trigger identification mode - moment
 
 // Address / IDs (1 byte)
 #define ID_PC                   0x01    // Address: PC
@@ -110,13 +114,18 @@ extern "C" {
 #define OPT_LINK_SET_PARAMS     0x21    // Set parameters on link device
 #define OPT_DRONE_GET_PARAMS    0x30    // Get parameters from drone
 #define OPT_DRONE_SET_PARAMS    0x31    // Set parameters on drone
-#define OPT_DRONE_SET_STATE 	0x32    // Change rurrent state of drone (arm/disarm/modes)
+#define OPT_DRONE_SET_STATE 	0x32    // Change current state of drone (arm/disarm/modes)
 #define OPT_DRONE_COMMAND       0x33    // Send command to drone (calibrate, save)
 #define OPT_DRONE_FLIGHT_PATH	0x34	// Send flight path command
+#define OPT_DRONE_FPATH_CLEAR	0x35	// Clear flight path command
 #define OPT_TELEMETRY           0x40    // Telemetry data from drone (STREAM; sub-type via TLVs)
 #define OPT_LOG_DUMP			0x50	// Flight log dump
 #define OPT_LOG_RM 				0x51	// Flight log remove
 #define OPT_CAL_PARAM			0x60	// Calibration command with data
+#define OPT_IDENTIFICATION		0x70	// Enable drone identification mode (payload ON/OFF)
+#define OPT_IDENTI_EDF			0x71	// Enable drone identification mode (payload ON/OFF) - EDF test
+#define OPT_IDENTI_SERVO		0x72	// Enable drone identification mode (payload ON/OFF) - servo test
+#define OPT_IDENTI_MOMENT		0x73	// Enable drone identification mode (payload ON/OFF) - moment test
 
 // Payload format - TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
 #define TVL_FW_VER              0x01    // FW version (ascii)
@@ -132,11 +141,11 @@ extern "C" {
 
 #define TVL_DRONE_MODE          0x20    // Drone mode (u8)
 #define TVL_BAT_MAIN            0x21    // Main battery mV (u16 LE)
-#define TVL_BAT_EDF             0x21    // EDF battery mV (u16 LE)
-#define TVL_ERR                 0x22    // Error code (u8) + detail (optional ascii)
-#define TVL_DATE_TIME			0x23	// Date and time aquired from gps
-#define TVL_TLM					0x24	// Telemetry frequency
-#define TVL_FLIGHT_MODE			0x25	// Flight state
+#define TVL_BAT_EDF             0x22    // EDF battery mV (u16 LE)
+#define TVL_ERR                 0x23    // Error code (u8) + detail (optional ascii)
+#define TVL_DATE_TIME			0x24	// Date and time aquired from gps
+#define TVL_TLM					0x25	// Telemetry frequency
+#define TVL_FLIGHT_MODE			0x26	// Flight state
 
 #define TVL_THP					0x30	// Temperature, humidity, pressure (i16, u8, u16)
 #define TVL_ANGL           		0x31    // Roll/pitch/yaw (i16 each, deg*100)
@@ -144,6 +153,7 @@ extern "C" {
 #define TVL_IMU                 0x33    // IMU raw ax/ay/az,gx/gy/gz (i16 each)
 #define TVL_IMU_TEMP			0x34	// IMU temperature
 #define TVL_GPS                 0x35    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
+#define TVL_THROTTLE			0x36	// EDF throttle level
 // TODO: TBD
 
 #define TVL_STATE_STARTUP       0x40    // Drone state - startup (OPT_DRONE_SET_STATE)
@@ -192,7 +202,7 @@ typedef struct {
     uint8_t     plen;                   // Payload lenght
     uint8_t     payload[26];            // Payload data [32-6]
 
-} s_rf_packet;
+} s_rf_packet;							// RX RF packet
 
 
 typedef struct {
@@ -204,7 +214,7 @@ typedef struct {
     uint8_t     plen;                   // Payload lenght
     uint8_t     payload[26];            // Payload data [32-6]
 
-} s_rf_packet_drone;
+} s_rf_packet_drone;					// TX RF packet
 
 
 typedef struct {

@@ -4,6 +4,6 @@
 ../Core/Src/data_transcode.c:195:6:RF_packet_parse	24	static
 ../Core/Src/data_transcode.c:226:9:UART_decode	32	static
 ../Core/Src/data_transcode.c:305:9:uart_opcode_decode	16	static
-../Core/Src/data_transcode.c:343:9:RF_decode	24	static
-../Core/Src/data_transcode.c:400:6:UART_encode	24	static
-../Core/Src/data_transcode.c:439:6:RF_encode	32	static
+../Core/Src/data_transcode.c:360:9:RF_decode	24	static
+../Core/Src/data_transcode.c:417:6:UART_encode	24	static
+../Core/Src/data_transcode.c:456:6:RF_encode	32	static

@@ -13,6 +13,7 @@
 #include <math.h>
 #include "data_transcode.h"
 #include "GNSS.h"
+#include "autopilot.h"
 
 
 /*###########################################################################################################################################################*/
@@ -21,6 +22,7 @@
 // Calibration
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
 #define IDENTIFICATION
+#define TEST_MOMENTS				// Uncomment to enable serial print over GPS connector - testing of fin moments
 
 #define TUNE_KALMAN
 #ifdef TUNE_KALMAN
@@ -59,13 +61,15 @@
 #define ALTITUDE_M			98		// Height where drone will take off
 #define DECLINATION_DEG		4.34f	// Deskle declination = +4.28deg (+4.34deg) (source: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml?)
 
-#define MAIN_BOARD_V		3.3		// Main board voltage
+#define MAIN_BOARD_V		3.27	// Main board voltage
 #define R1_MAIN_BAT			100000	// Voltage divider resistor R1 - main battery
 #define R2_MAIN_BAT		 	10000	// Voltage divider resistor R2 - main battery
 #define R1_EDF_BAT			100000	// Voltage divider resistor R1 - EDF battery
 #define R2_EDF_BAT		 	10000	// Voltage divider resistor R2 - EDF battery
 
 #define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
+
+#define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
 
 
 /*###########################################################################################################################################################*/
@@ -126,6 +130,7 @@ typedef struct {
 
     // PC -> Drone and Drone -> PC //
     uint8_t     		data_buffer[64];        // Buffer for saving data
+
 } s_radios;
 
 
@@ -142,6 +147,7 @@ typedef struct {
 	float				gyro_x;		// Raw data - gyro x
 	float				gyro_y;		// Raw data - gyro y
 	float				gyro_z;		// Raw data - gyro z
+	float				quaternion[4];	// Quaternion from Euler angles: Body to World system
 
 	/* Data before flight to initialize orientation */
 //	float 				PitchMean;
@@ -170,6 +176,8 @@ typedef struct {
 	uint8_t				humidity;				// Humidity
 	uint32_t			pressure;				// Pressure
 	uint16_t			take_off_alt_m;			// Take off altitude in meters
+	uint8_t				edf_throttle;			// EDF throttle level
+
 }s_data;
 
 
@@ -188,7 +196,26 @@ typedef struct {
     uint8_t				flag_log_dump;			// Flag indication complete log dump over UART
     uint8_t				flag_log_remove;		// Flag for deleting log file
 
+    s_packets			packets;				// UART and RF packets
+
 } s_uart_buffers;
+
+
+// Actuators values
+typedef struct {
+	uint8_t 			edf_percent;			// Percents of power on EDF
+    float 				servo_xp;				// Servo angle - X+
+    float 				servo_xn;				// Servo angle - X-
+    float 				servo_yp;				// Servo angle - Y+
+    float 				servo_yn;				// Servo angle - Y-
+
+    uint8_t				rampUpEnable;			// Slow ramp-up enable flag
+    uint8_t				rampUpDone;				// Slow ramp-up finished flag
+    uint8_t				rampUpTarget;			// Slow ramp-up percent goal
+    uint32_t			rampUpTime;				// Slow ramp-up time goal
+    uint8_t				rampUpStep;				// Slow ramp-up power step
+
+} s_actuators;
 
 
 // Drone: Error codes
@@ -201,17 +228,29 @@ typedef struct {
 	uint8_t				err_radio1;				// Error flag - radio1 / nrf24l01 radio error
 	uint8_t				err_radio2;				// Error flag - radio2 / nrf24l01 radio error
 	uint8_t				err_hmc5883l;			// Error flag - hmc5883l sensor error
+
 } s_errors;
+
+
+// Drone: identification tests
+typedef struct {
+	uint8_t				flag_test_identification;	// Identification in progress
+	uint8_t				flag_test_edf;				// Test EDF thrust
+	uint8_t				flag_test_servo;			// Test servo motors
+	uint8_t				flag_test_moment;			// Test drone moments
+
+} s_identification;
 
 
 // Main drone struct with all data
 typedef struct {
 	/* Base data */
-	volatile e_drone_status DroneStatus;	 	// Status of drone
+	volatile e_drone_status  DroneStatus;	 	// Status of drone
 	volatile e_flight_status flight_status;		// Status of drone when flying
 	s_date_time 		date_time;				// Current time - GPS
 	s_errors			error_code;				// Error codes of drone
 	s_uart_buffers		uart_buffer;			// Buffer for uart data
+	s_identification	identifications;		// Identifivation test flags
 
 	/* Radio */
 	s_radios			radio_data;				// All data for radio communication
@@ -220,6 +259,8 @@ typedef struct {
 	s_position			position;				// Drone position (angled, speed, etc.)
 	s_GNSS				gps_data;				// GPS data
 	s_data				data;					// Other drone data (batterys, temp, hum, press...)
+	s_path				flight_path;			// Flight path data
+	s_actuators			actuators;				// Drone actuators value
 
 } s_drone_data;
 
@@ -230,6 +271,6 @@ typedef struct {
 
 uint8_t RF_packet_decode(s_packets *packets, s_drone_data *drone_data);
 void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data);
-
+void packet_create_uart_data(s_packets *packets, s_drone_data *drone_data);
 
 #endif /* INC_DRONE_DATA_H_ */

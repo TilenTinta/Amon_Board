@@ -37,9 +37,10 @@ Core/Src/logging.o: ../Core/Src/logging.c ../Core/Inc/logging.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h \
- ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs_util.h \
+ ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
+ ../Core/Inc/autopilot.h
 ../Core/Inc/logging.h:
 ../Core/Inc/flash_W25QXXX.h:
 ../Core/Inc/spi_bus_config.h:
@@ -80,8 +81,9 @@ Core/Src/logging.o: ../Core/Src/logging.c ../Core/Inc/logging.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs.h:
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/../Drivers/littlefs/lfs_util.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs_util.h:
 ../Core/Inc/drone_data.h:
 ../Core/Inc/data_transcode.h:
 ../Core/Inc/GNSS.h:
+../Core/Inc/autopilot.h:

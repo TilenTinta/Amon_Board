@@ -10,6 +10,6 @@
 ../Core/Src/logging.c:292:5:log_open_file	16	static
 ../Core/Src/logging.c:309:5:log_close_file	16	static
 ../Core/Src/logging.c:326:6:log_write_buffer	16	static
-../Core/Src/logging.c:346:6:log_add_sample	24	static
-../Core/Src/logging.c:393:5:log_dump_uart	248	static
-../Core/Src/logging.c:451:6:log_remove	16	static
+../Core/Src/logging.c:346:6:log_add_sample	32	static
+../Core/Src/logging.c:398:5:log_dump_uart	248	static
+../Core/Src/logging.c:456:6:log_remove	16	static

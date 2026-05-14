@@ -45,6 +45,10 @@ typedef struct {
 } s_Kalman;
 
 
+typedef struct {
+    float w, x, y, z;
+
+} s_Quaternion;
 
 
 /*###########################################################################################################################################################*/
@@ -58,5 +62,7 @@ void Kalman_Init(s_Kalman *k);
 void Kalman_rawToAngles(s_MPU6050 *dev, float *roll_angle_accel, float *pitch_angle_accel);
 float Kalman_Update(s_Kalman *k, float gyro_meas, float accel_angle, float dt);
 float unwrap_to_ref(float meas, float ref);
+s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw);
+
 
 #endif /* INC_FILTERS_H_ */

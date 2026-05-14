@@ -343,7 +343,7 @@ void log_write_buffer(uint8_t size)
  *
  * @return  none
  */
-void log_add_sample(s_position *pos, s_data *data)
+void log_add_sample(s_position *pos, s_data *data, s_actuators *actuators)
 {
 	static uint8_t index = 0;
 
@@ -358,6 +358,11 @@ void log_add_sample(s_position *pos, s_data *data)
     log_buffer[index].gyro_x = pos->gyro_x;
     log_buffer[index].gyro_y = pos->gyro_y;
     log_buffer[index].gyro_z = pos->gyro_z;
+    log_buffer[index].servo_xp = actuators->servo_xp;
+	log_buffer[index].servo_xn = actuators->servo_xn;
+	log_buffer[index].servo_yp = actuators->servo_yp;
+	log_buffer[index].servo_yn = actuators->servo_yn;
+	log_buffer[index].edf_percent = actuators->edf_percent;
     log_buffer[index].height_TOF_mm = pos->height_TOF_mm;
     log_buffer[index].height_baro_m = pos->height_baro_m;
     log_buffer[index].battery_main_voltage = data->battery_main_voltage;
