@@ -6726,7 +6726,7 @@
 		)
 		(uuid "a510f292-1026-4e98-a10e-5438c806b307")
 	)
-	(hierarchical_label "AN_BAT_BRD"
+	(hierarchical_label "AN_BAT_MAIN"
 		(shape output)
 		(at 259.08 62.23 0)
 		(effects
