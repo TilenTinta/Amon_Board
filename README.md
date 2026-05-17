@@ -43,7 +43,7 @@ Flight controller hardware and firmware used in the Amon Lander project. Two har
 
 ## Overview
 
-This board is a custom flight controller for **Amon Lander**. The **v2** generation uses an **STM32F405RGT6 (LQFP-64)** and a hand-written firmware stack (drivers from scratch, for learning and control). Because of the flight algorithm planned to be used in this project, the decision was made to modify the current **v2** PCB with a new MCU. This is the **STM32H743VIT6 (LQFP-100)** and to fix some issues and add features that were missing or incorrect in the previous version. A **v3** generation is being designed around a **Zephyr-supported MCU** for real-time control, paired with a **Raspberry Pi CM4** for high-level tasks (GCS link, logging, navigation stack, future CV/ML, etc.).
+This board is a custom flight controller for **Amon Lander**. The **v2** generation uses an **STM32F405RGT6 (LQFP-64)** and a hand-written firmware stack (drivers from scratch, for learning and control). Because of the flight algorithm planned to be used in this project, the decision was made to modify the current **v2** PCB with a new MCU. This is the **STM32H743VIT6 (LQFP-100)** and to fix some issues and add features that were missing or incorrect in the previous version. A **v3** generation is being designed around a **Zephyr-supported MCU** for real-time control, that will be paired with a **Raspberry Pi CM4** for high-level tasks (GCS link, logging, navigation stack, future CV/ML, etc.) in **v4**.
 
 Everything was built from the ground up — **electronics, firmware, and software**. Most tools used are **free** and widely available to makers. Expect a learning-first approach over simplicity: some solutions could be easier, but the point is to **learn and explore**.
 
@@ -85,7 +85,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 
 **Highlights**
 
-- **MCU:** STM32F405RGT6 (LQFP-64)
+- **MCU:** STM32F405RGT6 (LQFP-64) - Cortex M4, 168MHz, 196kB RAM, 1MB Flash
 - **Power & Protection**
   - Dual vertical **XT60** inputs (PCB PWR and EDF voltage)
   - **Reverse-polarity diode**
@@ -116,34 +116,37 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - **Status:** Runs and evolves; some drivers may still have rough edges  
 - **Focus:** Bring-up, sensor fusion, basic control loops, telemetry logging and transmition...
 
-> ![PCBv1_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v1_1.PNG)
+> ![PCBv2_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v2_1.PNG)
 
 ### Board v3 — STM32H743
 
 **Highlights**
 
-- **MCU:** STM32H743VIT66 (LQFP-100)
+- **MCU:** STM32H743VIT66 (LQFP-100) - Cortex M7, 480MHz, 1MB RAM, 2MB Flash
 - **Power & Protection**
-  - Dual horiyontal **XT60** inputs (PCB PWR and EDF voltage)
+  - Dual horizontal **XT60** inputs (PCB PWR and EDF voltage)
   - **Reverse-polarity diode**
   - Max input tested: **12 V**
-  - Two **buck regulators**: 3.3 V (MCU/sensors) & 5 V (servos), ~5 A each + more stable voltage
-- **Switching/Startup:** Power-on by battery insertion or external switch on a terminal
+  - Three **buck regulators**: 3.3 V (MCU/sensors) & 5 V (ESC and placeholder) & 7.2 V (servos), ~5 A each + more stable voltage
+- **Switching/Startup:** Power-on sequence 3.3V -> 5V -> 7.2V (monitoring of regulators output voltages and enable/disable function)
 - **Grounding:** Grounded mounting holes
 - **Sensors**
   - **MPU6050** (IMU)
   - **BME280** (temp/pressure/humidity)
   - **HMC5883L** (compass)
-  - TOF connector for **VL53L1X (TOF400C)**
+  - Connector for TOF - **VL53L1X (TOF400C)**
+  - Connector for optical flow - **PMW3901**
 - **Navigation & Comms**
-  - **GPS** connector (GY-NEO6MV2; also reused for calibration)
-  - **2× NRF24L01+ PA/LNA** (RX–TX)
-  - **USB OTG** with surge protection + **USB** over serial chip (CH340G)
+  - Connector for GPS module -**GY-NEO6MV2**
+  - **2× NRF24L01+ PA/LNA** (RX–TX) now on PCB - eliminated use of modules
+  - **USB** over serial chip (CH340G) - eliminated use of USB OTG
 - **I/O**
-  - **PWM:** 4× servos + 1× EDF (configurable)
+  - **PWM:** 4× servos + 1× EDF
   - Expansion: **SPI** & **I²C** headers
   - **10-pin JTAG** header (Olimex HAB-VCR-010-LF)
   - **RGB status LED**
+  - **Single RED status LED**
+  - Three connector low **LED modules** and additional AUX connector for future use
 - **Storage:** External flash (telemetry) + **microSD** slot
 - **PCB:** 4-layer
 
@@ -153,6 +156,8 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - **Approach:** Minimal dependencies; **drivers from scratch** (for learning)  
 - **Status:** Runs and evolves; some drivers may still have rough edges  
 - **Focus:** sensor fusion, advance control algorithms, telemetry logging and transmition...
+
+> ![PCBv3_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v3_1.PNG)
 
 ---
 
@@ -213,9 +218,9 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 | Programming / Debug         | 4-pin JTAG       | 10-pin JTAG          | 10-pin JTAG          | SWD/JTAG (MCU) + SSH/USB/Ethernet (CM4) |
 | PWM Outputs                 | 4× servos + 1× EDF | 4× servos + 1× EDF | 4× servos + 1× EDF | Same (handled by MCU)    |
 | Expansion                   | SPI, I²C         | SPI, I²C             | SPI, I²C             | SPI, I²C, UART, CAN (planned) |
-| Power                       | XT60, LDO (3.3V + 5V/5A) | XT60, buck (3.3V + 5V/5A) | XT60, improved buck (3.3V + 5V/5A) | Segregated rails, higher headroom (TBD) |
+| Power                       | XT60, LDO (3.3V + 5V/5A) | XT60, buck (3.3V + 5V/5A + 7.2V) | XT60, improved buck (3.3V + 5V/5A) | Segregated rails, higher headroom (TBD) |
 | PCB                         | 4-layer          | 4-layer              | 4-layer              | TBD                      |
-| Firmware Status             | Not working    | Working, evolving | Working, evolving | In development        |
+| Firmware Status             | Not working    | Working, evolving | In development | In development        |
 | Firmware Approach           | —                | Bare-metal, custom drivers | Based on v2, improved | Zephyr modules + Linux services |
 | Firmware Updates            | USB              | JTAG/SWD/DFU         | JTAG/SWD/DFU         | MCU bootloader + CM4 (apt/container) |
 
@@ -300,7 +305,7 @@ Instructions bellow are only "place holder". Detailed instructions will be provi
 
 ## Calibration & Testing
 
-- **GPS/Calibration Port:** The v2 & v3 GPS connector doubles as a calibration interface during bring-up.  
+- **GPS/Calibration Port:** The v2 GPS connector doubles as a calibration interface during bring-up. PCB v3 do this over USB.  
 - **Telemetry:** Log to external flash/microSD (v2 & v3) or CM4 eMMC + MCU storage (v4).  
 - **LED Status:** On-board RGB LED signals power, init, errors, and link status.  
 - **HIL/Replay (v2):** Reproduce flights by streaming recorded sensor frames back into the MCU (for controller tuning).
@@ -317,16 +322,16 @@ Instructions bellow are only "place holder". Detailed instructions will be provi
 - **v3**
    - Modified v2 design with new MCU, connectors, sensors
    - Modified v2 firmware for new MCU (much higher clock: 168 MHz -> 480MHz)
+   - Development of flight algorithm and controller + first flights 
 - **v4**
   - Finalize MCU choice and Zephyr board port
   - Define IPC schema (CBOR/Proto) & reliability (CRC/seq/ACK)
   - CM4 services (logger, bridge, config UI)
-  - Power domain validation and EMI hardening
-  - Extensive bench tests, then captive-stand hovers
+  - Development of new flight algorithm and controllers + flights 
 
 ---
 
 ## Status & Disclaimer
 
-- **Works, but in progress:** v1 firmware runs; development is active and some drivers may still have rough edges.  
-- **New hardware incoming:** v2 will introduce a Zephyr-based MCU and CM4 companion; designs are evolving.
+- **Works, but in progress:** v2 firmware runs; development is active and some drivers may still have rough edges.  
+- **New hardware incoming:** v2/v3/v4 will introduce a Zephyr-based MCU and CM4 companion; designs are evolving.

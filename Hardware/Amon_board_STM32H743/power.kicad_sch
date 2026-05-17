@@ -2568,6 +2568,7 @@
 				(thickness 0.4)
 				(bold yes)
 				(italic yes)
+				(color 132 0 0 1)
 			)
 			(justify left bottom)
 		)
@@ -2595,6 +2596,17 @@
 		)
 		(uuid "6bf5877e-a856-4c99-bc3c-7e37259576ba")
 	)
+	(text "If 0Ohm resistor is \nplaced do not populate \nenable circuit"
+		(exclude_from_sim no)
+		(at 26.67 102.362 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6f59c084-3b45-4df0-a829-8bef3a0f0a51")
+	)
 	(text "12V battery to:\n- 3.3V - mcu, sensors...\n- 5.0V - RPi CM4 (future use)\n- 7.2V - servos\n\n"
 		(exclude_from_sim no)
 		(at 16.51 28.194 0)
@@ -2617,6 +2629,17 @@
 		)
 		(uuid "796e5e0e-c052-4d22-aff9-3ab45be23a1b")
 	)
+	(text "If 0Ohm resistor is \nplaced do not populate \nenable circuit"
+		(exclude_from_sim no)
+		(at 26.416 48.006 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "803fb5b5-cc13-40c0-963e-e8c281154bb6")
+	)
 	(text "EDF BAT. SENSE:"
 		(exclude_from_sim no)
 		(at 224.4836 19.2821 0)
@@ -2626,6 +2649,7 @@
 				(thickness 0.4)
 				(bold yes)
 				(italic yes)
+				(color 132 0 0 1)
 			)
 			(justify left bottom)
 		)
@@ -2673,6 +2697,7 @@
 				(thickness 0.4)
 				(bold yes)
 				(italic yes)
+				(color 132 0 0 1)
 			)
 			(justify left bottom)
 		)

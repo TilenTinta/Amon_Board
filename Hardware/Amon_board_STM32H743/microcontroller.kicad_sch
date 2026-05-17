@@ -6321,7 +6321,7 @@
 		)
 		(uuid "a74939dd-7951-4b60-b721-79c1b7bc80dc")
 	)
-	(text "FLASH"
+	(text "FLASH:"
 		(exclude_from_sim no)
 		(at 226.314 41.91 0)
 		(effects
@@ -6330,10 +6330,22 @@
 				(thickness 0.4)
 				(bold yes)
 				(italic yes)
+				(color 132 0 0 1)
 			)
 			(justify left bottom)
 		)
 		(uuid "bc07418a-d76a-46ff-b48d-b05714f6819f")
+	)
+	(text "Special placement\nTX-RX <-> RX-TX"
+		(exclude_from_sim no)
+		(at 261.874 109.982 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e43021ae-8a82-4a89-8701-f1283665f2bd")
 	)
 	(junction
 		(at 35.56 116.84)
@@ -7437,7 +7449,7 @@
 	)
 	(wire
 		(pts
-			(xy 67.31 54.61) (xy 80.01 54.61)
+			(xy 63.5 54.61) (xy 80.01 54.61)
 		)
 		(stroke
 			(width 0)
@@ -9626,7 +9638,7 @@
 		(uuid "08ec4248-27f5-4582-ae7e-30e6b31d7a27")
 	)
 	(label "HSE_OUT"
-		(at 67.31 54.61 0)
+		(at 63.5 54.61 0)
 		(effects
 			(font
 				(size 1.27 1.27)

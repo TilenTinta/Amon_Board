@@ -477,7 +477,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 50.8) (xy 106.68 50.8)
+			(xy 74.93 49.53) (xy 106.68 49.53)
 		)
 		(stroke
 			(width 0)
@@ -607,7 +607,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 118.11) (xy 106.68 118.11)
+			(xy 74.93 116.84) (xy 106.68 116.84)
 		)
 		(stroke
 			(width 0)
@@ -667,7 +667,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 120.65) (xy 106.68 120.65)
+			(xy 74.93 119.38) (xy 106.68 119.38)
 		)
 		(stroke
 			(width 0)
@@ -707,7 +707,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 123.19) (xy 106.68 123.19)
+			(xy 74.93 121.92) (xy 106.68 121.92)
 		)
 		(stroke
 			(width 0)
@@ -787,7 +787,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 57.15) (xy 106.68 57.15)
+			(xy 74.93 55.88) (xy 106.68 55.88)
 		)
 		(stroke
 			(width 0)
@@ -827,7 +827,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 53.34) (xy 106.68 53.34)
+			(xy 74.93 52.07) (xy 106.68 52.07)
 		)
 		(stroke
 			(width 0)
@@ -857,7 +857,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 59.69) (xy 106.68 59.69)
+			(xy 74.93 58.42) (xy 106.68 58.42)
 		)
 		(stroke
 			(width 0)
@@ -1483,7 +1483,7 @@
 			)
 		)
 		(pin "BUCK_EN_5V" input
-			(at 74.93 53.34 0)
+			(at 74.93 52.07 0)
 			(uuid "f1fa916d-feb3-4736-bbc8-1cba013fe0b6")
 			(effects
 				(font
@@ -1503,7 +1503,7 @@
 			)
 		)
 		(pin "AN_BUCK_5V" output
-			(at 74.93 50.8 0)
+			(at 74.93 49.53 0)
 			(uuid "f1a0e064-69d5-4f2a-b98e-0b01bcf7d0b5")
 			(effects
 				(font
@@ -1513,7 +1513,7 @@
 			)
 		)
 		(pin "AN_BAT_EDF" output
-			(at 74.93 57.15 0)
+			(at 74.93 55.88 0)
 			(uuid "f509c6f4-9968-4cb1-95aa-378756e64a67")
 			(effects
 				(font
@@ -1523,7 +1523,7 @@
 			)
 		)
 		(pin "AN_BAT_MAIN" output
-			(at 74.93 59.69 0)
+			(at 74.93 58.42 0)
 			(uuid "6f0321fe-3226-4b1f-9b81-26899622d025")
 			(effects
 				(font
@@ -1829,7 +1829,7 @@
 			)
 		)
 		(pin "MOT" output
-			(at 74.93 120.65 0)
+			(at 74.93 119.38 0)
 			(uuid "7120d2c4-00bb-4877-85c0-4d05543cd926")
 			(effects
 				(font
@@ -1839,7 +1839,7 @@
 			)
 		)
 		(pin "RST" input
-			(at 74.93 123.19 0)
+			(at 74.93 121.92 0)
 			(uuid "e57143c0-fbbd-466e-a619-f27103f676c7")
 			(effects
 				(font
@@ -1849,7 +1849,7 @@
 			)
 		)
 		(pin "CS_OF" input
-			(at 74.93 118.11 0)
+			(at 74.93 116.84 0)
 			(uuid "482f7e93-4ced-4a7d-9f3f-7b50de4a6052")
 			(effects
 				(font
@@ -1917,7 +1917,7 @@
 			)
 		)
 		(pin "AN_BUCK_5V" input
-			(at 106.68 50.8 180)
+			(at 106.68 49.53 180)
 			(uuid "0ff8da16-0615-498d-989b-6cd334145d71")
 			(effects
 				(font
@@ -1987,7 +1987,7 @@
 			)
 		)
 		(pin "BUCK_EN_5V" output
-			(at 106.68 53.34 180)
+			(at 106.68 52.07 180)
 			(uuid "32cfac59-d40a-44b6-bfec-f33d3e0e20b9")
 			(effects
 				(font
@@ -2007,7 +2007,7 @@
 			)
 		)
 		(pin "AN_BAT_EDF" input
-			(at 106.68 57.15 180)
+			(at 106.68 55.88 180)
 			(uuid "c7462c30-6896-45c8-beb1-6cb093d57e26")
 			(effects
 				(font
@@ -2177,7 +2177,7 @@
 			)
 		)
 		(pin "RST" output
-			(at 106.68 123.19 180)
+			(at 106.68 121.92 180)
 			(uuid "7362ce48-b3a7-482a-ab83-c3198cbb855f")
 			(effects
 				(font
@@ -2187,7 +2187,7 @@
 			)
 		)
 		(pin "MOT" input
-			(at 106.68 120.65 180)
+			(at 106.68 119.38 180)
 			(uuid "160bbc12-f259-48be-9096-7efeb2bf11df")
 			(effects
 				(font
@@ -2307,7 +2307,7 @@
 			)
 		)
 		(pin "AN_BAT_MAIN" input
-			(at 106.68 59.69 180)
+			(at 106.68 58.42 180)
 			(uuid "738ff0b3-7ca3-474d-88c6-71d1b274bf06")
 			(effects
 				(font
@@ -2317,7 +2317,7 @@
 			)
 		)
 		(pin "CS_OF" output
-			(at 106.68 118.11 180)
+			(at 106.68 116.84 180)
 			(uuid "c7a496fc-f872-4022-8102-353d8628fb63")
 			(effects
 				(font
