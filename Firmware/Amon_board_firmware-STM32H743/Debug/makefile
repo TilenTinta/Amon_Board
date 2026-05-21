@@ -13,6 +13,9 @@ RM := rm -rf
 -include Middlewares/Third_Party/FatFs/src/subdir.mk
 -include FATFS/Target/subdir.mk
 -include FATFS/App/subdir.mk
+-include Drivers/vl53l1x/platform/subdir.mk
+-include Drivers/vl53l1x/core/subdir.mk
+-include Drivers/littlefs/subdir.mk
 -include Drivers/STM32H7xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
@@ -65,7 +68,7 @@ main-build: Amon_board_firmware_v3.elf secondary-outputs
 
 # Tool invocations
 Amon_board_firmware_v3.elf Amon_board_firmware_v3.map: $(OBJS) $(USER_OBJS) C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32H743\STM32H743VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Amon_board_firmware_v3.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32H743\STM32H743VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Amon_board_firmware_v3.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "Amon_board_firmware_v3.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32H743\STM32H743VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Amon_board_firmware_v3.map" -Wl,--gc-sections -static -L"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32H743\acados\lib\blasfeo\lib" -L"C:\DATA\Projects\Amon_Board\Firmware\Amon_board_firmware-STM32H743\acados\lib\hpipm\lib" -lm -lhpipm -lblasfeo -lm --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

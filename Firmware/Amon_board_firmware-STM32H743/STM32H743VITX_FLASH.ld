@@ -78,6 +78,12 @@ SECTIONS
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
+  
+  /* ADDED: DMA protection for memory storage */
+  .dma_buffer :
+  {
+    *(.dma_buffer)
+  } >RAM_D2
 
   /* Constant data goes into FLASH */
   .rodata :

@@ -31,6 +31,20 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "MPU6050.h"
+#include "BME280.h"
+#include "PWM.h"
+#include "NRF24L01.h"
+#include "VL53L1X_api.h"
+#include "VL53L1X_calibration.h"
+#include "HMC5883L.h"
+
+#include "drone_data.h"
+#include "data_transcode.h"
+#include "filters.h"
+#include <NMPC.h>
+#include "logging.h"
+//#include "autopilot.h"
 
 /* USER CODE END Includes */
 
@@ -59,42 +73,42 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define SPI4_SCK_F_Pin GPIO_PIN_2
-#define SPI4_SCK_F_GPIO_Port GPIOE
-#define SPI4_CS_F_Pin GPIO_PIN_3
-#define SPI4_CS_F_GPIO_Port GPIOE
-#define SPI4_MISO_F_Pin GPIO_PIN_5
-#define SPI4_MISO_F_GPIO_Port GPIOE
-#define SPI4_MOSI_F_Pin GPIO_PIN_6
-#define SPI4_MOSI_F_GPIO_Port GPIOE
+#define SCK_F_Pin GPIO_PIN_2
+#define SCK_F_GPIO_Port GPIOE
+#define CS_F_Pin GPIO_PIN_3
+#define CS_F_GPIO_Port GPIOE
+#define MISO_F_Pin GPIO_PIN_5
+#define MISO_F_GPIO_Port GPIOE
+#define MOSI_F_Pin GPIO_PIN_6
+#define MOSI_F_GPIO_Port GPIOE
 #define ADC1_10_EDF_Pin GPIO_PIN_0
 #define ADC1_10_EDF_GPIO_Port GPIOC
 #define ADC1_11_MAIN_Pin GPIO_PIN_1
 #define ADC1_11_MAIN_GPIO_Port GPIOC
-#define TIM2_CH1_XP_Pin GPIO_PIN_0
-#define TIM2_CH1_XP_GPIO_Port GPIOA
-#define TIM2_CH2_XN_Pin GPIO_PIN_1
-#define TIM2_CH2_XN_GPIO_Port GPIOA
-#define TIM2_CH3_YP_Pin GPIO_PIN_2
-#define TIM2_CH3_YP_GPIO_Port GPIOA
-#define TIM2_CH4_YN_Pin GPIO_PIN_3
-#define TIM2_CH4_YN_GPIO_Port GPIOA
+#define SERVO_XP_Pin GPIO_PIN_0
+#define SERVO_XP_GPIO_Port GPIOA
+#define SERVO_XN_Pin GPIO_PIN_1
+#define SERVO_XN_GPIO_Port GPIOA
+#define SERVO_YP_Pin GPIO_PIN_2
+#define SERVO_YP_GPIO_Port GPIOA
+#define SERVO_YN_Pin GPIO_PIN_3
+#define SERVO_YN_GPIO_Port GPIOA
 #define ADC1_18_BUCK_5V_Pin GPIO_PIN_4
 #define ADC1_18_BUCK_5V_GPIO_Port GPIOA
 #define EN_BUCK_5V_Pin GPIO_PIN_5
 #define EN_BUCK_5V_GPIO_Port GPIOA
 #define ADC1_3_BUCK_7V2_Pin GPIO_PIN_6
 #define ADC1_3_BUCK_7V2_GPIO_Port GPIOA
-#define EN_BUCK7V2_Pin GPIO_PIN_7
-#define EN_BUCK7V2_GPIO_Port GPIOA
+#define EN_BUCK_7V2_Pin GPIO_PIN_7
+#define EN_BUCK_7V2_GPIO_Port GPIOA
 #define LED_RED_Pin GPIO_PIN_4
 #define LED_RED_GPIO_Port GPIOC
 #define LED_WHITE_Pin GPIO_PIN_5
 #define LED_WHITE_GPIO_Port GPIOC
 #define AUX_PORT_Pin GPIO_PIN_0
 #define AUX_PORT_GPIO_Port GPIOB
-#define TIM3_CH4_EDF_Pin GPIO_PIN_1
-#define TIM3_CH4_EDF_GPIO_Port GPIOB
+#define EDF_Pin GPIO_PIN_1
+#define EDF_GPIO_Port GPIOB
 #define CS_OF_Pin GPIO_PIN_11
 #define CS_OF_GPIO_Port GPIOE
 #define OF_RST_Pin GPIO_PIN_12
@@ -139,12 +153,12 @@ void Error_Handler(void);
 #define RF2_CSN_GPIO_Port GPIOD
 #define RF2_CE_Pin GPIO_PIN_7
 #define RF2_CE_GPIO_Port GPIOD
-#define TIM4_CH1_RGB_R_Pin GPIO_PIN_6
-#define TIM4_CH1_RGB_R_GPIO_Port GPIOB
-#define TIM4_CH2_RGB_G_Pin GPIO_PIN_7
-#define TIM4_CH2_RGB_G_GPIO_Port GPIOB
-#define TIM4_CH3_RGB_B_Pin GPIO_PIN_8
-#define TIM4_CH3_RGB_B_GPIO_Port GPIOB
+#define RGB_R_Pin GPIO_PIN_6
+#define RGB_R_GPIO_Port GPIOB
+#define RGB_G_Pin GPIO_PIN_7
+#define RGB_G_GPIO_Port GPIOB
+#define RGB_B_Pin GPIO_PIN_8
+#define RGB_B_GPIO_Port GPIOB
 #define LED_BRD_Pin GPIO_PIN_9
 #define LED_BRD_GPIO_Port GPIOB
 

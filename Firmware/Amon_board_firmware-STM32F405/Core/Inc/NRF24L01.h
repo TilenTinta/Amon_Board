@@ -19,7 +19,6 @@ extern "C" {
 #include <string.h>
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
-#include "spi_bus_config.h"
 
 
 //#define NRF_SPI_PRESCALER SPI_BAUDRATEPRESCALER_16   // safe for nRF24L01 max SPI

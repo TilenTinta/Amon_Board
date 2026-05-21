@@ -1,3 +1,4 @@
 ../Core/Src/PWM.c:30:6:DegresToCCR	32	static
-../Core/Src/PWM.c:82:6:PowerToPWMValue	24	static
-../Core/Src/PWM.c:116:6:SetPWMValue	16	static
+../Core/Src/PWM.c:83:6:PowerToPWMValue	24	static
+../Core/Src/PWM.c:110:6:EDFSlowRamp	24	static
+../Core/Src/PWM.c:152:6:SetPWMValue	16	static

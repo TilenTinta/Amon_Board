@@ -36,8 +36,21 @@ FATFS/App/fatfs.o: ../FATFS/App/fatfs.c ../FATFS/App/fatfs.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rtc_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi_ex.h \
+ ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim.h \
+ ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h \
+ ../Core/Inc/MPU6050.h ../Core/Inc/BME280.h ../Core/Inc/PWM.h \
+ ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
+ ../Core/Inc/autopilot.h ../Core/Inc/NRF24L01.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/core/VL53L1X_api.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_platform.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_types.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/core/VL53L1X_calibration.h \
+ ../Core/Inc/HMC5883L.h ../Core/Inc/filters.h ../Core/Inc/NMPC.h \
+ ../Core/Inc/logging.h ../Core/Inc/flash_W25QXXX.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs_util.h \
  ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h \
  ../Middlewares/Third_Party/FatFs/src/diskio.h \
  ../Middlewares/Third_Party/FatFs/src/ff.h ../FATFS/Target/user_diskio.h
@@ -81,8 +94,29 @@ FATFS/App/fatfs.o: ../FATFS/App/fatfs.c ../FATFS/App/fatfs.h \
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rtc_ex.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi_ex.h:
+../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim.h:
+../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim_ex.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h:
+../Core/Inc/MPU6050.h:
+../Core/Inc/BME280.h:
+../Core/Inc/PWM.h:
+../Core/Inc/drone_data.h:
+../Core/Inc/data_transcode.h:
+../Core/Inc/GNSS.h:
+../Core/Inc/autopilot.h:
+../Core/Inc/NRF24L01.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/core/VL53L1X_api.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_platform.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_types.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/core/VL53L1X_calibration.h:
+../Core/Inc/HMC5883L.h:
+../Core/Inc/filters.h:
+../Core/Inc/NMPC.h:
+../Core/Inc/logging.h:
+../Core/Inc/flash_W25QXXX.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs_util.h:
 ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h:
 ../Middlewares/Third_Party/FatFs/src/diskio.h:
 ../Middlewares/Third_Party/FatFs/src/ff.h:

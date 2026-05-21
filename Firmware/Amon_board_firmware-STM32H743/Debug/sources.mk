@@ -25,6 +25,9 @@ SUBDIRS := \
 Core/Src \
 Core/Startup \
 Drivers/STM32H7xx_HAL_Driver/Src \
+Drivers/littlefs \
+Drivers/vl53l1x/core \
+Drivers/vl53l1x/platform \
 FATFS/App \
 FATFS/Target \
 Middlewares/Third_Party/FatFs/src \

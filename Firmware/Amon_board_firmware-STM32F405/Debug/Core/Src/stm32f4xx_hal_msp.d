@@ -39,13 +39,13 @@ Core/Src/stm32f4xx_hal_msp.o: ../Core/Src/stm32f4xx_hal_msp.c \
  ../Core/Inc/MPU6050.h ../Core/Inc/BME280.h ../Core/Inc/PWM.h \
  ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
  ../Core/Inc/autopilot.h ../Core/Inc/NRF24L01.h \
- ../Core/Inc/spi_bus_config.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_api.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_platform.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_types.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_calibration.h \
  ../Core/Inc/HMC5883L.h ../Core/Inc/filters.h ../Core/Inc/NMPC.h \
  ../Core/Inc/logging.h ../Core/Inc/flash_W25QXXX.h \
+ ../Core/Inc/spi_bus_config.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs_util.h
 ../Core/Inc/main.h:
@@ -94,7 +94,6 @@ Core/Src/stm32f4xx_hal_msp.o: ../Core/Src/stm32f4xx_hal_msp.c \
 ../Core/Inc/GNSS.h:
 ../Core/Inc/autopilot.h:
 ../Core/Inc/NRF24L01.h:
-../Core/Inc/spi_bus_config.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/core/VL53L1X_api.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_platform.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l1x/platform/vl53l1_types.h:
@@ -104,5 +103,6 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/Drivers/vl53l
 ../Core/Inc/NMPC.h:
 ../Core/Inc/logging.h:
 ../Core/Inc/flash_W25QXXX.h:
+../Core/Inc/spi_bus_config.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32F405/acados/../Drivers/littlefs/lfs_util.h:
