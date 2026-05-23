@@ -2443,7 +2443,7 @@ uint8_t EDFDisable()
 
 
 // Enable 5V buck regulator
-int8_t enable_5v_buck(uint8_t pinState)
+uint8_t enable_5v_buck(uint8_t pinState)
 {
 	if (pinState == 0)
 	{
@@ -2459,13 +2459,13 @@ int8_t enable_5v_buck(uint8_t pinState)
 	}
 	else
 	{
-		return -1;
+		return 2;
 	}
 }
 
 
 // Enable 7.2V buck regulator
-int8_t enable_7v2_buck(uint8_t pinState)
+uint8_t enable_7v2_buck(uint8_t pinState)
 {
 	if (pinState == 0)
 	{
@@ -2481,7 +2481,7 @@ int8_t enable_7v2_buck(uint8_t pinState)
 	}
 	else
 	{
-		return -1;
+		return 2;
 	}
 }
 

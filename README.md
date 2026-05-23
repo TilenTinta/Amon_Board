@@ -64,10 +64,10 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - **Sensors**
   - **MPU6050** (IMU)
   - **BME280** (temp/pressure/humidity)
-  - TOF connector for **VL53L1X (TOF400C)**
+  - TOF connector for **VL53L1X**
 - **Navigation & Comms**
-  - **GPS** connector (GY-NEO6MV2; also reused for calibration)
-  - **single NRF24L01+ PA/LNA** (RX–TX)
+  - **GPS** connector (GY-NEO6MV2)
+  - **single NRF24L01+ PA/LNA** (RX–TX) module
 - **I/O**
   - **PWM:** 4× servos + 1× EDF
   - Expansion: **SPI** & **I²C** headers
@@ -80,6 +80,8 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 
 **Firmware (v1)**
 - **Status:** Never really worked (ESP32 was eliminated from the project)
+
+> ![PCBv1_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v1_1.PNG)
 
 ### Board v2 — STM32F405
 
@@ -97,7 +99,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
   - **MPU6050** (IMU)
   - **BME280** (temp/pressure/humidity)
   - **HMC5883L** (compass) *added later
-  - TOF connector for **VL53L1X (TOF400C)**
+  - TOF connector for **VL53L1X**
 - **Navigation & Comms**
   - **GPS** connector (GY-NEO6MV2; also reused for calibration)
   - **2× NRF24L01+ PA/LNA** (RX–TX)
@@ -134,7 +136,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
   - **MPU6050** (IMU)
   - **BME280** (temp/pressure/humidity)
   - **HMC5883L** (compass)
-  - Connector for TOF - **VL53L1X (TOF400C)**
+  - Connector for TOF - **VL53L1X**
   - Connector for optical flow - **PMW3901**
 - **Navigation & Comms**
   - Connector for GPS module -**GY-NEO6MV2**
