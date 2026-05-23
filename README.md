@@ -81,7 +81,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 **Firmware (v1)**
 - **Status:** Never really worked (ESP32 was eliminated from the project)
 
-> ![PCBv1_1](https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v1_1.png | height=600)
+<img src="https://github.com/TilenTinta/Amon_Board/blob/main/Images/PCB_v1_1.png" height="600">
 
 ### Board v2 — STM32F405
 
