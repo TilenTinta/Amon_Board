@@ -1,0 +1,2 @@
+../acados/acados/ocp_nlp/ocp_nlp_dynamics_common.c:48:15:ocp_nlp_dynamics_config_calculate_size	1
+../acados/acados/ocp_nlp/ocp_nlp_dynamics_common.c:61:26:ocp_nlp_dynamics_config_assign	1

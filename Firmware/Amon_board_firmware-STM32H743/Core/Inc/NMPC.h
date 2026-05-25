@@ -18,19 +18,19 @@
 #define INC_NMPC_H_
 
 #include <stdint.h>
-#include "../acados/acados/acados_solver_amon_model.h"
+//#include "../acados/acados/acados_solver_amon_model.h"
 
 
 
 /*###########################################################################################################################################################*/
 /* Defines */
 
-// Dimensions - match acados_solver_amon_model.h
-#define NMPC_NX     AMON_MODEL_NX       // 23
-#define NMPC_NU     AMON_MODEL_NU       // 5
-#define NMPC_N      AMON_MODEL_N        // 10
-#define NMPC_NY     AMON_MODEL_NY       // 28 = NX+NU, stage cost size
-#define NMPC_NYN    AMON_MODEL_NYN      // 23 = NX,    terminal cost size
+// Dimensions - match acados_solver_amon_model.h !!!
+#define NMPC_NX          23 // AMON_MODEL_NX
+#define NMPC_NU          5  // AMON_MODEL_NU
+#define NMPC_N           10 // AMON_MODEL_N
+#define NMPC_NY          28 // AMON_MODEL_NY
+#define NMPC_NYN         23 // AMON_MODEL_NYN
 
 /* -----------------------------------------------------------------------
  * Input (control) bounds — from solver setup
@@ -66,8 +66,8 @@ typedef struct
     double u_opt[NMPC_NU];
 
     // Reference trajectory (same ref applied to all N stages)
-    double x_ref[NMPC_NX];     // state  reference (used in yref[0..22])
-    double u_ref[NMPC_NU];     // input  reference (used in yref[23..27])
+    double x_ref[NMPC_NX];     	// state  reference (used in yref[0..22])
+    double u_ref[NMPC_NU];     	// input  reference (used in yref[23..27])
 
     // Diagnostics
     uint32_t solve_time_ms;     // wall-clock solve time in ms
@@ -88,12 +88,12 @@ typedef struct
 extern "C" {
 #endif
 
-int NMPC_Init(NMPC_Handle_t *h);
-int NMPC_SetState(NMPC_Handle_t *h, const double *x);
-int NMPC_SetReference(NMPC_Handle_t *h, const double *x_ref, const double *u_ref);
-int NMPC_Solve(NMPC_Handle_t *h);
-void NMPC_GetControl(const NMPC_Handle_t *h, double *u_out);
-void NMPC_DeInit(NMPC_Handle_t *h);
+int NMPC_Init(s_NMPC *h);
+int NMPC_SetState(s_NMPC *h, const double *x);
+int NMPC_SetReference(s_NMPC *h, const double *x_ref, const double *u_ref);
+int NMPC_Solve(s_NMPC *h);
+void NMPC_GetControl(const s_NMPC *h, double *u_out);
+void NMPC_DeInit(s_NMPC *h);
 
 #ifdef __cplusplus
 }

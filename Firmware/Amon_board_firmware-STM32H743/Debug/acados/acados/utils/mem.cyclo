@@ -1,0 +1,17 @@
+../acados/acados/utils/mem.c:48:5:acados_get_pointer_size	2
+../acados/acados/utils/mem.c:60:6:make_int_multiple_of	2
+../acados/acados/utils/mem.c:70:5:align_char_to	1
+../acados/acados/utils/mem.c:84:7:acados_malloc	1
+../acados/acados/utils/mem.c:94:7:acados_calloc	1
+../acados/acados/utils/mem.c:100:6:assign_and_advance_double_ptrs	1
+../acados/acados/utils/mem.c:111:6:assign_and_advance_int_ptrs	1
+../acados/acados/utils/mem.c:122:6:assign_and_advance_blasfeo_dvec_structs	1
+../acados/acados/utils/mem.c:133:6:assign_and_advance_blasfeo_dmat_structs	1
+../acados/acados/utils/mem.c:144:6:assign_and_advance_blasfeo_dmat_ptrs	1
+../acados/acados/utils/mem.c:155:6:assign_and_advance_char	1
+../acados/acados/utils/mem.c:166:6:assign_and_advance_int	1
+../acados/acados/utils/mem.c:177:6:assign_and_advance_bool	1
+../acados/acados/utils/mem.c:188:6:assign_and_advance_double	1
+../acados/acados/utils/mem.c:201:6:assign_and_advance_blasfeo_dvec_mem	1
+../acados/acados/utils/mem.c:214:6:assign_and_advance_blasfeo_dmat_mem	1
+../acados/acados/utils/mem.c:232:6:print_pointer_alignment	5

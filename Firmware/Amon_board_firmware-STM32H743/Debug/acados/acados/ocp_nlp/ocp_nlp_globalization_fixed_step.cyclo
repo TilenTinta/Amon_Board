@@ -1,0 +1,13 @@
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:56:15:ocp_nlp_globalization_fixed_step_opts_calculate_size	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:70:6:ocp_nlp_globalization_fixed_step_opts_initialize_default	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:83:6:ocp_nlp_globalization_fixed_step_opts_set	3
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:105:7:ocp_nlp_globalization_fixed_step_opts_assign	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:128:15:ocp_nlp_globalization_fixed_step_memory_calculate_size	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:138:7:ocp_nlp_globalization_fixed_step_memory_assign	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:159:5:ocp_nlp_globalization_fixed_step_find_acceptable_iterate	6
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:222:6:ocp_nlp_globalization_fixed_step_print_iteration_header	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:227:6:ocp_nlp_globalization_fixed_step_print_iteration	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:235:5:ocp_nlp_globalization_fixed_step_needs_objective_value	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:240:5:ocp_nlp_globalization_fixed_step_needs_qp_objective_value	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:245:6:ocp_nlp_globalization_fixed_step_initialize_memory	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c:250:6:ocp_nlp_globalization_fixed_step_config_initialize_default	1

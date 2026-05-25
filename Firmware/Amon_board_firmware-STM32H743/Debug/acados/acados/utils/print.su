@@ -1,0 +1,16 @@
+../acados/acados/utils/print.c:155:6:read_matrix	40	static
+../acados/acados/utils/print.c:181:6:ocp_nlp_dims_print	40	static
+../acados/acados/utils/print.c:197:6:print_ocp_qp_dims	88	static
+../acados/acados/utils/print.c:220:6:print_ocp_qp_in	128	static
+../acados/acados/utils/print.c:376:6:print_ocp_qp_out	48	static
+../acados/acados/utils/print.c:432:6:print_ocp_qp_out_to_file	48	static
+../acados/acados/utils/print.c:464:6:ocp_nlp_out_print	40	static
+../acados/acados/utils/print.c:520:6:ocp_nlp_res_print	80	static
+../acados/acados/utils/print.c:562:6:print_ocp_qp_res	40	static
+../acados/acados/utils/print.c:593:13:int_print_mat_to_file	32	static
+../acados/acados/utils/print.c:609:6:print_ocp_qp_in_to_file	104	static
+../acados/acados/utils/print.c:864:6:print_dense_qp_in	48	static
+../acados/acados/utils/print.c:888:6:print_qp_info	32	static
+../acados/acados/utils/print.c:938:6:print_debug_output	24	static
+../acados/acados/utils/print.c:945:6:print_debug_output_double	32	static
+../acados/acados/utils/print.c:954:13:status_to_string	16	static

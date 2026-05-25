@@ -19,22 +19,22 @@
 /*###########################################################################################################################################################*/
 /* Functions */
 
-uint8_t execute_flight_command(s_path *path, uint8_t step)
-{
-//
-//	switch(command->type)
-//	{
-//	    case COMM_TAKE_OFF:
-//	        //execute_takeoff(...)
-//	        break;
-//
-//	    case COMM_FORWARD:
-//	        //execute_forward(...)
-//	        break;
-//
-//	    case COMM_WAIT:
-//	        //execute_wait(...)
-//	        break;
-//	}
-}
+//uint8_t execute_flight_command(s_path *path, uint8_t step)
+//{
+////
+////	switch(command->type)
+////	{
+////	    case COMM_TAKE_OFF:
+////	        //execute_takeoff(...)
+////	        break;
+////
+////	    case COMM_FORWARD:
+////	        //execute_forward(...)
+////	        break;
+////
+////	    case COMM_WAIT:
+////	        //execute_wait(...)
+////	        break;
+////	}
+//}
 

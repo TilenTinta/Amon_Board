@@ -1,0 +1,9 @@
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:52:15:colmaj_ocp_qp_in_calculate_size	48	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:96:7:assign_colmaj_ocp_qp_in	64	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:249:15:colmaj_ocp_qp_out_calculate_size	48	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:277:7:assign_colmaj_ocp_qp_out	64	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:335:15:colmaj_ocp_qp_res_calculate_size	48	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:370:7:assign_colmaj_ocp_qp_res	56	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:437:6:convert_colmaj_to_ocp_qp_in	40	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:511:6:convert_ocp_qp_out_to_colmaj	40	static
+../acados/acados/ocp_qp/ocp_qp_common_frontend.c:545:6:convert_ocp_qp_res_to_colmaj	144	static

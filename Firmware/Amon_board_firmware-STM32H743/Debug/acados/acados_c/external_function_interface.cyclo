@@ -1,0 +1,14 @@
+../acados/acados_c/external_function_interface.c:49:6:external_function_param_generic_create	1
+../acados/acados_c/external_function_interface.c:61:6:external_function_param_generic_free	1
+../acados/acados_c/external_function_interface.c:74:6:external_function_casadi_create	1
+../acados/acados_c/external_function_interface.c:86:6:external_function_casadi_create_array	3
+../acados/acados_c/external_function_interface.c:126:6:external_function_casadi_free	1
+../acados/acados_c/external_function_interface.c:135:6:external_function_casadi_free_array	1
+../acados/acados_c/external_function_interface.c:148:6:external_function_param_casadi_create	1
+../acados/acados_c/external_function_interface.c:160:6:external_function_param_casadi_create_array	3
+../acados/acados_c/external_function_interface.c:200:6:external_function_param_casadi_free	1
+../acados/acados_c/external_function_interface.c:209:6:external_function_param_casadi_free_array	1
+../acados/acados_c/external_function_interface.c:219:6:external_function_external_param_casadi_create	1
+../acados/acados_c/external_function_interface.c:230:6:external_function_external_param_casadi_free	1
+../acados/acados_c/external_function_interface.c:240:6:external_function_external_param_generic_create	1
+../acados/acados_c/external_function_interface.c:251:6:external_function_external_param_generic_free	1

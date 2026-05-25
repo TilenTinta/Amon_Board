@@ -1,0 +1,11 @@
+../acados/acados/sim/sim_common.c:48:15:sim_config_calculate_size	1
+../acados/acados/sim/sim_common.c:59:13:sim_config_assign	1
+../acados/acados/sim/sim_common.c:77:15:sim_in_calculate_size	1
+../acados/acados/sim/sim_common.c:105:9:sim_in_assign	1
+../acados/acados/sim/sim_common.c:147:6:sim_in_assign_and_advance	1
+../acados/acados/sim/sim_common.c:184:5:sim_in_set_	16
+../acados/acados/sim/sim_common.c:272:15:sim_out_calculate_size	1
+../acados/acados/sim/sim_common.c:304:10:sim_out_assign	1
+../acados/acados/sim/sim_common.c:341:5:sim_out_get_	24
+../acados/acados/sim/sim_common.c:458:6:sim_opts_set_	16
+../acados/acados/sim/sim_common.c:546:6:sim_opts_get_	5

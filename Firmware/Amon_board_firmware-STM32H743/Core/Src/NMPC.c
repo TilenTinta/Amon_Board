@@ -15,9 +15,9 @@
 
 #include <NMPC.h>
 
+#include "nmpc_platform.h"
 #include "acados_solver_amon_model.h"
 #include "acados_c/ocp_nlp_interface.h"
-#include "stm32h7xx_hal.h"   // HAL_GetTick() for timing
 #include <string.h>
 #include <stddef.h>
 
@@ -152,11 +152,11 @@ int NMPC_Solve(s_NMPC *h)
 {
     if (!h->initialized) return NMPC_NOT_INIT;
 
-    uint32_t t0 = HAL_GetTick();
+    uint32_t t0 = NMPC_PlatformGetTickMs();
 
     int status = amon_model_acados_solve(s_capsule);
 
-    h->solve_time_ms     = HAL_GetTick() - t0;
+    h->solve_time_ms     = NMPC_PlatformGetTickMs() - t0;
     h->last_solver_status = status;
 
     // Extract u[0] always - best available solution even if solver fails

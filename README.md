@@ -68,6 +68,7 @@ Everything was built from the ground up — **electronics, firmware, and softwar
 - **Navigation & Comms**
   - **GPS** connector (GY-NEO6MV2)
   - **single NRF24L01+ PA/LNA** (RX–TX) module
+  - **ESP32 WiFi** can be used for communication
 - **I/O**
   - **PWM:** 4× servos + 1× EDF
   - Expansion: **SPI** & **I²C** headers

@@ -48,9 +48,13 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1349273137" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/lib/blasfeo/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/acados/ocp_nlp}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/acados_c}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/blasfeo/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/hpipm/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/lib/hpipm/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Drivers}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados/acados}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/acados}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Drivers/littlefs}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Drivers/vl53l1x/platform}&quot;"/>
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -105,6 +109,13 @@
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="FATFS"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry excluding="acados/**|acados_c/**|blasfeo/**|hpipm/**|lib/**" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados_c"/>
+						<entry excluding="dense_qp_daqp.c|dense_qp_ooqp.c|dense_qp_qore.c|dense_qp_qpoases.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/dense_qp"/>
+						<entry excluding="ocp_nlp_reg_glm.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/ocp_nlp"/>
+						<entry excluding="ocp_qp_clarabel.c|ocp_qp_hpmpc.c|ocp_qp_ooqp.c|ocp_qp_osqp.c|ocp_qp_qpdunes.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/ocp_qp"/>
+						<entry excluding="simplified/**" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/sim"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/utils"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -191,6 +202,13 @@
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="FATFS"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry excluding="acados/**|acados_c/**|blasfeo/**|hpipm/**|lib/**" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados_c"/>
+						<entry excluding="dense_qp_daqp.c|dense_qp_ooqp.c|dense_qp_qore.c|dense_qp_qpoases.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/dense_qp"/>
+						<entry excluding="ocp_nlp_reg_glm.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/ocp_nlp"/>
+						<entry excluding="ocp_qp_clarabel.c|ocp_qp_hpmpc.c|ocp_qp_ooqp.c|ocp_qp_osqp.c|ocp_qp_qpdunes.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/ocp_qp"/>
+						<entry excluding="simplified/**" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/sim"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="acados/acados/utils"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

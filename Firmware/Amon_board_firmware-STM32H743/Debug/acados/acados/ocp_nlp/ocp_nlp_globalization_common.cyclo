@@ -1,0 +1,6 @@
+../acados/acados/ocp_nlp/ocp_nlp_globalization_common.c:48:15:ocp_nlp_globalization_config_calculate_size	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_common.c:54:31:ocp_nlp_globalization_config_assign	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_common.c:72:15:ocp_nlp_globalization_opts_calculate_size	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_common.c:77:6:ocp_nlp_globalization_opts_initialize_default	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_common.c:91:7:ocp_nlp_globalization_opts_assign	1
+../acados/acados/ocp_nlp/ocp_nlp_globalization_common.c:106:6:ocp_nlp_globalization_opts_set	6

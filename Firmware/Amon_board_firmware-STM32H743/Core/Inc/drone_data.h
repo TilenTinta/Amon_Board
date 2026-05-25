@@ -148,6 +148,10 @@ typedef struct {
 	float 				Roll;
 	float 				Yaw;
 
+	float				position_x;	// Drone body position in space - x axis
+	float				position_y;	// Drone body position in space - y axis
+	float				position_z;	// Drone body position in space - z axis
+
 	uint16_t			gyroTemp;	// Temperature of IMU
 	float				accel_x;	// Raw data - acceleration x
 	float				accel_y;	// Raw data - acceleration y
@@ -156,10 +160,6 @@ typedef struct {
 	float				gyro_y;		// Raw data - gyro y
 	float				gyro_z;		// Raw data - gyro z
 	float				quaternion[4];	// Quaternion from Euler angles: Body to World system
-
-	/* Data before flight to initialize orientation */
-//	float 				PitchMean;
-//	float 				RollMean;
 
 	/* Height of drone (when on ground the height is 0, offset on sensor set to 130mm) */
 	uint16_t 			height_TOF_mm;
@@ -196,6 +196,7 @@ typedef struct {
 	uint8_t				servo_enable;			// Flag for enabling servo motors
 	uint8_t				edf_enable;				// Flag for enabling edf motor
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
+	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
 
 }s_data;
 

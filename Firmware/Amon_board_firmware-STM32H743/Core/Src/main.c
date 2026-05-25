@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fatfs.h"
+#include <NMPC.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -108,8 +109,8 @@ uint8_t TVCServoDisable();
 void servoTest();
 uint8_t EDFEnable();
 uint8_t EDFDisable();
-int8_t enable_5v_buck(uint8_t pinState);
-int8_t enable_7v2_buck(uint8_t pinState);
+uint8_t enable_5v_buck(uint8_t pinState);
+uint8_t enable_7v2_buck(uint8_t pinState);
 void StatusLED(uint8_t Status);
 
 
@@ -162,6 +163,7 @@ s_MPU6050 			mpu6050; 		// MPU6050 device driver
 s_BME280 			bme280;			// bme280 device driver
 VL53L1_DEV 			vl53l1Dev;		// VL53L1 device driver
 s_HMC5883L			hmc5883l;		// HMC5883L device driver
+s_PMW3901 			pmw3901;		// PMW3901 device driver
 //VL53L1X_Version_t vl53l1xVersion_t; // Lidar - unused
 //VL53L1X_Result_t vl53l1xResult_t; // Lidar - unused
 s_nRF24L01 			radio1;			// nRF24L01 device driver
@@ -173,6 +175,7 @@ s_Kalman			kalman_pitch;	// Kalman values for pitch
 s_Kalman			kalman_roll;	// Kalman values for roll
 s_Kalman			kalman_yaw;		// Kalman values for yaw
 s_Quaternion		quaternion;		// Quaternion based on Euler angles
+s_NMPC				nmpc = {0};		// NMPC regulator
 
 /* USER CODE END 0 */
 
@@ -639,6 +642,9 @@ int main(void)
 	  			  AmonDrone.position.gyro_y = mpu6050.GYRO_Y;
 	  			  AmonDrone.position.gyro_z = mpu6050.GYRO_Z;
 
+	  			  // PMW3901 optical flow sensor //
+	  			  PMW3901_Update(&pmw3901);
+
 	  			  if (AmonDrone.identifications.flag_test_moment) AmonDrone.uart_buffer.flag_new_uart_tx_data = 1; // Enable data transition over UART for identification
 
 	  		  } // TIMER 200Hz
@@ -809,13 +815,116 @@ int main(void)
 	  		  }
 
 
-	  		  // --- Timer 7 - 1Hz / 1sec ---
+	  		  // --- Timer 7 - 100Hz / 10ms (match acados/casadi model) ---
 	  		  if (IRQ_NMPCLoopEN == 1)
 	  		  {
 	  			IRQ_NMPCLoopEN = 0;
 
-	  			// TODO: NMPC loop
+	  			// Check if regulator is enabled
+	  			if (AmonDrone.data.NMPC_enable == 1)
+	  			{
 
+	  				// Refresh all values in state vector
+	  				// --------------------------------------------------------------------------------------------------------
+	  				double x_current[NMPC_NX] = {0}; 	// Reset everything
+
+	  				// --- Position [0:3] ---
+	  				// If you have GPS/optical flow, use those.
+	  				// For now ToF gives z, x/y need external source or stay 0.
+	  				x_current[0] = 0.0f;                                       // pos x (unknown without GPS)
+	  				x_current[1] = 0.0f;                                       // pos y (unknown without GPS)
+	  				x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0; // pos z [m]
+
+	  				// --- Velocity [3:6] ---
+	  				// You don't have direct velocity measurement — estimate or keep 0
+	  				// A simple numerical derivative works for z:
+	  				// vz = (z_current - z_previous) / dt;
+	  				x_current[3] = 0.0;  // vx
+	  				x_current[4] = 0.0;  // vy
+	  				x_current[5] = 0.0;  // vz  (or numerical derivative of height)
+
+	  				// --- Quaternion [6:10] ---
+	  				x_current[6]  = AmonDrone.position.quaternion[0];
+	  				x_current[7]  = AmonDrone.position.quaternion[1];
+	  				x_current[8]  = AmonDrone.position.quaternion[2];
+	  				x_current[9]  = AmonDrone.position.quaternion[3];
+
+	  				// --- Angular rates [10:13] ---
+	  				// gyro values must be in rad/s
+	  				x_current[10] = AmonDrone.position.gyro_x * DEG_TO_RAD;  // wx
+	  				x_current[11] = AmonDrone.position.gyro_y * DEG_TO_RAD;  // wy
+	  				x_current[12] = AmonDrone.position.gyro_z * DEG_TO_RAD;  // wz
+
+	  				// --- Thrust state [13:15] ---
+	  				// Use last commanded thrust as state estimate
+	  				x_current[13] = AmonDrone.actuators.edf_percent;  // T (current thrust)
+	  				x_current[14] = 0.0;                              // T_dot (rate of change, or 0)
+
+	  				// --- Servo positions [15:19] ---
+	  				x_current[15] = AmonDrone.actuators.servo_xp;
+	  				x_current[16] = AmonDrone.actuators.servo_xn;
+	  				x_current[17] = AmonDrone.actuators.servo_yp;
+	  				x_current[18] = AmonDrone.actuators.servo_yn;
+
+	  				// --- Servo rates [19:23] ---
+	  				// If you don't have servo velocity feedback, keep 0 or numerical derivative
+	  				x_current[19] = 0.0;
+	  				x_current[20] = 0.0;
+	  				x_current[21] = 0.0;
+	  				x_current[22] = 0.0;
+
+	  				// --------------------------------------------------------------------------------------------------------
+	  				double x_ref[NMPC_NX] = {0};		// Reset everything
+
+	  				x_ref[2]  = 1.0;   // target height z = 1m
+	  				x_ref[6]  = 1.0;   // qw = 1 → no rotation (upright)
+	  				// everything else 0: no position drift, zero velocity, zero rates
+
+	  				double u_ref[NMPC_NU] = {87.0, 0.0, 0.0, 0.0, 0.0};  // hover thrust ~87%
+
+	  				NMPC_SetState(&nmpc, x_current);
+	  				NMPC_SetReference(&nmpc, x_ref, u_ref);
+
+	  				int ret = NMPC_Solve(&nmpc);
+
+	  				// --- Solver result monitoring ---
+	  				if (ret == NMPC_OK)
+	  				{
+	  				    AmonDrone.data.nmpc_solver_fail_cnt = 0;
+	  				}
+	  				else
+	  				{
+	  					AmonDrone.data.nmpc_solver_fail_cnt++;
+
+	  				    if (AmonDrone.data.nmpc_solver_fail_cnt > 5)
+	  				    {
+	  				        // 5 solver fails back-to-back -> disarm or hold last good u
+	  				        AmonDrone.data.NMPC_enable = 0;
+	  				        // optionally: keep last good actuator values
+	  				    }
+	  				}
+
+	  				// Run NMPC control logic, limit actuator values and write them to actuators
+	  				if (ret == NMPC_OK || ret == NMPC_SOLVER_ERR)
+	  				{
+	  				    double u[NMPC_NU];
+	  				    NMPC_GetControl(&nmpc, u);
+
+	  				    // Clamp before applying — defensive programming
+	  				    u[0] = fmax(0.0,  fmin(100.0, u[0]));  // thrust  [0..100]
+	  				    u[1] = fmax(-45.0, fmin(45.0, u[1]));  // servo
+	  				    u[2] = fmax(-45.0, fmin(45.0, u[2]));
+	  				    u[3] = fmax(-45.0, fmin(45.0, u[3]));
+	  				    u[4] = fmax(-45.0, fmin(45.0, u[4]));
+
+	  				    // Save actuators values
+	  				    AmonDrone.actuators.edf_percent = u[0];
+	  				    AmonDrone.actuators.servo_xp = u[1];
+	  				    AmonDrone.actuators.servo_xn = u[2];
+	  				    AmonDrone.actuators.servo_yp = u[3];
+	  				    AmonDrone.actuators.servo_yn = u[4];
+	  				}
+	  			}
 	  		  } // TIMER 100Hz
 
 
@@ -960,6 +1069,15 @@ int main(void)
 	  		status += HMC5883L_Init(&hmc5883l, &hi2c2);
 	  		status += HMC5883L_SelfTest(&hmc5883l, &hi2c2);
 	  		if (status > tmp) AmonDrone.error_code.err_hmc5883l = 1;
+
+	  		/* PMW3901 */
+	  		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+	  		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+	  		PMW3901_pin_config(&pmw3901, &hspi2, CS_OF_GPIO_Port, CS_OF_Pin, OF_RST_GPIO_Port, OF_RST_Pin, OF_MOT_GPIO_Port, OF_MOT_Pin);
+	  		if (PMW3901_init(&pmw3901) != PMW3901_OK) status++;
+
+
+
 
 	  		/* Init Kalman filter */
 	  #ifdef GYRO_KALMAN
@@ -1134,10 +1252,13 @@ int main(void)
 	  					  HAL_Delay(100);
 	  					  servoTest();
 	  				  }
+
 	  				  if (AmonDrone.data.edf_enable == 0) EDFEnable();
+
 	  				  if (AmonDrone.data.NMPC_enable == 0)
 	  				  {
 	  					AmonDrone.data.NMPC_enable = 1;
+	  					NMPC_Init(&nmpc);
 	  					HAL_TIM_Base_Start_IT(&htim1);
 	  				  }
 	  #endif
@@ -1193,6 +1314,13 @@ int main(void)
 					  }
 
 	  				  if (AmonDrone.data.edf_enable == 1) EDFDisable();
+
+					  if (AmonDrone.data.NMPC_enable == 1)
+					  {
+						AmonDrone.data.NMPC_enable = 0;
+						NMPC_DeInit(&nmpc);
+						HAL_TIM_Base_Stop_IT(&htim1);
+					  }
 	  #endif
 
 	  				  // Logging
@@ -1594,10 +1722,10 @@ static void MX_SPI2_Init(void)
   hspi2.Init.Mode = SPI_MODE_MASTER;
   hspi2.Init.Direction = SPI_DIRECTION_2LINES;
   hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

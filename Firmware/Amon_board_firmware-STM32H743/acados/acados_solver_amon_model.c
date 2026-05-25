@@ -39,7 +39,7 @@
 
 // example specific
 
-#include "amon_model_model/amon_model_model.h"
+#include "amon_model_model.h"
 
 
 

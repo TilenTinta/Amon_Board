@@ -47,7 +47,7 @@ FATFS/App/fatfs.o: ../FATFS/App/fatfs.c ../FATFS/App/fatfs.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_platform.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_types.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/core/VL53L1X_calibration.h \
- ../Core/Inc/HMC5883L.h ../Core/Inc/filters.h ../Core/Inc/NMPC.h \
+ ../Core/Inc/HMC5883L.h ../Core/Inc/PMW3901.h ../Core/Inc/filters.h \
  ../Core/Inc/logging.h ../Core/Inc/flash_W25QXXX.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs_util.h \
@@ -111,8 +111,8 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/platform/vl53l1_types.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l1x/core/VL53L1X_calibration.h:
 ../Core/Inc/HMC5883L.h:
+../Core/Inc/PMW3901.h:
 ../Core/Inc/filters.h:
-../Core/Inc/NMPC.h:
 ../Core/Inc/logging.h:
 ../Core/Inc/flash_W25QXXX.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h:

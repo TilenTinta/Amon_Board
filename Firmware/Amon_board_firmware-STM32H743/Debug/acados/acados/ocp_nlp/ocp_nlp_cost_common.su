@@ -1,0 +1,2 @@
+../acados/acados/ocp_nlp/ocp_nlp_cost_common.c:50:15:ocp_nlp_cost_config_calculate_size	16	static
+../acados/acados/ocp_nlp/ocp_nlp_cost_common.c:59:22:ocp_nlp_cost_config_assign	24	static

@@ -27,7 +27,8 @@
 #define IMU_Y_OFFSET		0			// Offset if IMU from center of drone in Y direction
 #define IMU_Z_OFFSET		0			// Offset if IMU from center of drone in Z direction
 
-#define RAD_TO_DEG			57.2957795f	// Radians to degress: 180deg / 3.14
+#define RAD_TO_DEG			(180.0f	/ 3.14159265f)	// Radians to degress
+#define DEG_TO_RAD  		(3.14159265f / 180.0f)	// Degress to radians
 #define ALPHA				0.98		// Alpha value for complementary filter
 #define DT					0.005f		// Delta time - 200Hz
 

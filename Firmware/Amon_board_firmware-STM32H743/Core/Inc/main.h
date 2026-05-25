@@ -38,11 +38,11 @@ extern "C" {
 #include "VL53L1X_api.h"
 #include "VL53L1X_calibration.h"
 #include "HMC5883L.h"
+#include "PMW3901.h"
 
 #include "drone_data.h"
 #include "data_transcode.h"
 #include "filters.h"
-#include <NMPC.h>
 #include "logging.h"
 //#include "autopilot.h"
 

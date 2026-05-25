@@ -32,4 +32,11 @@ FATFS/App \
 FATFS/Target \
 Middlewares/Third_Party/FatFs/src \
 Middlewares/Third_Party/FatFs/src/option \
+acados/acados/dense_qp \
+acados/acados/ocp_nlp \
+acados/acados/ocp_qp \
+acados/acados/sim \
+acados/acados/utils \
+acados/acados_c \
+acados \
 
