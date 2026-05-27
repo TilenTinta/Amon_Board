@@ -27,7 +27,8 @@ static inline void pmw_cs_high(s_PMW3901 *dev)
 // Reset RST pin
 static inline void pmw_reset_low(s_PMW3901 *dev)
 {
-    if (dev->pinout.RST_Port != NULL) {
+    if (dev->pinout.RST_Port != NULL)
+    {
         HAL_GPIO_WritePin(dev->pinout.RST_Port, dev->pinout.RST_Pin, GPIO_PIN_RESET);
     }
 }
@@ -35,7 +36,8 @@ static inline void pmw_reset_low(s_PMW3901 *dev)
 // Set RST pin
 static inline void pmw_reset_high(s_PMW3901 *dev)
 {
-    if (dev->pinout.RST_Port != NULL) {
+    if (dev->pinout.RST_Port != NULL)
+    {
         HAL_GPIO_WritePin(dev->pinout.RST_Port, dev->pinout.RST_Pin, GPIO_PIN_SET);
     }
 }
@@ -45,7 +47,8 @@ static inline uint8_t pmw_spi_txrx(s_PMW3901 *dev, uint8_t byte)
 {
     uint8_t rx = 0;
 
-    if (HAL_SPI_TransmitReceive(dev->pinout.SPIx, &byte, &rx, 1, HAL_MAX_DELAY) != HAL_OK) {
+    if (HAL_SPI_TransmitReceive(dev->pinout.SPIx, &byte, &rx, 1, HAL_MAX_DELAY) != HAL_OK)
+    {
         return 0xFF;
     }
 
@@ -91,7 +94,8 @@ void PMW3901_pin_config(s_PMW3901 *dev,
                         GPIO_TypeDef *mot_port,
                         uint16_t mot_pin)
 {
-    if (dev == NULL) {
+    if (dev == NULL)
+    {
         return;
     }
 
@@ -125,13 +129,15 @@ void PMW3901_pin_config(s_PMW3901 *dev,
  */
 uint8_t PMW3901_SPI_Write(s_PMW3901 *dev, const uint8_t *tx, uint16_t len)
 {
-    if (dev == NULL || tx == NULL || len == 0U) {
+    if (dev == NULL || tx == NULL || len == 0U)
+    {
         return PMW3901_ERR_NULL;
     }
 
     pmw_cs_low(dev);
 
-    for (uint16_t i = 0; i < len; i++) {
+    for (uint16_t i = 0; i < len; i++)
+    {
         (void)pmw_spi_txrx(dev, tx[i]);
     }
 
@@ -156,13 +162,15 @@ uint8_t PMW3901_SPI_Write(s_PMW3901 *dev, const uint8_t *tx, uint16_t len)
  */
 uint8_t PMW3901_SPI_Read(s_PMW3901 *dev, uint8_t *rx, uint16_t len, uint8_t fill_byte)
 {
-    if (dev == NULL || rx == NULL || len == 0U) {
+    if (dev == NULL || rx == NULL || len == 0U)
+    {
         return PMW3901_ERR_NULL;
     }
 
     pmw_cs_low(dev);
 
-    for (uint16_t i = 0; i < len; i++) {
+    for (uint16_t i = 0; i < len; i++)
+    {
         rx[i] = pmw_spi_txrx(dev, fill_byte);
     }
 
@@ -187,13 +195,15 @@ uint8_t PMW3901_SPI_Read(s_PMW3901 *dev, uint8_t *rx, uint16_t len, uint8_t fill
  */
 uint8_t PMW3901_SPI_Transceive(s_PMW3901 *dev, const uint8_t *tx, uint8_t *rx, uint16_t len)
 {
-    if (dev == NULL || tx == NULL || rx == NULL || len == 0U) {
+    if (dev == NULL || tx == NULL || rx == NULL || len == 0U)
+    {
         return PMW3901_ERR_NULL;
     }
 
     pmw_cs_low(dev);
 
-    for (uint16_t i = 0; i < len; i++) {
+    for (uint16_t i = 0; i < len; i++)
+    {
         rx[i] = pmw_spi_txrx(dev, tx[i]);
     }
 
@@ -218,7 +228,8 @@ uint8_t PMW3901_SPI_Transceive(s_PMW3901 *dev, const uint8_t *tx, uint8_t *rx, u
  */
 uint8_t PMW3901_ReadRegister(s_PMW3901 *dev, uint8_t reg, uint8_t *value)
 {
-    if (dev == NULL || value == NULL) {
+    if (dev == NULL || value == NULL)
+    {
         return PMW3901_ERR_NULL;
     }
 
@@ -251,11 +262,12 @@ uint8_t PMW3901_ReadRegister(s_PMW3901 *dev, uint8_t reg, uint8_t *value)
  */
 uint8_t PMW3901_WriteRegister(s_PMW3901 *dev, uint8_t reg, uint8_t value)
 {
-    if (dev == NULL) {
+    if (dev == NULL)
+    {
         return PMW3901_ERR_NULL;
     }
 
-    // PMW3901 write: bit7 must be 1.
+    // PMW3901 write: bit7 must be 1
     pmw_cs_low(dev);
 
     (void)pmw_spi_txrx(dev, reg | PMW3901_WRITE_MASK);
@@ -333,7 +345,8 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
     uint8_t id = 0;
     uint8_t rev = 0;
 
-    if (dev == NULL) {
+    if (dev == NULL)
+    {
         return PMW3901_ERR_NULL;
     }
 
@@ -355,12 +368,76 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
         return PMW3901_ERR_ID;
     }
 
-    /*
-     * TODO next step:
-     * Add PixArt PMW3901 initialization magic register sequence here.
+
+    /* WARNING!!!
+     * PixArt PMW3901 initialization magic register sequence
      * Without that sequence many PMW3901 modules will return ID correctly
      * but motion data may not work correctly.
      */
+#ifdef PIXART_INIT
+    PMW3901_WriteRegister(dev, 0x7F, 0x00);
+    PMW3901_WriteRegister(dev, 0x61, 0xAD);
+    PMW3901_WriteRegister(dev, 0x7F, 0x03);
+    PMW3901_WriteRegister(dev, 0x40, 0x00);
+    PMW3901_WriteRegister(dev, 0x7F, 0x05);
+    PMW3901_WriteRegister(dev, 0x41, 0xB3);
+    PMW3901_WriteRegister(dev, 0x43, 0xF1);
+    PMW3901_WriteRegister(dev, 0x45, 0x14);
+    PMW3901_WriteRegister(dev, 0x5B, 0x32);
+    PMW3901_WriteRegister(dev, 0x5F, 0x34);
+    PMW3901_WriteRegister(dev, 0x7B, 0x08);
+    PMW3901_WriteRegister(dev, 0x7F, 0x06);
+    PMW3901_WriteRegister(dev, 0x44, 0x1B);
+    PMW3901_WriteRegister(dev, 0x40, 0xBF);
+    PMW3901_WriteRegister(dev, 0x4E, 0x3F);
+    PMW3901_WriteRegister(dev, 0x7F, 0x08);
+    PMW3901_WriteRegister(dev, 0x65, 0x20);
+    PMW3901_WriteRegister(dev, 0x6A, 0x18);
+    PMW3901_WriteRegister(dev, 0x7F, 0x09);
+    PMW3901_WriteRegister(dev, 0x4F, 0xAF);
+    PMW3901_WriteRegister(dev, 0x5F, 0x40);
+    PMW3901_WriteRegister(dev, 0x48, 0x80);
+    PMW3901_WriteRegister(dev, 0x49, 0x80);
+    PMW3901_WriteRegister(dev, 0x57, 0x77);
+    PMW3901_WriteRegister(dev, 0x60, 0x78);
+    PMW3901_WriteRegister(dev, 0x61, 0x78);
+    PMW3901_WriteRegister(dev, 0x62, 0x08);
+    PMW3901_WriteRegister(dev, 0x63, 0x50);
+    PMW3901_WriteRegister(dev, 0x7F, 0x0A);
+    PMW3901_WriteRegister(dev, 0x45, 0x60);
+    PMW3901_WriteRegister(dev, 0x7F, 0x00);
+    PMW3901_WriteRegister(dev, 0x4D, 0x11);
+    PMW3901_WriteRegister(dev, 0x55, 0x80);
+    PMW3901_WriteRegister(dev, 0x74, 0x1F);
+    PMW3901_WriteRegister(dev, 0x75, 0x1F);
+    PMW3901_WriteRegister(dev, 0x4A, 0x78);
+    PMW3901_WriteRegister(dev, 0x4B, 0x78);
+    PMW3901_WriteRegister(dev, 0x44, 0x08);
+    PMW3901_WriteRegister(dev, 0x45, 0x50);
+    PMW3901_WriteRegister(dev, 0x64, 0xFF);
+    PMW3901_WriteRegister(dev, 0x65, 0x1F);
+    PMW3901_WriteRegister(dev, 0x7F, 0x14);
+    PMW3901_WriteRegister(dev, 0x65, 0x60);
+    PMW3901_WriteRegister(dev, 0x66, 0x08);
+    PMW3901_WriteRegister(dev, 0x63, 0x78);
+    PMW3901_WriteRegister(dev, 0x7F, 0x15);
+    PMW3901_WriteRegister(dev, 0x48, 0x58);
+    PMW3901_WriteRegister(dev, 0x7F, 0x07);
+    PMW3901_WriteRegister(dev, 0x41, 0x0D);
+    PMW3901_WriteRegister(dev, 0x43, 0x14);
+    PMW3901_WriteRegister(dev, 0x4B, 0x0E);
+    PMW3901_WriteRegister(dev, 0x45, 0x0F);
+    PMW3901_WriteRegister(dev, 0x44, 0x42);
+    PMW3901_WriteRegister(dev, 0x4C, 0x80);
+    PMW3901_WriteRegister(dev, 0x7F, 0x10);
+    PMW3901_WriteRegister(dev, 0x5B, 0x02);
+    PMW3901_WriteRegister(dev, 0x7F, 0x07);
+    PMW3901_WriteRegister(dev, 0x40, 0x41);
+    PMW3901_WriteRegister(dev, 0x70, 0x00);
+
+    HAL_Delay(10);
+
+#endif
 
     PMW3901_ClearMotion(dev);
     dev->motion_irq_flag = 0;
@@ -411,7 +488,7 @@ uint8_t PMW3901_ReadMotion(s_PMW3901 *dev)
 		return PMW3901_ERR_NULL;
 	}
 
-	PMW3901_ReadRegister(dev, PMW3901_REG_MOTION, &dev->motion);
+	PMW3901_ReadRegister(dev, PMW3901_REG_MOTION, &dev->raw_data.motion);
 
 	PMW3901_ReadRegister(dev, PMW3901_REG_DELTA_X_L, &xl);
 	PMW3901_ReadRegister(dev, PMW3901_REG_DELTA_X_H, &xh);
@@ -419,26 +496,24 @@ uint8_t PMW3901_ReadMotion(s_PMW3901 *dev)
 	PMW3901_ReadRegister(dev, PMW3901_REG_DELTA_Y_L, &yl);
 	PMW3901_ReadRegister(dev, PMW3901_REG_DELTA_Y_H, &yh);
 
-	PMW3901_ReadRegister(dev, PMW3901_REG_SQUAL, &dev->squal);
+	PMW3901_ReadRegister(dev, PMW3901_REG_SQUAL, &dev->raw_data.squal);
 
-	PMW3901_ReadRegister(dev, PMW3901_REG_RAW_DATA_SUM, &dev->raw_data_sum);
+	PMW3901_ReadRegister(dev, PMW3901_REG_RAW_DATA_SUM, &dev->raw_data.raw_data_sum);
 
-	PMW3901_ReadRegister(dev, PMW3901_REG_MAX_RAW_DATA, &dev->max_raw_data);
+	PMW3901_ReadRegister(dev, PMW3901_REG_MAX_RAW_DATA, &dev->raw_data.max_raw_data);
 
-	PMW3901_ReadRegister(dev, PMW3901_REG_MIN_RAW_DATA, &dev->min_raw_data);
+	PMW3901_ReadRegister(dev, PMW3901_REG_MIN_RAW_DATA, &dev->raw_data.min_raw_data);
 
 	PMW3901_ReadRegister(dev, PMW3901_REG_SHUTTER_LOWER, &shutter_l);
 
 	PMW3901_ReadRegister(dev, PMW3901_REG_SHUTTER_UPPER, &shutter_h);
 
-	dev->delta_x = (int16_t)((uint16_t)xl | ((uint16_t)xh << 8));
-	dev->delta_y = (int16_t)((uint16_t)yl | ((uint16_t)yh << 8));
+	dev->raw_data.delta_x = (int16_t)((uint16_t)xl | ((uint16_t)xh << 8));
+	dev->raw_data.delta_y = (int16_t)((uint16_t)yl | ((uint16_t)yh << 8));
 
-	dev->shutter = (uint16_t)shutter_l |
-				   ((uint16_t)shutter_h << 8);
+	dev->raw_data.shutter = (uint16_t)shutter_l | ((uint16_t)shutter_h << 8);
 
 	return PMW3901_OK;
-
 }
 
 
@@ -476,24 +551,18 @@ uint8_t PMW3901_ReadMotionBurst(s_PMW3901 *dev)
 
     pmw_delay_us(PMW3901_TSRR_US);
 
-    dev->motion = burst[0];
+    dev->raw_data.motion = burst[0];
 
-    dev->delta_x =
-        (int16_t)((uint16_t)burst[1] |
-                 ((uint16_t)burst[2] << 8));
+    dev->raw_data.delta_x =(int16_t)((uint16_t)burst[2] | ((uint16_t)burst[3] << 8));
 
-    dev->delta_y =
-        (int16_t)((uint16_t)burst[3] |
-                 ((uint16_t)burst[4] << 8));
+    dev->raw_data.delta_y = (int16_t)((uint16_t)burst[4] | ((uint16_t)burst[5] << 8));
 
-    dev->squal = burst[5];
-    dev->raw_data_sum = burst[6];
-    dev->max_raw_data = burst[7];
-    dev->min_raw_data = burst[8];
+    dev->raw_data.squal = burst[6];
+    dev->raw_data.raw_data_sum = burst[7];
+    dev->raw_data.max_raw_data = burst[8];
+    dev->raw_data.min_raw_data = burst[9];
 
-    dev->shutter =
-        (uint16_t)burst[9] |
-       ((uint16_t)burst[10] << 8);
+    dev->raw_data.shutter = (uint16_t)burst[10] | ((uint16_t)burst[11] << 8);
 
     return PMW3901_OK;
 }
@@ -517,12 +586,12 @@ uint8_t PMW3901_MotionValid(s_PMW3901 *dev)
     }
 
     // Motion bit
-    dev->motion_valid = ((dev->motion & 0x80U) != 0U) ? 1U : 0U;
+    dev->data.motion_valid = ((dev->raw_data.motion & 0x80U) != 0U) ? 1U : 0U;
 
     // Surface quality filtering
-    dev->surface_valid = (dev->squal >= PMW3901_SQUAL_MIN_VALID) ? 1U : 0U;
+    dev->data.surface_valid = (dev->raw_data.squal >= PMW3901_SQUAL_MIN_VALID) ? 1U : 0U;
 
-    return (dev->motion_valid && dev->surface_valid) ? 1U : 0U;
+    return (dev->data.motion_valid && dev->data.surface_valid) ? 1U : 0U;
 }
 
 
@@ -542,20 +611,20 @@ void PMW3901_ClearMotion(s_PMW3901 *dev)
         return;
     }
 
-    dev->motion = 0U;
+    dev->raw_data.motion = 0U;
 
-    dev->delta_x = 0;
-    dev->delta_y = 0;
+    dev->raw_data.delta_x = 0;
+    dev->raw_data.delta_y = 0;
 
-    dev->squal = 0U;
-    dev->raw_data_sum = 0U;
-    dev->max_raw_data = 0U;
-    dev->min_raw_data = 0U;
+    dev->raw_data.squal = 0U;
+    dev->raw_data.raw_data_sum = 0U;
+    dev->raw_data.max_raw_data = 0U;
+    dev->raw_data.min_raw_data = 0U;
 
-    dev->shutter = 0U;
+    dev->raw_data.shutter = 0U;
 
-    dev->motion_valid = 0U;
-    dev->surface_valid = 0U;
+    dev->data.motion_valid = 0U;
+    dev->data.surface_valid = 0U;
 }
 
 
@@ -576,7 +645,7 @@ uint8_t PMW3901_GetSQUAL(s_PMW3901 *dev)
         return 0U;
     }
 
-    return dev->squal;
+    return dev->raw_data.squal;
 }
 
 
@@ -597,7 +666,7 @@ uint16_t PMW3901_GetShutter(s_PMW3901 *dev)
         return 0U;
     }
 
-    return dev->shutter;
+    return dev->raw_data.shutter;
 }
 
 
@@ -620,11 +689,11 @@ void PMW3901_AccumulatePosition(s_PMW3901 *dev)
 
     if (PMW3901_MotionValid(dev))
     {
-        dev->position_x += dev->delta_x;
-        dev->position_y += dev->delta_y;
+        dev->data.position_x += dev->raw_data.delta_x;
+        dev->data.position_y += dev->raw_data.delta_y;
 
-        dev->filtered_position_x = dev->position_x;
-        dev->filtered_position_y = dev->position_y;
+        dev->data.filtered_position_x = dev->data.position_x;
+        dev->data.filtered_position_y = dev->data.position_y;
 
         dev->motion_read_counter++;
     }
@@ -663,4 +732,30 @@ void PMW3901_Update(s_PMW3901 *dev)
 
     // Integrate position
     PMW3901_AccumulatePosition(dev);
+
+    /* Flow calculation based on height */
+    // Calculate velocity
+    dev->measurements.velocity_x_mps = dev->measurements.flow_scale * ((float)dev->raw_data.delta_x) * dev->data.altitude_m / PMW3901_DT;
+    dev->measurements.velocity_y_mps = dev->measurements.flow_scale * ((float)dev->raw_data.delta_y) * dev->data.altitude_m / PMW3901_DT;
+
+//    // Calculate position
+//    dev->measurements.position_x_m += dev->measurements.velocity_x_mps * PMW3901_DT;
+//    dev->measurements.position_y_m += dev->measurements.velocity_y_mps * PMW3901_DT;
+
+
+    /* Flow compensation on drone rotation (needed to be canceled out) */
+    dev->measurements.flow_x = dev->raw_data.delta_x * dev->measurements.flow_scale;
+    dev->measurements.flow_y = dev->raw_data.delta_y * dev->measurements.flow_scale;
+
+    // Rotational compensation
+    float rot_x = dev->data.gyro_y_rad_s * dev->data.altitude_m;
+    float rot_y = dev->data.gyro_x_rad_s * dev->data.altitude_m;
+
+    // Remove rotational component
+    dev->measurements.flow_x_corrected = dev->measurements.flow_x - rot_x;
+    dev->measurements.flow_y_corrected = dev->measurements.flow_y - rot_y;
+
+    // Integration of corrected flow
+    dev->measurements.position_x_m += dev->measurements.flow_x_corrected * PMW3901_DT;
+    dev->measurements.position_y_m += dev->measurements.flow_y_corrected * PMW3901_DT;
 }

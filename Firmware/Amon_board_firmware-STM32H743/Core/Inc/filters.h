@@ -32,6 +32,8 @@
 #define ALPHA				0.98		// Alpha value for complementary filter
 #define DT					0.005f		// Delta time - 200Hz
 
+#define ALPHA_EQ			0.98f		// Alpha value for Euler - quaternion complementary filter
+
 
 
 /*###########################################################################################################################################################*/
@@ -64,6 +66,8 @@ void Kalman_rawToAngles(s_MPU6050 *dev, float *roll_angle_accel, float *pitch_an
 float Kalman_Update(s_Kalman *k, float gyro_meas, float accel_angle, float dt);
 float unwrap_to_ref(float meas, float ref);
 s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw);
+void gyroToQuaternion(s_Quaternion *q, float gyro_x_deg, float gyro_y_deg, float gyro_z_deg, float dt);
+void EulerQuaternion_Complementary(s_Quaternion *q, float gyro_x_deg, float gyro_y_deg, float gyro_z_deg, float roll_deg, float pitch_deg, float yaw_deg, float dt, float alpha);
 
 
 #endif /* INC_FILTERS_H_ */

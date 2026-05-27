@@ -417,9 +417,13 @@ static inline float degToRad(float angle)
 */
 s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw)
 {
-	float roll_rad  = degToRad(roll);
-	float pitch_rad = degToRad(pitch);
-	float yaw_rad   = degToRad(yaw);
+//	float roll_rad  = degToRad(roll);
+//	float pitch_rad = degToRad(pitch);
+//	float yaw_rad   = degToRad(yaw);
+
+	float roll_rad  = roll  * DEG_TO_RAD;
+	float pitch_rad = pitch * DEG_TO_RAD;
+	float yaw_rad   = yaw   * DEG_TO_RAD;
 
 //	q_roll  = [cos(r/2),  sin(r/2),  0,         0        ]
 //	q_pitch = [cos(p/2),  0,         sin(p/2),  0        ]
@@ -438,9 +442,184 @@ s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw)
     q.y = cr * sp * cy + sr * cp * sy;  // pitch
     q.z = cr * cp * sy - sr * sp * cy;  // yaw
 
+//    float sign = q.w * q_prev.w + q.x * q_prev.x + q.y * q_prev.y + q.z * q_prev.z;
+//
+//    if (sign < 0.0f)
+//    {
+//        q.w = -q.w;
+//        q.x = -q.x;
+//        q.y = -q.y;
+//        q.z = -q.z;
+//    }
+
+    // Normalization
+    float norm = sqrtf(q.w*q.w + q.x*q.x + q.y*q.y + q.z*q.z);
+
+    if (norm > 1e-6f)
+	{
+		q.w = q.w / norm;
+		q.x = q.x / norm;
+		q.y = q.y / norm;
+		q.z = q.z / norm;
+	}
+    else
+    {
+    	q.w = 1.0f;
+		q.x = 0.0f;
+		q.y = 0.0f;
+		q.z = 0.0f;
+    }
+
     return q;
 }
 
+
+
+/*********************************************************************
+* @fn     	gyroToQuaternion
+*
+* @param 	gyro_x_deg  - rotation around X axis [deg/s]
+* @param 	gyro_y_deg  - rotation around Y axis [deg/s]
+* @param 	gyro_z_deg  - rotation around Z axis [deg/s]
+* @param 	dt			- delta time of filter
+*
+* @brief  	Convert raw gyro data to quaternion
+*
+* @return  	None
+*/
+void gyroToQuaternion(s_Quaternion *q, float gyro_x_deg, float gyro_y_deg, float gyro_z_deg, float dt)
+{
+    // Convert deg/s -> rad/s
+    float wx = gyro_x_deg * DEG_TO_RAD;
+    float wy = gyro_y_deg * DEG_TO_RAD;
+    float wz = gyro_z_deg * DEG_TO_RAD;
+
+    float qw = q->w;
+    float qx = q->x;
+    float qy = q->y;
+    float qz = q->z;
+
+    // Quaternion derivative
+    float dq_w = 0.5f * (-qx*wx - qy*wy - qz*wz);
+    float dq_x = 0.5f * ( qw*wx + qy*wz - qz*wy);
+    float dq_y = 0.5f * ( qw*wy - qx*wz + qz*wx);
+    float dq_z = 0.5f * ( qw*wz + qx*wy - qy*wx);
+
+    // Integrate
+    q->w += dq_w * dt;
+    q->x += dq_x * dt;
+    q->y += dq_y * dt;
+    q->z += dq_z * dt;
+
+    // Normalize
+    float norm = sqrtf(q->w*q->w + q->x*q->x + q->y*q->y + q->z*q->z);
+
+    if(norm > 1e-6f)
+    {
+        q->w /= norm;
+        q->x /= norm;
+        q->y /= norm;
+        q->z /= norm;
+    }
+}
+
+
+
+/*********************************************************************
+* @fn      EulerQuaternion_Complementary
+*
+* @param   q               - quaternion state
+* @param   gyro_x_deg      - gyro X [deg/s]
+* @param   gyro_y_deg      - gyro Y [deg/s]
+* @param   gyro_z_deg      - gyro Z [deg/s]
+* @param   roll_deg        - Kalman roll angle [deg]
+* @param   pitch_deg       - Kalman pitch angle [deg]
+* @param   yaw_deg         - Kalman yaw angle [deg]
+* @param   dt              - delta time [s]
+* @param   alpha           - complementary factor
+*
+* @brief   Quaternion complementary filter
+*           - gyro integration -> fast response
+*           - Euler quaternion -> drift correction
+*
+* @return   None
+*/
+void EulerQuaternion_Complementary(s_Quaternion *q, float gyro_x_deg,  float gyro_y_deg, float gyro_z_deg, float roll_deg, float pitch_deg, float yaw_deg, float dt, float alpha)
+{
+    // Propagate quaternion using gyro
+    float wx = gyro_x_deg * DEG_TO_RAD;
+    float wy = gyro_y_deg * DEG_TO_RAD;
+    float wz = gyro_z_deg * DEG_TO_RAD;
+
+    float qw = q->w;
+    float qx = q->x;
+    float qy = q->y;
+    float qz = q->z;
+
+    // Quaternion derivative
+    float dq_w = 0.5f * (-qx*wx - qy*wy - qz*wz);
+    float dq_x = 0.5f * ( qw*wx + qy*wz - qz*wy);
+    float dq_y = 0.5f * ( qw*wy - qx*wz + qz*wx);
+    float dq_z = 0.5f * ( qw*wz + qx*wy - qy*wx);
+
+    // Integrate
+    s_Quaternion q_gyro;
+
+    q_gyro.w = qw + dq_w * dt;
+    q_gyro.x = qx + dq_x * dt;
+    q_gyro.y = qy + dq_y * dt;
+    q_gyro.z = qz + dq_z * dt;
+
+    // Normalize quaternion
+    float norm = sqrtf(q_gyro.w*q_gyro.w + q_gyro.x*q_gyro.x + q_gyro.y*q_gyro.y + q_gyro.z*q_gyro.z);
+
+    if(norm > 1e-6f)
+    {
+        q_gyro.w /= norm;
+        q_gyro.x /= norm;
+        q_gyro.y /= norm;
+        q_gyro.z /= norm;
+    }
+
+    // Create reference quaternion from Kalman Euler
+    s_Quaternion q_ref = eulerToQuaternion(roll_deg, pitch_deg, yaw_deg);
+
+    // Quaternion hemisphere correction (prevent interpolation jumps)
+
+    float dot = q_gyro.w * q_ref.w + q_gyro.x * q_ref.x + q_gyro.y * q_ref.y + q_gyro.z * q_ref.z;
+
+    if(dot < 0.0f)
+    {
+        q_ref.w = -q_ref.w;
+        q_ref.x = -q_ref.x;
+        q_ref.y = -q_ref.y;
+        q_ref.z = -q_ref.z;
+    }
+
+    // Complementary filter
+    q->w = alpha * q_gyro.w + (1.0f - alpha) * q_ref.w;
+    q->x = alpha * q_gyro.x + (1.0f - alpha) * q_ref.x;
+    q->y = alpha * q_gyro.y + (1.0f - alpha) * q_ref.y;
+    q->z = alpha * q_gyro.z + (1.0f - alpha) * q_ref.z;
+
+    // Normalization
+    norm = sqrtf(q->w*q->w + q->x*q->x +  q->y*q->y + q->z*q->z);
+
+    if(norm > 1e-6f)
+    {
+        q->w /= norm;
+        q->x /= norm;
+        q->y /= norm;
+        q->z /= norm;
+    }
+    else
+    {
+        q->w = 1.0f;
+        q->x = 0.0f;
+        q->y = 0.0f;
+        q->z = 0.0f;
+    }
+}
 
 
 

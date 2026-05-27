@@ -119,7 +119,6 @@ void StatusLED(uint8_t Status);
 volatile uint8_t DroneStatusLocal = 0;
 volatile uint8_t DroneStatusOld = 20;
 uint8_t StartupInit = 0;
-uint8_t InitError = 0;
 
 uint8_t LED_blink_cnt_ON;
 uint8_t LED_blink_cnt_double;
@@ -624,9 +623,10 @@ int main(void)
 	  			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, mpu6050.GYRO_Y, pitch_angle_accel, DT);
 	  			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, mpu6050.GYRO_Z, roll_angle_accel, DT);
 	  			  AmonDrone.position.Yaw = Kalman_Update(&kalman_yaw, mpu6050.GYRO_X, mag_yaw, DT);
-	  			  //AmonDrone.position.Yaw = mpu6050.GYRO_X * DT; // Yaw (gyro only)
 
-	  			  quaternion = eulerToQuaternion(AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw);
+	  			  //quaternion = eulerToQuaternion(AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw);
+	  			  //gyroToQuaternion(&quaternion, mpu6050.GYRO_X, mpu6050.GYRO_Y, mpu6050.GYRO_Z, DT); // Check order of angles
+	  			  EulerQuaternion_Complementary(&quaternion, mpu6050.GYRO_X, mpu6050.GYRO_Y, mpu6050.GYRO_Z, AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw, DT, ALPHA_EQ);
 	  			  AmonDrone.position.quaternion[0] = quaternion.w;
 	  			  AmonDrone.position.quaternion[1] = quaternion.x;
 	  			  AmonDrone.position.quaternion[2] = quaternion.y;
@@ -643,7 +643,14 @@ int main(void)
 	  			  AmonDrone.position.gyro_z = mpu6050.GYRO_Z;
 
 	  			  // PMW3901 optical flow sensor //
+	  			  pmw3901.data.altitude_m = AmonDrone.position.height_TOF_mm / 1000.0; // mm to m
+	  			  pmw3901.data.gyro_x_rad_s = AmonDrone.position.gyro_x * DEG_TO_RAD;
+	  			  pmw3901.data.gyro_y_rad_s = AmonDrone.position.gyro_y * DEG_TO_RAD;
+	  			  pmw3901.data.gyro_z_rad_s = AmonDrone.position.gyro_z * DEG_TO_RAD;
 	  			  PMW3901_Update(&pmw3901);
+
+	  			  AmonDrone.position.position_x = pmw3901.measurements.position_x_m;
+	  			  AmonDrone.position.position_y = pmw3901.measurements.position_y_m;
 
 	  			  if (AmonDrone.identifications.flag_test_moment) AmonDrone.uart_buffer.flag_new_uart_tx_data = 1; // Enable data transition over UART for identification
 
@@ -659,11 +666,11 @@ int main(void)
 
 	  			  // Read sensors //
 	  			  static uint8_t dataRdy = 0;
-	  //			  while(dataRdy == 0)
-	  //			  {
-	  //				  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c2, &dataRdy);
-	  //			  }
-	  //			  dataRdy = 0;
+//				  while(dataRdy == 0)
+//				  {
+//					  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c2, &dataRdy);
+//				  }
+//				  dataRdy = 0;
 	  			  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c2, &dataRdy);
 	  			  if (dataRdy)
 	  			  {
@@ -799,26 +806,30 @@ int main(void)
 					  }
 	  			  }
 
-	  			if (AmonDrone.data.buck_7v2_enable)
-				{
-					if (AmonDrone.data.buck_7v2_voltage < 500) // less than 4V
-					{
-						AmonDrone.error_code.err_buck_7v2 = 1;
-					}
-					else
-					{
-						AmonDrone.error_code.err_buck_7v2 = 0;
-					}
-				}
+	  			  if (AmonDrone.data.buck_7v2_enable)
+	  			  {
+	  				  if (AmonDrone.data.buck_7v2_voltage < 500) // less than 5V
+	  				  {
+	  					  AmonDrone.error_code.err_buck_7v2 = 1;
+	  				  }
+	  				  else
+	  				  {
+	  					  AmonDrone.error_code.err_buck_7v2 = 0;
+	  				  }
+	  			  }
 
-	  			ADC_DMA_DataRdy = 0;
+	  			  ADC_DMA_DataRdy = 0;
 	  		  }
+
 
 
 	  		  // --- Timer 7 - 100Hz / 10ms (match acados/casadi model) ---
 	  		  if (IRQ_NMPCLoopEN == 1)
 	  		  {
 	  			IRQ_NMPCLoopEN = 0;
+
+	  			AmonDrone.flight_path.path_stage_time += TIM_100HZ_DT;		// Current command time
+	  			AmonDrone.flight_path.flight_start_time += TIM_100HZ_DT;	// Full flight time
 
 	  			// Check if regulator is enabled
 	  			if (AmonDrone.data.NMPC_enable == 1)
@@ -829,11 +840,11 @@ int main(void)
 	  				double x_current[NMPC_NX] = {0}; 	// Reset everything
 
 	  				// --- Position [0:3] ---
-	  				// If you have GPS/optical flow, use those.
-	  				// For now ToF gives z, x/y need external source or stay 0.
-	  				x_current[0] = 0.0f;                                       // pos x (unknown without GPS)
-	  				x_current[1] = 0.0f;                                       // pos y (unknown without GPS)
-	  				x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0; // pos z [m]
+	  				x_current[0] = 0.0f;                                       // pos x (GPS/optical flow)
+	  				x_current[1] = 0.0f;                                       // pos y (GPS/optical flow)
+//	  				x_current[0] = AmonDrone.position.position_x;              // [m]
+//	  				x_current[1] = AmonDrone.position.position_y;              // [m]
+	  				x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0;  // pos z [m]
 
 	  				// --- Velocity [3:6] ---
 	  				// You don't have direct velocity measurement — estimate or keep 0
@@ -844,19 +855,19 @@ int main(void)
 	  				x_current[5] = 0.0;  // vz  (or numerical derivative of height)
 
 	  				// --- Quaternion [6:10] ---
-	  				x_current[6]  = AmonDrone.position.quaternion[0];
-	  				x_current[7]  = AmonDrone.position.quaternion[1];
-	  				x_current[8]  = AmonDrone.position.quaternion[2];
-	  				x_current[9]  = AmonDrone.position.quaternion[3];
+	  				x_current[6]  = AmonDrone.position.quaternion[0];	// qw
+	  				x_current[7]  = AmonDrone.position.quaternion[1];	// qx
+	  				x_current[8]  = AmonDrone.position.quaternion[2];	// qy
+	  				x_current[9]  = AmonDrone.position.quaternion[3];	// qz
 
 	  				// --- Angular rates [10:13] ---
 	  				// gyro values must be in rad/s
-	  				x_current[10] = AmonDrone.position.gyro_x * DEG_TO_RAD;  // wx
-	  				x_current[11] = AmonDrone.position.gyro_y * DEG_TO_RAD;  // wy
-	  				x_current[12] = AmonDrone.position.gyro_z * DEG_TO_RAD;  // wz
+	  				x_current[10] = AmonDrone.position.gyro_x * DEG_TO_RAD;  // wx - *deg or rad?
+	  				x_current[11] = AmonDrone.position.gyro_y * DEG_TO_RAD;  // wy - *deg or rad?
+	  				x_current[12] = AmonDrone.position.gyro_z * DEG_TO_RAD;  // wz - *deg or rad?
 
 	  				// --- Thrust state [13:15] ---
-	  				// Use last commanded thrust as state estimate
+	  				// Use last thrust command as state estimate
 	  				x_current[13] = AmonDrone.actuators.edf_percent;  // T (current thrust)
 	  				x_current[14] = 0.0;                              // T_dot (rate of change, or 0)
 
@@ -867,7 +878,7 @@ int main(void)
 	  				x_current[18] = AmonDrone.actuators.servo_yn;
 
 	  				// --- Servo rates [19:23] ---
-	  				// If you don't have servo velocity feedback, keep 0 or numerical derivative
+	  				// Keep at 0 - dont use it
 	  				x_current[19] = 0.0;
 	  				x_current[20] = 0.0;
 	  				x_current[21] = 0.0;
@@ -875,6 +886,9 @@ int main(void)
 
 	  				// --------------------------------------------------------------------------------------------------------
 	  				double x_ref[NMPC_NX] = {0};		// Reset everything
+
+	  				execute_flight_command(&AmonDrone.flight_path, x_ref);
+	  				// TODO: Trajectory generator?
 
 	  				x_ref[2]  = 1.0;   // target height z = 1m
 	  				x_ref[6]  = 1.0;   // qw = 1 → no rotation (upright)
@@ -1036,48 +1050,44 @@ int main(void)
 	  		HAL_Delay(500);
 
 	  		/* Reset all devices */
-	  		status += BME280_Reset(&bme280, &hi2c2);
-	  		status += MPU6050_Reset(&mpu6050, &hi2c2);
+	  		if (BME280_Reset(&bme280, &hi2c2) != 0) AmonDrone.error_code.err_bme280 = 1;
+	  		if (MPU6050_Reset(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
 
 	  		HAL_Delay(500); // delay sensors config to complete power on
 
-	  		/* BME280 */
-	  		status += BME280_ReadDeviceID(&bme280, &hi2c2);
-	  		status += BME280_ReadCalibData(&bme280, &hi2c2);
-	  		status += BME280_Init(&bme280, &hi2c2);
+	  		/* BME280 - temp, press, hum */
+	  		if (BME280_ReadDeviceID(&bme280, &hi2c2) != 0) AmonDrone.error_code.err_bme280 = 1;
+	  		if (BME280_ReadCalibData(&bme280, &hi2c2) != 0) AmonDrone.error_code.err_bme280 = 1;
+	  		if (BME280_Init(&bme280, &hi2c2) != 0) AmonDrone.error_code.err_bme280 = 1;
 	  		HAL_Delay(100);
-	  		status += BME280_ReadAllData(&bme280, &hi2c2);
+	  		if (BME280_ReadAllData(&bme280, &hi2c2) != 0) AmonDrone.error_code.err_bme280 = 1;
 	  		if (AmonDrone.data.take_off_alt_m == 0) AmonDrone.data.take_off_alt_m = ALTITUDE_M;
-	  		status += BME280_Altitude_Init(&bme280, &hi2c2, AmonDrone.data.take_off_alt_m);
+	  		if (BME280_Altitude_Init(&bme280, &hi2c2, AmonDrone.data.take_off_alt_m) != 0) AmonDrone.error_code.err_bme280 = 1;
 
-	  		/* MPU6050 */
-	  		status += MPU6050_ReadDeviceID(&mpu6050, &hi2c2);
-	  		status += MPU6050_ReadFactoryTrim(&mpu6050, &hi2c2);
-	  		status += MPU6050_Init(&mpu6050, &hi2c2);
-	  		status += MPU6050_ReadFactoryTrim(&mpu6050, &hi2c2);
-	  		status += MPU6050_ReadAllDirect(&mpu6050, &hi2c2);
-	  		status += MPU6050_SelfTest(&mpu6050, &hi2c2);
+	  		/* MPU6050 - gyro */
+	  		if (MPU6050_ReadDeviceID(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
+	  		if (MPU6050_ReadFactoryTrim(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
+	  		if (MPU6050_Init(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
+	  		if (MPU6050_ReadFactoryTrim(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
+	  		if (MPU6050_ReadAllDirect(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
+	  		if (MPU6050_SelfTest(&mpu6050, &hi2c2) != 0) AmonDrone.error_code.err_mpu6050 = 1;
 
-	  		/* HMC5883L */
+	  		/* HMC5883L - compass */
 	  		hmc5883l.config.sample_avgeraging = SAMPLES_4;
 	  		hmc5883l.config.data_rate = DTR_75;
 	  		hmc5883l.config.measurement_mode = MEAS_MODE_NORMAL;
 	  		hmc5883l.config.gain = GAIN_1_3GA;
 	  		hmc5883l.config.operating_mode = OP_MODE_CONTINUOUS;
-	  		uint8_t tmp = status;
-	  		status += HMC5883L_CheckID(&hmc5883l, &hi2c2);
-	  		status += HMC5883L_Init(&hmc5883l, &hi2c2);
-	  		status += HMC5883L_SelfTest(&hmc5883l, &hi2c2);
-	  		if (status > tmp) AmonDrone.error_code.err_hmc5883l = 1;
+
+	  		if (HMC5883L_CheckID(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
+	  		if (HMC5883L_Init(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
+	  		if (HMC5883L_SelfTest(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
 
 	  		/* PMW3901 */
 	  		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 	  		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 	  		PMW3901_pin_config(&pmw3901, &hspi2, CS_OF_GPIO_Port, CS_OF_Pin, OF_RST_GPIO_Port, OF_RST_Pin, OF_MOT_GPIO_Port, OF_MOT_Pin);
-	  		if (PMW3901_init(&pmw3901) != PMW3901_OK) status++;
-
-
-
+	  		if (PMW3901_init(&pmw3901) != PMW3901_OK) AmonDrone.error_code.err_pmw3901 = 1;
 
 	  		/* Init Kalman filter */
 	  #ifdef GYRO_KALMAN
@@ -1086,19 +1096,48 @@ int main(void)
 	  		Kalman_Init(&kalman_yaw);
 	  #endif
 
-	  		/* vl53l1x */
+	  		/* Filters and other drone flight variables */
+	  		AmonDrone.position.quaternion[0] = 1.0f;
+	  		AmonDrone.position.quaternion[1] = 0.0f;
+	  		AmonDrone.position.quaternion[2] = 0.0f;
+	  		AmonDrone.position.quaternion[3] = 0.0f;
+	  		AmonDrone.position.position_x = 0.0f;
+	  		AmonDrone.position.position_y = 0.0f;
+	  		AmonDrone.position.position_z = 0.0f;
+
+	  		AmonDrone.actuators.rampUpDone = 0;
+
+	  		AmonDrone.uart_buffer.flag_new_uart_rx_data = 0;
+	  		AmonDrone.uart_buffer.flag_new_uart_tx_data = 0;
+	  		AmonDrone.uart_buffer.flag_log_available = 0;
+	  		AmonDrone.uart_buffer.flag_log_remove = 0;
+	  		AmonDrone.uart_buffer.flag_log_dump = 0;
+	  		AmonDrone.uart_buffer.flag_logging_active = 0;
+	  		AmonDrone.data.NMPC_enable = 0;
+	  		AmonDrone.data.nmpc_solver_fail_cnt = 0;
+	  		AmonDrone.data.buck_7v2_enable = 0;
+	  		AmonDrone.data.buck_5v_enable = 0;
+
+	  		AmonDrone.radio_data.conn_status = 0;
+	  		AmonDrone.radio_data.flag_new_rf_rx_data = 0;
+	  		AmonDrone.radio_data.flag_new_rf_tx_data = 0;
+	  		AmonDrone.radio_data.flag_telemetry_send = 0;
+
+
+	  		/* vl53l1x - ToF*/
 	  		uint8_t bootOK = 0;
 	  		while (bootOK == 0)
 	  		{
-	  			status += VL53L1X_BootState(&vl53l1Dev, &hi2c2, &bootOK);
+	  			if (VL53L1X_BootState(&vl53l1Dev, &hi2c2, &bootOK) != 0) AmonDrone.error_code.err_vl53l1x = 1;
 	  		}
-	  		status += VL53L1X_ReadID(&vl53l1Dev, &hi2c2);
-	  		status += VL53L1X_SensorInit(&vl53l1Dev, &hi2c2);
-	  		status += VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c2, 200); // 140ms is min for 4m distance
-	  		status += VL53L1X_SetOffset(&vl53l1Dev, &hi2c2, -121); // Set height from ground to get zero -130
-	  		VL53L1X_StartRanging(&vl53l1Dev, &hi2c2);
 
-	  		/* NRF24L01 */
+	  		if (VL53L1X_ReadID(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+	  		if (VL53L1X_SensorInit(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+	  		if (VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c2, 200) != 0) AmonDrone.error_code.err_vl53l1x = 1; // 140ms is min for 4m distance
+	  		if (VL53L1X_SetOffset(&vl53l1Dev, &hi2c2, -121) != 0) AmonDrone.error_code.err_vl53l1x = 1; // Set height from ground to get zero -130
+	  		if (VL53L1X_StartRanging(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+
+	  		/* NRF24L01 - radio */
 	  		radio1.op_modes = NRF_MODE_PWR_ON_RST;              // set default radio state
 	  		radio2.op_modes = NRF_MODE_PWR_ON_RST;              // set default radio state
 	  		AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
@@ -1107,6 +1146,8 @@ int main(void)
 	  		radio1.irq_on_pipe = 0xFF;
 	  		radio2.irq_on_pipe = 0xFF;
 	  		AmonDrone.radio_data.flag_stream_data = 0;
+
+	  		/* Logging 1 */
 	  		AmonDrone.uart_buffer.flag_log_available = 0;
 	  		AmonDrone.uart_buffer.flag_logging_active = 0;
 	  		AmonDrone.uart_buffer.log_file = "log.txt";
@@ -1151,7 +1192,8 @@ int main(void)
 	  			}
 	  		}
 
-	  		if (radio1.radioErr == 1 || radio2.radioErr == 1) status++;
+	  		if (radio1.radioErr == 1) AmonDrone.error_code.err_radio1 = 1;
+	  		if (radio2.radioErr == 1) AmonDrone.error_code.err_radio2 = 1;
 
 	  		// Set radio configurations and init
 	  		radio1.role     = NRF_ROLE_PTX;
@@ -1182,7 +1224,7 @@ int main(void)
 	  #endif
 
 
-	  		/* Logging */
+	  		/* Logging 2 */
 	  #ifdef LOG_ENABLE
 
 	  		Flash_Init();     	// if not inside LOG_Init
@@ -1196,21 +1238,29 @@ int main(void)
 
 	  		if (bme280.dig_T1 == 0 || bme280.dig_T2 == 0) // for WTF error
 	  		{
-	  			status++;
+	  			AmonDrone.error_code.err_bme280 = 1;
 	  		}
 
-	  		InitError = status;
 
 	  		// Check if all init functions are OK
-	  		if (InitError == 0) // OK
+	  		if (AmonDrone.error_code.err_bme280 == 1   ||
+	  			AmonDrone.error_code.err_hmc5883l == 1 ||
+				AmonDrone.error_code.err_mpu6050 == 1  ||
+				AmonDrone.error_code.err_pmw3901 == 1  ||
+				AmonDrone.error_code.err_vl53l1x == 1  ||
+				AmonDrone.error_code.err_radio1 == 1   ||
+				AmonDrone.error_code.err_radio2 == 1   ||
+				AmonDrone.error_code.err_main_bat == 1)
 	  		{
+	  			// ERROR
 	  			StartupInit = 1;
-	  			AmonDrone.DroneStatus = STATUS_IDLE;
+				AmonDrone.DroneStatus = STATUS_ERROR;
 	  		}
 	  		else
 	  		{
-	  			StartupInit = 1;
-	  			AmonDrone.DroneStatus = STATUS_ERROR; // ERROR
+	  			// OK
+				StartupInit = 1;
+				AmonDrone.DroneStatus = STATUS_IDLE;
 	  		}
 	  	 }
 
@@ -1234,7 +1284,7 @@ int main(void)
 
 	  #ifndef IDENTIFICATION
 	  				  if (AmonDrone.data.servo_enable == 1) TVCServoDisable();	// Disable TVC servos
-	  				  if (AmonDrone.data.edf_enable == 1) EDFDisable();				// Disable EDF
+	  				  if (AmonDrone.data.edf_enable == 1) EDFDisable();			// Disable EDF
 	  #endif
 
 	  				  break;
@@ -1245,6 +1295,8 @@ int main(void)
 
 	  #ifndef IDENTIFICATION
 	  				  //TODO: Check sensor values and check flying path
+
+	  				  // Enable servo motors
 	  				  if (AmonDrone.data.servo_enable == 0)
 	  				  {
 	  					  TVCServoEnable();
@@ -1253,13 +1305,15 @@ int main(void)
 	  					  servoTest();
 	  				  }
 
+	  				  // Enable EDF
 	  				  if (AmonDrone.data.edf_enable == 0) EDFEnable();
 
+	  				  // Enable NMPC regulator
 	  				  if (AmonDrone.data.NMPC_enable == 0)
 	  				  {
-	  					AmonDrone.data.NMPC_enable = 1;
-	  					NMPC_Init(&nmpc);
-	  					HAL_TIM_Base_Start_IT(&htim1);
+	  					  AmonDrone.data.NMPC_enable = 1;
+	  					  NMPC_Init(&nmpc);
+	  					  HAL_TIM_Base_Start_IT(&htim1);
 	  				  }
 	  #endif
 

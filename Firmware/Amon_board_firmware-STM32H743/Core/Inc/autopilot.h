@@ -19,6 +19,7 @@
 
 /*###########################################################################################################################################################*/
 /* Defines */
+#define NMPC_NX_SIZE	23	// Number of states in model
 
 
 /*###########################################################################################################################################################*/
@@ -89,7 +90,7 @@ typedef struct {
 
 // Command data - forward
 typedef struct {
-    uint16_t distance_cm;
+    uint16_t target_distance_cm;
     uint16_t speed_cm_s;
 
 } s_data_forward;
@@ -97,7 +98,7 @@ typedef struct {
 
 // Command data - backward
 typedef struct {
-    uint16_t distance_cm;
+    uint16_t target_distance_cm;
     uint16_t speed_cm_s;
 
 } s_data_backward;
@@ -105,7 +106,7 @@ typedef struct {
 
 // Command data - left
 typedef struct {
-    uint16_t distance_cm;
+    uint16_t target_distance_cm;
     uint16_t speed_cm_s;
 
 } s_data_left;
@@ -113,7 +114,7 @@ typedef struct {
 
 // Command data - right
 typedef struct {
-    uint16_t distance_cm;
+    uint16_t target_;
     uint16_t speed_cm_s;
 
 } s_data_right;
@@ -211,7 +212,6 @@ typedef struct {
 // Flight path data
 typedef struct {
 	s_flight_command		flight_path[100];			// Complete flight path
-
 	uint8_t 				path_index;					// Current active command from flight - counter
 
 	uint16_t				path_stage_time;			// Current time elapsed when current command/position is reached
@@ -223,6 +223,8 @@ typedef struct {
 
 /*###########################################################################################################################################################*/
 /* Functions */
+
+uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE]);
 
 
 #endif /* INC_AUTOPILOT_H_ */

@@ -29,42 +29,44 @@ extern "C" {
  * - Register read:  send reg & 0x7F, wait tSRAD, then clock dummy byte
  * - Register write: send reg | 0x80, then value
  */
-#define PMW3901_SPI_DUMMY              0x00U
+#define PMW3901_SPI_DUMMY              	0x00U
 
-#define PMW3901_READ_MASK              0x7FU
-#define PMW3901_WRITE_MASK             0x80U
+#define PMW3901_READ_MASK              	0x7FU
+#define PMW3901_WRITE_MASK             	0x80U
 
 /* Important timing */
-#define PMW3901_TSRAD_US               35U     // address-to-data delay for read
-#define PMW3901_TSRR_US                20U     // delay after read before next command
-#define PMW3901_TSWW_US                45U     // delay after write before next command
-#define PMW3901_RESET_DELAY_MS         50U     // reset to valid motion
-#define PMW3901_NCS_BURST_EXIT_US      1U
+#define PMW3901_TSRAD_US               	35U     // address-to-data delay for read
+#define PMW3901_TSRR_US                	20U     // delay after read before next command
+#define PMW3901_TSWW_US                	45U     // delay after write before next command
+#define PMW3901_RESET_DELAY_MS         	50U     // reset to valid motion
+#define PMW3901_NCS_BURST_EXIT_US      	1U
 
 /* Register map - common PMW3901 register addresses */
-#define PMW3901_REG_PRODUCT_ID         0x00U
-#define PMW3901_REG_REVISION_ID        0x01U
-#define PMW3901_REG_MOTION             0x02U
-#define PMW3901_REG_DELTA_X_L          0x03U
-#define PMW3901_REG_DELTA_X_H          0x04U
-#define PMW3901_REG_DELTA_Y_L          0x05U
-#define PMW3901_REG_DELTA_Y_H          0x06U
-#define PMW3901_REG_SQUAL              0x07U
-#define PMW3901_REG_RAW_DATA_SUM       0x08U
-#define PMW3901_REG_MAX_RAW_DATA       0x09U
-#define PMW3901_REG_MIN_RAW_DATA       0x0AU
-#define PMW3901_REG_SHUTTER_LOWER      0x0BU
-#define PMW3901_REG_SHUTTER_UPPER      0x0CU
-#define PMW3901_REG_OBSERVATION        0x15U
-#define PMW3901_REG_MOTION_BURST       0x16U
-#define PMW3901_REG_POWER_UP_RESET     0x3AU
-#define PMW3901_REG_SHUTDOWN           0x3BU
-#define PMW3901_REG_INVERSE_PRODUCT_ID 0x5FU
+#define PMW3901_REG_PRODUCT_ID         	0x00U
+#define PMW3901_REG_REVISION_ID        	0x01U
+#define PMW3901_REG_MOTION             	0x02U
+#define PMW3901_REG_DELTA_X_L          	0x03U
+#define PMW3901_REG_DELTA_X_H          	0x04U
+#define PMW3901_REG_DELTA_Y_L          	0x05U
+#define PMW3901_REG_DELTA_Y_H          	0x06U
+#define PMW3901_REG_SQUAL              	0x07U
+#define PMW3901_REG_RAW_DATA_SUM       	0x08U
+#define PMW3901_REG_MAX_RAW_DATA       	0x09U
+#define PMW3901_REG_MIN_RAW_DATA       	0x0AU
+#define PMW3901_REG_SHUTTER_LOWER      	0x0BU
+#define PMW3901_REG_SHUTTER_UPPER      	0x0CU
+#define PMW3901_REG_OBSERVATION        	0x15U
+#define PMW3901_REG_MOTION_BURST       	0x16U
+#define PMW3901_REG_POWER_UP_RESET     	0x3AU
+#define PMW3901_REG_SHUTDOWN           	0x3BU
+#define PMW3901_REG_INVERSE_PRODUCT_ID 	0x5FU
 
-#define PMW3901_PRODUCT_ID             0x49U
+#define PMW3901_PRODUCT_ID             	0x49U
 
 // Algorithm variables
 #define PMW3901_SQUAL_MIN_VALID     	20U		// Surface quality threshold (<10: terrible, 20: acceptable, 40+ good, 80+: very good)
+#define PMW3901_DT						0.005f	// Time of sensor reading period
+//#define PIXART_INIT
 
 /*###########################################################################################################################################################*/
 /* Structs and enums */
@@ -75,6 +77,7 @@ typedef enum {
     PMW3901_ERR_NULL,
     PMW3901_ERR_SPI,
     PMW3901_ERR_ID
+
 } e_status;
 
 
@@ -91,26 +94,23 @@ typedef struct {
 
 
 typedef struct {
+	uint8_t 	motion;
+	int16_t 	delta_x;
+	int16_t 	delta_y;
 
-    s_pinout pinout;
+	uint8_t 	squal;
+	uint8_t 	raw_data_sum;
+	uint8_t 	max_raw_data;
+	uint8_t 	min_raw_data;
 
-    volatile uint8_t motion_irq_flag;
+	uint16_t 	shutter;
 
-    // Device info
-    uint8_t product_id;
-    uint8_t revision_id;
+} s_raw_data;
 
-    // Raw sensor registers
-    uint8_t motion;
-    int16_t delta_x;
-    int16_t delta_y;
 
-    uint8_t squal;
-    uint8_t raw_data_sum;
-    uint8_t max_raw_data;
-    uint8_t min_raw_data;
-
-    uint16_t shutter;
+typedef struct {
+	// Height
+	float 	altitude_m;
 
     // Processed / validated data
     uint8_t motion_valid;
@@ -124,9 +124,54 @@ typedef struct {
     int32_t filtered_position_x;
     int32_t filtered_position_y;
 
+    // Gyro data for canceling rotation
+    float 	gyro_x_rad_s;
+    float 	gyro_y_rad_s;
+    float 	gyro_z_rad_s;
+
+} s_motion_data;
+
+
+typedef struct {
+	float 	velocity_x_mps;
+	float 	velocity_y_mps;
+
+	float 	position_x_m;
+	float 	position_y_m;
+
+	float 	flow_scale;
+
+	float 	flow_x;
+	float 	flow_y;
+
+	float 	flow_x_corrected;
+	float 	flow_y_corrected;
+
+} s_measurements;
+
+
+typedef struct {
+
+    s_pinout 	pinout;
+
+    volatile uint8_t motion_irq_flag;
+
+    // Device info
+    uint8_t 	product_id;
+    uint8_t 	revision_id;
+
+    // Raw sensor registers
+    s_raw_data 	raw_data;
+
+    // Processed / validated data
+    s_motion_data data;
+
     // Statistics
-    uint32_t motion_read_counter;
-    uint32_t motion_rejected_counter;
+    uint32_t 	motion_read_counter;
+    uint32_t 	motion_rejected_counter;
+
+    // Measurements
+    s_measurements measurements;
 
 } s_PMW3901;
 

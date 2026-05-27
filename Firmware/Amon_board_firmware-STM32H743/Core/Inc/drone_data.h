@@ -73,7 +73,10 @@
 #define DISABLE				0		// Helper define for enable/disable buck
 #define ENABLE				1		// Helper define for enable/disable buck
 
-
+#define TIM_200HZ_DT		0.005f	// 200Hz timer period time delta
+#define TIM_100HZ_DT		0.01f	// 100Hz timer period time delta
+#define TIM_50HZ_DT			0.02f	// 50Hz timer period time delta
+#define TIM_1HZ_DT			1.0f	// 1Hz timer period time delta
 
 #define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
 
@@ -104,6 +107,13 @@ typedef enum {
 } e_flight_status;
 
 
+// Drone: radios
+typedef enum {
+	CONN_STATUS_CONNECTED,
+	CONN_STATUS_DISCONNECTED
+} e_connection_status;
+
+
 // Drone: date-time
 typedef struct {
 	uint8_t		day;
@@ -113,13 +123,6 @@ typedef struct {
 	uint8_t 	minutes;
 	uint8_t 	seconds;
 } s_date_time;
-
-
-// Drone: radios
-typedef enum {
-	CONN_STATUS_CONNECTED,
-	CONN_STATUS_DISCONNECTED
-} e_connection_status;
 
 
 typedef struct {
@@ -198,7 +201,7 @@ typedef struct {
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
 	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
 
-}s_data;
+} s_data;
 
 
 // UART buffers and flags
