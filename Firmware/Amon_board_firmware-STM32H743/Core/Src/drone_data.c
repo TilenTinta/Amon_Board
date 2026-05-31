@@ -490,7 +490,7 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case COMM_FORWARD:
-			cmd.forward.distance_cm = (packets->rf_packet.payload[2] << 8) |
+			cmd.forward.target_distance_cm = (packets->rf_packet.payload[2] << 8) |
 									   packets->rf_packet.payload[3];
 
 			cmd.forward.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
@@ -498,7 +498,7 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case COMM_BACKWARD:
-			cmd.backward.distance_cm = (packets->rf_packet.payload[2] << 8) |
+			cmd.backward.target_distance_cm = (packets->rf_packet.payload[2] << 8) |
 										packets->rf_packet.payload[3];
 
 			cmd.backward.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
@@ -506,7 +506,7 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case COMM_LEFT:
-			cmd.left.distance_cm = (packets->rf_packet.payload[2] << 8) |
+			cmd.left.target_distance_cm = (packets->rf_packet.payload[2] << 8) |
 									packets->rf_packet.payload[3];
 
 			cmd.left.speed_cm_s = (packets->rf_packet.payload[4] << 8) |
@@ -514,7 +514,7 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 			break;
 
 		case COMM_RIGHT:
-			cmd.right.distance_cm = (packets->rf_packet.payload[2] << 8) |
+			cmd.right.target_distance_cm = (packets->rf_packet.payload[2] << 8) |
 									 packets->rf_packet.payload[3];
 
 			cmd.right.speed_cm_s = (packets->rf_packet.payload[4] << 8) |

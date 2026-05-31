@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fatfs.h"
-#include <NMPC.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -45,11 +44,10 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c2;
 I2C_HandleTypeDef hi2c4;
-
-RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi2;
 SPI_HandleTypeDef hspi3;
@@ -76,7 +74,6 @@ void SystemClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_RTC_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI4_Init(void);
 static void MX_UART5_Init(void);
@@ -211,7 +208,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_RTC_Init();
   MX_FATFS_Init();
   MX_ADC1_Init();
   MX_SPI4_Init();
@@ -700,7 +696,7 @@ int main(void)
 
 
 	  			  // Start ADC DMA (read analog value) //
-	  			  //HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, 4); // - circular
+	  			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, 4);
 
 
 	  			  // Send telemetry packet if stream mode is on - test //
@@ -1011,7 +1007,12 @@ int main(void)
 			AmonDrone.actuators.servo_xn = 0;
 			AmonDrone.actuators.servo_yp = 0;
 			AmonDrone.actuators.servo_yn = 0;
-	  		servoTest(); // comment out
+			// comment out
+			TVCServoEnable();
+			enable_7v2_buck(ENABLE);
+			enable_5v_buck(ENABLE);
+			HAL_Delay(100);
+	  		servoTest();
 
 	  #ifdef IDENTIFICATION
 	  		if (AmonDrone.data.edf_enable == 0) EDFEnable();
@@ -1019,15 +1020,14 @@ int main(void)
 	  		PowerToPWMValue(AmonDrone.actuators.edf_percent);
 	  #endif
 
-	  		// Start timers for sensors and LEDs
-	  		HAL_GPIO_WritePin(RGB_R_GPIO_Port, RGB_R_Pin, GPIO_PIN_SET);
-	  		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
-	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // RGB (50Hz)
-	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2); // RGB (50Hz)
-	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3); // RGB (50Hz)
-
 	  		/* Read both batteries and save in drone data struct */
-	  		HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, 4); 		// Start ADC DMA (read analog value)
+	  		HAL_StatusTypeDef ret;
+	  		ADC_DMA_DataRdy = 0;
+	  		ret = HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);	// ADC calibration
+	  		if (ret != HAL_OK) Error_Handler();
+
+	  		ret = HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, 4);		// Start ADC DMA (read analog value)
+	  		if (ret != HAL_OK) Error_Handler();
 
 	  		while(ADC_DMA_DataRdy == 0);
 	  		AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
@@ -1084,10 +1084,12 @@ int main(void)
 	  		if (HMC5883L_SelfTest(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
 
 	  		/* PMW3901 */
+#ifdef USE_OPTICAL_FLOW
 	  		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 	  		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 	  		PMW3901_pin_config(&pmw3901, &hspi2, CS_OF_GPIO_Port, CS_OF_Pin, OF_RST_GPIO_Port, OF_RST_Pin, OF_MOT_GPIO_Port, OF_MOT_Pin);
 	  		if (PMW3901_init(&pmw3901) != PMW3901_OK) AmonDrone.error_code.err_pmw3901 = 1;
+#endif
 
 	  		/* Init Kalman filter */
 	  #ifdef GYRO_KALMAN
@@ -1126,16 +1128,28 @@ int main(void)
 
 	  		/* vl53l1x - ToF*/
 	  		uint8_t bootOK = 0;
-	  		while (bootOK == 0)
+	  		uint8_t retries = 0;
+	  		while (bootOK == 0 && retries <= 5)
 	  		{
-	  			if (VL53L1X_BootState(&vl53l1Dev, &hi2c2, &bootOK) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+	  			if (VL53L1X_BootState(&vl53l1Dev, &hi2c2, &bootOK) != 0)
+				{
+	  				AmonDrone.error_code.err_vl53l1x = 1;
+				}
+	  			else
+	  			{
+	  				AmonDrone.error_code.err_vl53l1x = 0;
+	  			}
+	  			retries++;
 	  		}
 
-	  		if (VL53L1X_ReadID(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
-	  		if (VL53L1X_SensorInit(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
-	  		if (VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c2, 200) != 0) AmonDrone.error_code.err_vl53l1x = 1; // 140ms is min for 4m distance
-	  		if (VL53L1X_SetOffset(&vl53l1Dev, &hi2c2, -121) != 0) AmonDrone.error_code.err_vl53l1x = 1; // Set height from ground to get zero -130
-	  		if (VL53L1X_StartRanging(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+	  		if (AmonDrone.error_code.err_vl53l1x == 0)
+	  		{
+				if (VL53L1X_ReadID(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+				if (VL53L1X_SensorInit(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+				if (VL53L1X_SetTimingBudgetInMs(&vl53l1Dev, &hi2c2, 200) != 0) AmonDrone.error_code.err_vl53l1x = 1; // 140ms is min for 4m distance
+				if (VL53L1X_SetOffset(&vl53l1Dev, &hi2c2, -121) != 0) AmonDrone.error_code.err_vl53l1x = 1; // Set height from ground to get zero -130
+				if (VL53L1X_StartRanging(&vl53l1Dev, &hi2c2) != 0) AmonDrone.error_code.err_vl53l1x = 1;
+	  		}
 
 	  		/* NRF24L01 - radio */
 	  		radio1.op_modes = NRF_MODE_PWR_ON_RST;              // set default radio state
@@ -1192,23 +1206,28 @@ int main(void)
 	  			}
 	  		}
 
+
 	  		if (radio1.radioErr == 1) AmonDrone.error_code.err_radio1 = 1;
+
+			// Set radio configurations and init
+			radio1.role     = NRF_ROLE_PTX;
+			radio1.config   = &radio_tx_normal_cfg;
+			radio1.address  = &radio_tx_addr;
+			radio1.id       = NRF_ID_1;
+			NRF24_init(&radio1);
+			NRF24_SetTXAddress(&radio1, radio1.address->tx_addr);
+
+
+
 	  		if (radio2.radioErr == 1) AmonDrone.error_code.err_radio2 = 1;
 
-	  		// Set radio configurations and init
-	  		radio1.role     = NRF_ROLE_PTX;
-	  		radio1.config   = &radio_tx_normal_cfg;
-	  		radio1.address  = &radio_tx_addr;
-	  		radio1.id       = NRF_ID_1;
-	  		NRF24_init(&radio1);
-	  		NRF24_SetTXAddress(&radio1, radio1.address->tx_addr);
-
-	  		radio2.role     = NRF_ROLE_PRX;
-	  		radio2.config   = &radio_rx_normal_cfg;
-	  		radio2.address  = &radio_rx_addr;
-	  		radio2.id       = NRF_ID_2;
-	  		NRF24_init(&radio2);
-	  		NRF24_SetRXAddress(&radio2, 0, radio2.address->pipe0_rx_addr);
+			// Set radio configurations and init
+			radio2.role     = NRF_ROLE_PRX;
+			radio2.config   = &radio_rx_normal_cfg;
+			radio2.address  = &radio_rx_addr;
+			radio2.id       = NRF_ID_2;
+			NRF24_init(&radio2);
+			NRF24_SetRXAddress(&radio2, 0, radio2.address->pipe0_rx_addr);
 
 
 	  		/* Timers - NOT PWM! */
@@ -1240,6 +1259,14 @@ int main(void)
 	  		{
 	  			AmonDrone.error_code.err_bme280 = 1;
 	  		}
+
+
+	  		// Start timers for sensors and LEDs & indicate end of init
+	  		HAL_GPIO_WritePin(RGB_R_GPIO_Port, RGB_R_Pin, GPIO_PIN_SET);
+	  		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // RGB (50Hz)
+	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2); // RGB (50Hz)
+	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3); // RGB (50Hz)
 
 
 	  		// Check if all init functions are OK
@@ -1483,17 +1510,11 @@ void SystemClock_Config(void)
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
-  /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
-
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 3;
@@ -1550,18 +1571,18 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV12;
   hadc1.Init.Resolution = ADC_RESOLUTION_16B;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.NbrOfConversion = 4;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
-  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_ONESHOT;
+  hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
   hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
   hadc1.Init.OversamplingMode = DISABLE;
   hadc1.Init.Oversampling.Ratio = 1;
@@ -1640,7 +1661,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x307075B1;
+  hi2c2.Init.Timing = 0x00B03FDB;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -1717,42 +1738,6 @@ static void MX_I2C4_Init(void)
   /* USER CODE BEGIN I2C4_Init 2 */
 
   /* USER CODE END I2C4_Init 2 */
-
-}
-
-/**
-  * @brief RTC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RTC_Init(void)
-{
-
-  /* USER CODE BEGIN RTC_Init 0 */
-
-  /* USER CODE END RTC_Init 0 */
-
-  /* USER CODE BEGIN RTC_Init 1 */
-
-  /* USER CODE END RTC_Init 1 */
-
-  /** Initialize RTC Only
-  */
-  hrtc.Instance = RTC;
-  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-  hrtc.Init.AsynchPrediv = 127;
-  hrtc.Init.SynchPrediv = 255;
-  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
-
-  /* USER CODE END RTC_Init 2 */
 
 }
 
@@ -2030,6 +2015,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -2042,6 +2028,15 @@ static void MX_TIM3_Init(void)
   htim3.Init.Period = 19999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -2079,6 +2074,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -2091,6 +2087,15 @@ static void MX_TIM4_Init(void)
   htim4.Init.Period = 999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
@@ -2354,6 +2359,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
 
 }
 
@@ -2378,7 +2386,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, CS_F_Pin|CS_OF_Pin|OF_RST_Pin|CS_SD_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, CS_F_Pin|CS_OF_Pin|CS_SD_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, EN_BUCK_5V_Pin|EN_BUCK_7V2_Pin, GPIO_PIN_RESET);
@@ -2390,14 +2398,20 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, AUX_PORT_Pin|LED_BRD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, RF1_CSN_Pin|RF1_CE_Pin|RF2_CSN_Pin|RF2_CE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(OF_RST_GPIO_Port, OF_RST_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CS_F_Pin CS_OF_Pin OF_RST_Pin CS_SD_Pin */
-  GPIO_InitStruct.Pin = CS_F_Pin|CS_OF_Pin|OF_RST_Pin|CS_SD_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, RF1_CSN_Pin|RF2_CSN_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, RF1_CE_Pin|RF2_CE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : CS_F_Pin */
+  GPIO_InitStruct.Pin = CS_F_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(CS_F_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : EN_BUCK_5V_Pin EN_BUCK_7V2_Pin */
   GPIO_InitStruct.Pin = EN_BUCK_5V_Pin|EN_BUCK_7V2_Pin;
@@ -2420,6 +2434,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : CS_OF_Pin OF_RST_Pin CS_SD_Pin */
+  GPIO_InitStruct.Pin = CS_OF_Pin|OF_RST_Pin|CS_SD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
   /*Configure GPIO pins : OF_MOT_Pin IRQ_DRDY_Pin */
   GPIO_InitStruct.Pin = OF_MOT_Pin|IRQ_DRDY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -2428,7 +2449,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : RF1_IRQ_Pin */
   GPIO_InitStruct.Pin = RF1_IRQ_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF1_IRQ_GPIO_Port, &GPIO_InitStruct);
 
@@ -2436,12 +2457,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = RF1_CSN_Pin|RF1_CE_Pin|RF2_CSN_Pin|RF2_CE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RF2_IRQ_Pin */
   GPIO_InitStruct.Pin = RF2_IRQ_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(RF2_IRQ_GPIO_Port, &GPIO_InitStruct);
 
@@ -2463,6 +2484,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		memcpy(AmonDrone.gps_data.GPS_RX_buffer, USART1_GPSRX_DMA, sizeof(AmonDrone.gps_data.GPS_RX_buffer));
 		memset(USART1_GPSRX_DMA, 0, sizeof(USART1_GPSRX_DMA));
 		NewGPSData = 1;											// set flag that new data has arrived
+		SCB_InvalidateDCache_by_Addr((uint32_t*)USART1_GPSRX_DMA, sizeof(USART1_GPSRX_DMA));
 		HAL_UART_Receive_DMA(&huart1, USART1_GPSRX_DMA, 512); 	// enable USART receive again - 426
 	}
 
@@ -2731,7 +2753,7 @@ void StatusLED(uint8_t Status)
 uint16_t ADC_Read_Main_Battery()
 {
 	uint16_t adcVal = adc_raw[1];
-	float temp = ((float)adcVal * MAIN_BOARD_V) / 4095;
+	float temp = ((float)adcVal * MAIN_BOARD_V) / 65536; // 4095
 	float voltage = (R1_MAIN_BAT + R2_MAIN_BAT) * (temp / R2_MAIN_BAT);
 
 	return (uint16_t)(voltage * 100);
@@ -2742,7 +2764,7 @@ uint16_t ADC_Read_Main_Battery()
 uint16_t ADC_Read_EDF_Battery()
 {
 	uint16_t adcVal = adc_raw[0];
-	float temp = ((float)adcVal * MAIN_BOARD_V) / 4095;
+	float temp = ((float)adcVal * MAIN_BOARD_V) / 65536; // 4095
 	float voltage = (((R1_EDF_BAT + R2_EDF_BAT) / R2_EDF_BAT) * temp);
 
 	return (uint16_t)(voltage * 100);
@@ -2753,7 +2775,7 @@ uint16_t ADC_Read_EDF_Battery()
 uint16_t ADC_Read_5V_Buck()
 {
 	uint16_t adcVal = adc_raw[2];
-	float temp = ((float)adcVal * MAIN_BOARD_V) / 4095;
+	float temp = ((float)adcVal * MAIN_BOARD_V) / 65536; // 4095
 	float voltage = (((R1_5V_BUCK + R2_5V_BUCK) / R2_5V_BUCK) * temp);
 
 	return (uint16_t)(voltage * 100);
@@ -2764,7 +2786,7 @@ uint16_t ADC_Read_5V_Buck()
 uint16_t ADC_Read_7V2_Buck()
 {
 	uint16_t adcVal = adc_raw[3];
-	float temp = ((float)adcVal * MAIN_BOARD_V) / 4095;
+	float temp = ((float)adcVal * MAIN_BOARD_V) / 65536; // 4095
 	float voltage = (((R1_7V2_BUCK + R2_7V2_BUCK) / R2_7V2_BUCK) * temp);
 
 	return (uint16_t)(voltage * 100);
@@ -2773,6 +2795,7 @@ uint16_t ADC_Read_7V2_Buck()
 
 // DMA data from ADC ready
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+	SCB_InvalidateDCache_by_Addr((uint32_t*)adc_raw, sizeof(adc_raw));
 	ADC_DMA_DataRdy = 1;
 }
 
@@ -2789,7 +2812,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
 	/* TIMER 1 - 100Hz */
-	if (htim->Instance == TIM5)
+	if (htim->Instance == TIM1)
 	{
 		IRQ_NMPCLoopEN = 1;
 	}

@@ -34,8 +34,6 @@ FATFS/Target/user_diskio.o: ../FATFS/Target/user_diskio.c \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_i2c_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr_ex.h \
- ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rtc.h \
- ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rtc_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim.h \
@@ -52,7 +50,8 @@ FATFS/Target/user_diskio.o: ../FATFS/Target/user_diskio.c \
  ../Core/Inc/HMC5883L.h ../Core/Inc/PMW3901.h ../Core/Inc/filters.h \
  ../Core/Inc/logging.h ../Core/Inc/flash_W25QXXX.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs_util.h
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs_util.h \
+ ../Core/Inc/NMPC.h
 ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h:
 ../Middlewares/Third_Party/FatFs/src/diskio.h:
 ../Middlewares/Third_Party/FatFs/src/integer.h:
@@ -90,8 +89,6 @@ FATFS/Target/user_diskio.o: ../FATFS/Target/user_diskio.c \
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_i2c_ex.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr_ex.h:
-../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rtc.h:
-../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rtc_ex.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi_ex.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim.h:
@@ -117,3 +114,4 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/vl53l
 ../Core/Inc/flash_W25QXXX.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs_util.h:
+../Core/Inc/NMPC.h:

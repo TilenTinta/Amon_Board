@@ -44,7 +44,8 @@ extern "C" {
 #include "data_transcode.h"
 #include "filters.h"
 #include "logging.h"
-//#include "autopilot.h"
+#include "autopilot.h"
+#include "NMPC.h"
 
 /* USER CODE END Includes */
 

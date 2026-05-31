@@ -37,8 +37,10 @@ ENTRY(Reset_Handler)
 /* Highest address of the user mode stack */
 _estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x200;      /* required amount of heap  */
-_Min_Stack_Size = 0x400; /* required amount of stack */
+/*_Min_Heap_Size = 0x200;      /* required amount of heap  */
+/*_Min_Stack_Size = 0x400; /* required amount of stack */
+_Min_Heap_Size = 0x10000;   /* 64 KB */
+_Min_Stack_Size = 0x8000;   /* 32 KB */
 
 /* Specify the memory areas */
 MEMORY
@@ -79,12 +81,6 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
   
-  /* ADDED: DMA protection for memory storage */
-  .dma_buffer :
-  {
-    *(.dma_buffer)
-  } >RAM_D2
-
   /* Constant data goes into FLASH */
   .rodata :
   {
@@ -104,6 +100,12 @@ SECTIONS
     *(.ARM.exidx*)
     __exidx_end = .;
   } >FLASH
+  
+  /* ADDED: DMA protection for memory storage */
+  .dma_buffer :
+  {
+    *(.dma_buffer)
+  } >RAM_D2
 
   .preinit_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {

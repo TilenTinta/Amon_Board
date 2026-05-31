@@ -21,8 +21,8 @@
 
 // Calibration
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
-#define IDENTIFICATION
-#define TEST_MOMENTS				// Uncomment to enable serial print over GPS connector - testing of fin moments
+//#define IDENTIFICATION
+//#define TEST_MOMENTS				// Uncomment to enable serial print over GPS connector - testing of fin moments
 
 #define TUNE_KALMAN
 #ifdef TUNE_KALMAN
@@ -79,6 +79,8 @@
 #define TIM_1HZ_DT			1.0f	// 1Hz timer period time delta
 
 #define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
+
+#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
 
 #define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
 

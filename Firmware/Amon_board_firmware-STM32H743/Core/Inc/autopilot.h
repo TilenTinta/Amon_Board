@@ -114,7 +114,7 @@ typedef struct {
 
 // Command data - right
 typedef struct {
-    uint16_t target_;
+    uint16_t target_distance_cm;
     uint16_t speed_cm_s;
 
 } s_data_right;
