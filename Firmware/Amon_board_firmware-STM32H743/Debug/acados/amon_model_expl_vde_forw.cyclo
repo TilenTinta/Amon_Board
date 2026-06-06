@@ -3,7 +3,7 @@
 ../acados/amon_model_expl_vde_forw.c:121:13:amon_model_expl_vde_forw_sq	1
 ../acados/amon_model_expl_vde_forw.c:123:13:amon_model_expl_vde_forw_fmax	1
 ../acados/amon_model_expl_vde_forw.c:132:13:amon_model_expl_vde_forw_fmin	1
-../acados/amon_model_expl_vde_forw.c:141:13:amon_model_expl_vde_forw_if_else	2
+../acados/amon_model_expl_vde_forw.c:141:13:amon_model_expl_vde_forw_if_else	1
 ../acados/amon_model_expl_vde_forw.c:143:6:amon_model_expl_vde_forw_scal	3
 ../acados/amon_model_expl_vde_forw.c:149:13:amon_model_expl_vde_forw_dot	2
 ../acados/amon_model_expl_vde_forw.c:156:13:amon_model_expl_vde_forw_house	4
@@ -16,11 +16,9 @@
 ../acados/amon_model_expl_vde_forw.c:320:6:amon_model_expl_vde_forw_densify	8
 ../acados/amon_model_expl_vde_forw.c:344:6:amon_model_expl_vde_forw_trans	3
 ../acados/amon_model_expl_vde_forw.c:359:6:amon_model_expl_vde_forw_mtimes	11
-../acados/amon_model_expl_vde_forw.c:603:12:amon_model_expl_vde_forw_f1	219
-../acados/amon_model_expl_vde_forw.c:1818:12:amon_model_expl_vde_forw_f2	3145
-../acados/amon_model_expl_vde_forw.c:21138:12:amon_model_expl_vde_forw_f3	841
-../acados/amon_model_expl_vde_forw.c:26225:12:amon_model_expl_vde_forw_f0	19
-../acados/amon_model_expl_vde_forw.c:26325:26:amon_model_expl_vde_forw	1
+../acados/amon_model_expl_vde_forw.c:21138:12:amon_model_expl_vde_forw_f3.constprop	517
+../acados/amon_model_expl_vde_forw.c:1818:12:amon_model_expl_vde_forw_f2.constprop	2061
+../acados/amon_model_expl_vde_forw.c:26325:26:amon_model_expl_vde_forw	115
 ../acados/amon_model_expl_vde_forw.c:26329:26:amon_model_expl_vde_forw_alloc_mem	1
 ../acados/amon_model_expl_vde_forw.c:26333:26:amon_model_expl_vde_forw_init_mem	1
 ../acados/amon_model_expl_vde_forw.c:26337:27:amon_model_expl_vde_forw_free_mem	1
@@ -31,9 +29,9 @@
 ../acados/amon_model_expl_vde_forw.c:26353:33:amon_model_expl_vde_forw_n_in	1
 ../acados/amon_model_expl_vde_forw.c:26355:33:amon_model_expl_vde_forw_n_out	1
 ../acados/amon_model_expl_vde_forw.c:26357:34:amon_model_expl_vde_forw_default_in	1
-../acados/amon_model_expl_vde_forw.c:26363:34:amon_model_expl_vde_forw_name_in	6
-../acados/amon_model_expl_vde_forw.c:26374:34:amon_model_expl_vde_forw_name_out	5
-../acados/amon_model_expl_vde_forw.c:26383:40:amon_model_expl_vde_forw_sparsity_in	6
-../acados/amon_model_expl_vde_forw.c:26394:40:amon_model_expl_vde_forw_sparsity_out	5
+../acados/amon_model_expl_vde_forw.c:26363:34:amon_model_expl_vde_forw_name_in	2
+../acados/amon_model_expl_vde_forw.c:26374:34:amon_model_expl_vde_forw_name_out	2
+../acados/amon_model_expl_vde_forw.c:26383:40:amon_model_expl_vde_forw_sparsity_in	2
+../acados/amon_model_expl_vde_forw.c:26394:40:amon_model_expl_vde_forw_sparsity_out	2
 ../acados/amon_model_expl_vde_forw.c:26403:26:amon_model_expl_vde_forw_work	5
 ../acados/amon_model_expl_vde_forw.c:26411:26:amon_model_expl_vde_forw_work_bytes	5

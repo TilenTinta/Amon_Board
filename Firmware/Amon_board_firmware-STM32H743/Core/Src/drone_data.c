@@ -431,6 +431,31 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_THROTTLE;
 			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->data.edf_throttle;
 
+
+			/* Current servo motors angles */
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_SERVO_ANGL;
+
+			int16_t servo_xp = (int16_t)(drone_data->actuators.servo_xp * ANGLE_SCALE);
+			int16_t servo_xn = (int16_t)(drone_data->actuators.servo_xn * ANGLE_SCALE);
+			int16_t servo_yp = (int16_t)(drone_data->actuators.servo_yp * ANGLE_SCALE);
+			int16_t servo_yn = (int16_t)(drone_data->actuators.servo_yn * ANGLE_SCALE);
+
+			/* - Servo: X+ */
+			packets->rf_packet_drone.payload[payload_cnt++] = (servo_xp >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  servo_xp       & 0xFF;
+
+			/* - Servo: X- */
+			packets->rf_packet_drone.payload[payload_cnt++] = (servo_xn >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  servo_xn       & 0xFF;
+
+			/* - Servo: Y+ */
+			packets->rf_packet_drone.payload[payload_cnt++] = (servo_yp >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  servo_yp       & 0xFF;
+
+			/* - Servo: Y- */
+			packets->rf_packet_drone.payload[payload_cnt++] = (servo_yn >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  servo_yn       & 0xFF;
+
 			packets->rf_packet_drone.plen = payload_cnt;
 
 			packet_num = 0;

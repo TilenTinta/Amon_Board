@@ -115,7 +115,7 @@ void StatusLED(uint8_t Status);
 /* Variables */
 volatile uint8_t DroneStatusLocal = 0;
 volatile uint8_t DroneStatusOld = 20;
-uint8_t StartupInit = 0;
+volatile uint8_t StartupInit = 0;
 
 uint8_t LED_blink_cnt_ON;
 uint8_t LED_blink_cnt_double;
@@ -189,6 +189,14 @@ int main(void)
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
 
+  /* Enable the CPU Cache */
+
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
+
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -234,7 +242,7 @@ int main(void)
     static const s_nrf_config radio_tx_normal_cfg = {
         .channel = 100,	//42
         .addr_width = AW_5BYTE,
-        .auto_ack = 1,
+        .auto_ack = 0, // 1 TEST
         .dynamic_payload = 1,
         .retries = 15,
         .retry_delay = ARD_3500us, //ARD_1250us
@@ -262,7 +270,7 @@ int main(void)
     static const s_nrf_config radio_rx_normal_cfg = {
         .channel = 70,
         .addr_width = AW_5BYTE,
-        .auto_ack = 1,
+        .auto_ack = 0, // 1
         .dynamic_payload = 1,
         .retries = 0,
         .retry_delay = 0,
@@ -273,7 +281,7 @@ int main(void)
     static const s_nrf_config radio_rx_stream_cfg = {
         .channel = 70,
         .addr_width = AW_5BYTE,
-        .auto_ack = 1,
+        .auto_ack = 0,
         .dynamic_payload = 1,
         .retries = 0,
         .retry_delay = 0,
@@ -597,6 +605,21 @@ int main(void)
 	  			  // Read sensors //
 	  			  MPU6050_ReadAllDirect(&mpu6050, &hi2c2);
 
+	  			  /* Save raw data for telemetry - Sensor -> Drone frame
+				   * Drone X+ = Right
+				   * Drone Y+ = Forward
+				   * Drone Z+ = Up
+				   */
+	  			  AmonDrone.position.gyroTemp = (uint16_t)mpu6050.Temp_C;
+
+				  AmonDrone.position.accel_x =  mpu6050.ACCEL_Y;
+				  AmonDrone.position.accel_y = -mpu6050.ACCEL_Z;
+				  AmonDrone.position.accel_z =  mpu6050.ACCEL_X;
+
+				  AmonDrone.position.gyro_x  =  mpu6050.GYRO_Y;
+				  AmonDrone.position.gyro_y  = -mpu6050.GYRO_Z;
+				  AmonDrone.position.gyro_z  =  mpu6050.GYRO_X;
+
 
 	  			  // Gyro filters //
 	  #ifndef GYRO_KALMAN
@@ -607,7 +630,7 @@ int main(void)
 	  			  float roll_angle_accel  = 0;
 	  			  float pitch_angle_accel = 0;
 
-	  			  Kalman_rawToAngles(&mpu6050, &roll_angle_accel, &pitch_angle_accel);
+	  			  Kalman_rawToAngles(&AmonDrone, &roll_angle_accel, &pitch_angle_accel);
 	  			  float mag_yaw = AmonDrone.position.heading_deg;
 
 	  			  // Unwrap accel based on current estimation
@@ -615,28 +638,18 @@ int main(void)
 	  			  pitch_angle_accel = unwrap_to_ref(pitch_angle_accel, kalman_pitch.angle);
 	  			  mag_yaw = unwrap_to_ref(mag_yaw, AmonDrone.position.Yaw);
 
-
-	  			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, mpu6050.GYRO_Y, pitch_angle_accel, DT);
-	  			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, mpu6050.GYRO_Z, roll_angle_accel, DT);
-	  			  AmonDrone.position.Yaw = Kalman_Update(&kalman_yaw, mpu6050.GYRO_X, mag_yaw, DT);
+	  			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, AmonDrone.position.gyro_y, pitch_angle_accel, DT);
+	  			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, AmonDrone.position.gyro_x, roll_angle_accel, DT);
+	  			  AmonDrone.position.Yaw = Kalman_Update(&kalman_yaw, AmonDrone.position.gyro_z, mag_yaw, DT);
 
 	  			  //quaternion = eulerToQuaternion(AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw);
-	  			  //gyroToQuaternion(&quaternion, mpu6050.GYRO_X, mpu6050.GYRO_Y, mpu6050.GYRO_Z, DT); // Check order of angles
-	  			  EulerQuaternion_Complementary(&quaternion, mpu6050.GYRO_X, mpu6050.GYRO_Y, mpu6050.GYRO_Z, AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw, DT, ALPHA_EQ);
+	  			  //gyroToQuaternion(&quaternion, AmonDrone.position.gyro_x, AmonDrone.position.gyro_y, AmonDrone.position.gyro_z, DT); // Check order of angles
+	  			  EulerQuaternion_Complementary(&quaternion, AmonDrone.position.gyro_x, AmonDrone.position.gyro_y, AmonDrone.position.gyro_z, AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw, DT, ALPHA_EQ);
 	  			  AmonDrone.position.quaternion[0] = quaternion.w;
 	  			  AmonDrone.position.quaternion[1] = quaternion.x;
 	  			  AmonDrone.position.quaternion[2] = quaternion.y;
 	  			  AmonDrone.position.quaternion[3] = quaternion.z;
 	  #endif
-
-	  			  // Save raw data for telemetry
-	  			  AmonDrone.position.gyroTemp = (uint16_t)mpu6050.Temp_C;
-	  			  AmonDrone.position.accel_x = mpu6050.ACCEL_X;
-	  			  AmonDrone.position.accel_y = mpu6050.ACCEL_Y;
-	  			  AmonDrone.position.accel_z = mpu6050.ACCEL_Z;
-	  			  AmonDrone.position.gyro_x = mpu6050.GYRO_X;
-	  			  AmonDrone.position.gyro_y = mpu6050.GYRO_Y;
-	  			  AmonDrone.position.gyro_z = mpu6050.GYRO_Z;
 
 	  			  // PMW3901 optical flow sensor //
 	  			  pmw3901.data.altitude_m = AmonDrone.position.height_TOF_mm / 1000.0; // mm to m
@@ -661,17 +674,15 @@ int main(void)
 
 
 	  			  // Read sensors //
+
+	  			  // VL53L1X
 	  			  static uint8_t dataRdy = 0;
-//				  while(dataRdy == 0)
-//				  {
-//					  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c2, &dataRdy);
-//				  }
-//				  dataRdy = 0;
 	  			  VL53L1X_CheckForDataReady(&vl53l1Dev, &hi2c2, &dataRdy);
 	  			  if (dataRdy)
 	  			  {
 	  				  VL53L1X_GetDistance(&vl53l1Dev, &hi2c2, &AmonDrone.position.height_TOF_mm);
 	  				  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c2);
+	  				  dataRdy = 0; // remove?
 	  			  }
 
 	  			  // BME280
@@ -699,7 +710,7 @@ int main(void)
 	  			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_raw, 4);
 
 
-	  			  // Send telemetry packet if stream mode is on - test //
+	  			  // Send telemetry packet if stream mode is on//
 	  			  if (AmonDrone.radio_data.flag_stream_data)
 	  			  {
 	  				  AmonDrone.radio_data.flag_telemetry_send = 1;
@@ -726,11 +737,11 @@ int main(void)
 	  			  // Radio timeout //
 	  			  if (AmonDrone.radio_data.conn_status == CONN_STATUS_CONNECTED) AmonDrone.radio_data.connection_timeout++;
 
-	  //			  if (AmonDrone.radio_data.connection_timeout >= CONN_TIMEOUT_SEC)
-	  //			  {
-	  //				  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
-	  //				  AmonDrone.radio_data.flag_connection_lost = 1;
-	  //			  }
+  //			  if (AmonDrone.radio_data.connection_timeout >= CONN_TIMEOUT_SEC)
+  //			  {
+  //				  AmonDrone.radio_data.conn_status = CONN_STATUS_DISCONNECTED;
+  //				  AmonDrone.radio_data.flag_connection_lost = 1;
+  //			  }
 
 
 	  			  // Stream mode switch
@@ -767,10 +778,10 @@ int main(void)
 	  				  AmonDrone.data.buck_7V2_v[i-1] = AmonDrone.data.buck_7V2_v[i];
 	  			  }
 
-	  			  AmonDrone.data.battery_main_voltage = ADC_Read_Main_Battery();
-	  			  AmonDrone.data.battery_edf_voltage = ADC_Read_EDF_Battery();
-	  			  AmonDrone.data.buck_5v_voltage = ADC_Read_5V_Buck();
-	  			  AmonDrone.data.buck_7v2_voltage = ADC_Read_7V2_Buck();
+	  			  AmonDrone.data.bat_main_v[9] = ADC_Read_Main_Battery();
+	  			  AmonDrone.data.bat_edf_v[9] = ADC_Read_EDF_Battery();
+	  			  AmonDrone.data.buck_5V_v[9] = ADC_Read_5V_Buck();
+	  			  AmonDrone.data.buck_7V2_v[9] = ADC_Read_7V2_Buck();
 
 	  			  uint16_t main_v_temp = 0;
 	  			  uint16_t edf_v_temp = 0;
@@ -789,6 +800,29 @@ int main(void)
 	  			  AmonDrone.data.buck_5v_voltage = buck_5v_temp / (sizeof(AmonDrone.data.buck_5V_v) / sizeof(uint16_t));
 	  			  AmonDrone.data.buck_7v2_voltage = buck_7v2_temp / (sizeof(AmonDrone.data.buck_7V2_v) / sizeof(uint16_t));
 
+	  			  if (AmonDrone.data.battery_main_voltage)
+	  			  {
+					  if (AmonDrone.data.battery_main_voltage < 1050) // less than 10.5V
+					  {
+						  AmonDrone.error_code.err_main_bat = 1;
+					  }
+					  else
+					  {
+						  AmonDrone.error_code.err_main_bat = 0;
+					  }
+	  			  }
+
+	  			  if (AmonDrone.data.battery_edf_voltage)
+				  {
+					  if (AmonDrone.data.battery_edf_voltage < 2100) // less than 21V
+					  {
+						  AmonDrone.error_code.err_edf_bat = 1;
+					  }
+					  else
+					  {
+						  AmonDrone.error_code.err_edf_bat = 0;
+					  }
+				  }
 
 	  			  if (AmonDrone.data.buck_5v_enable)
 	  			  {
@@ -822,119 +856,134 @@ int main(void)
 	  		  // --- Timer 7 - 100Hz / 10ms (match acados/casadi model) ---
 	  		  if (IRQ_NMPCLoopEN == 1)
 	  		  {
-	  			IRQ_NMPCLoopEN = 0;
+				IRQ_NMPCLoopEN = 0;
 
-	  			AmonDrone.flight_path.path_stage_time += TIM_100HZ_DT;		// Current command time
-	  			AmonDrone.flight_path.flight_start_time += TIM_100HZ_DT;	// Full flight time
+				AmonDrone.flight_path.path_stage_time += TIM_1HZ_DT;		// Current command time
+				AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;		// Full flight time
 
-	  			// Check if regulator is enabled
-	  			if (AmonDrone.data.NMPC_enable == 1)
-	  			{
+				// ================== NMPC ==================
+				if (AmonDrone.data.NMPC_enable == 1)
+				{
+					// --------------------------------------------------------------------------------------------------------
+					// Refresh all values in state vector //
+					double x_current[NMPC_NX] = {0}; 	// Reset everything
 
-	  				// Refresh all values in state vector
-	  				// --------------------------------------------------------------------------------------------------------
-	  				double x_current[NMPC_NX] = {0}; 	// Reset everything
+					// --- Position [0:3] ---
+					x_current[0] = 0.0f;                                       // pos x (GPS/optical flow)
+					x_current[1] = 0.0f;                                       // pos y (GPS/optical flow)
+				//	  				x_current[0] = AmonDrone.position.position_x;              // [m]
+				//	  				x_current[1] = AmonDrone.position.position_y;              // [m]
+					x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0;  // pos z [m]
 
-	  				// --- Position [0:3] ---
-	  				x_current[0] = 0.0f;                                       // pos x (GPS/optical flow)
-	  				x_current[1] = 0.0f;                                       // pos y (GPS/optical flow)
-//	  				x_current[0] = AmonDrone.position.position_x;              // [m]
-//	  				x_current[1] = AmonDrone.position.position_y;              // [m]
-	  				x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0;  // pos z [m]
+					// --- Velocity [3:6] ---
+					// You don't have direct velocity measurement — estimate or keep 0
+					// A simple numerical derivative works for z:
+					// vz = (z_current - z_previous) / dt;
+					static double vz = 0;
+					x_current[3] = 0.0;  // vx
+					x_current[4] = 0.0;  // vy
+					x_current[5] = vz;  // vz  (or numerical derivative of height)
+					vz = (vz - (AmonDrone.position.height_TOF_mm / 1000.0)) / TIM_100HZ_DT;
 
-	  				// --- Velocity [3:6] ---
-	  				// You don't have direct velocity measurement — estimate or keep 0
-	  				// A simple numerical derivative works for z:
-	  				// vz = (z_current - z_previous) / dt;
-	  				x_current[3] = 0.0;  // vx
-	  				x_current[4] = 0.0;  // vy
-	  				x_current[5] = 0.0;  // vz  (or numerical derivative of height)
+					// --- Quaternion [6:10] ---
+					x_current[6]  = AmonDrone.position.quaternion[0];	// qw
+					x_current[7]  = AmonDrone.position.quaternion[1];	// qx
+					x_current[8]  = AmonDrone.position.quaternion[2];	// qy
+					x_current[9]  = AmonDrone.position.quaternion[3];	// qz
 
-	  				// --- Quaternion [6:10] ---
-	  				x_current[6]  = AmonDrone.position.quaternion[0];	// qw
-	  				x_current[7]  = AmonDrone.position.quaternion[1];	// qx
-	  				x_current[8]  = AmonDrone.position.quaternion[2];	// qy
-	  				x_current[9]  = AmonDrone.position.quaternion[3];	// qz
+					// --- Angular rates [10:13] ---
+					// gyro values must be in rad/s
+					x_current[10] = AmonDrone.position.gyro_x * DEG_TO_RAD;  // wx - *deg or rad?
+					x_current[11] = AmonDrone.position.gyro_y * DEG_TO_RAD;  // wy - *deg or rad?
+					x_current[12] = AmonDrone.position.gyro_z * DEG_TO_RAD;  // wz - *deg or rad?
 
-	  				// --- Angular rates [10:13] ---
-	  				// gyro values must be in rad/s
-	  				x_current[10] = AmonDrone.position.gyro_x * DEG_TO_RAD;  // wx - *deg or rad?
-	  				x_current[11] = AmonDrone.position.gyro_y * DEG_TO_RAD;  // wy - *deg or rad?
-	  				x_current[12] = AmonDrone.position.gyro_z * DEG_TO_RAD;  // wz - *deg or rad?
+					// --- Thrust state [13:15] ---
+					// Use last thrust command as state estimate
+					x_current[13] = AmonDrone.actuators.edf_percent;  // T (current thrust)
+					x_current[14] = 0.0;                              // T_dot (rate of change, or 0)
 
-	  				// --- Thrust state [13:15] ---
-	  				// Use last thrust command as state estimate
-	  				x_current[13] = AmonDrone.actuators.edf_percent;  // T (current thrust)
-	  				x_current[14] = 0.0;                              // T_dot (rate of change, or 0)
+					// --- Servo positions [15:19] ---
+					x_current[15] = AmonDrone.actuators.servo_xp;
+					x_current[16] = AmonDrone.actuators.servo_xn;
+					x_current[17] = AmonDrone.actuators.servo_yp;
+					x_current[18] = AmonDrone.actuators.servo_yn;
 
-	  				// --- Servo positions [15:19] ---
-	  				x_current[15] = AmonDrone.actuators.servo_xp;
-	  				x_current[16] = AmonDrone.actuators.servo_xn;
-	  				x_current[17] = AmonDrone.actuators.servo_yp;
-	  				x_current[18] = AmonDrone.actuators.servo_yn;
+					// --- Servo rates [19:23] ---
+					// Keep at 0 - dont use it
+					x_current[19] = 0.0;
+					x_current[20] = 0.0;
+					x_current[21] = 0.0;
+					x_current[22] = 0.0;
 
-	  				// --- Servo rates [19:23] ---
-	  				// Keep at 0 - dont use it
-	  				x_current[19] = 0.0;
-	  				x_current[20] = 0.0;
-	  				x_current[21] = 0.0;
-	  				x_current[22] = 0.0;
+					// --------------------------------------------------------------------------------------------------------
+					// Set NMPC controller reference values //
+					double x_ref[NMPC_NX] = {0};		// Reset everything
 
-	  				// --------------------------------------------------------------------------------------------------------
-	  				double x_ref[NMPC_NX] = {0};		// Reset everything
+					execute_flight_command(&AmonDrone.flight_path, x_ref);
+					// TODO: Trajectory generator?
 
-	  				execute_flight_command(&AmonDrone.flight_path, x_ref);
-	  				// TODO: Trajectory generator?
+					x_ref[2]  = 1.0;   // target height z = 1m
+					x_ref[6]  = 1.0;   // qw = 1 → no rotation (upright)
+					// everything else 0: no position drift, zero velocity, zero rates
 
-	  				x_ref[2]  = 1.0;   // target height z = 1m
-	  				x_ref[6]  = 1.0;   // qw = 1 → no rotation (upright)
-	  				// everything else 0: no position drift, zero velocity, zero rates
+					double u_ref[NMPC_NU] = {87.0, 0.0, 0.0, 0.0, 0.0};  // hover thrust ~87%
 
-	  				double u_ref[NMPC_NU] = {87.0, 0.0, 0.0, 0.0, 0.0};  // hover thrust ~87%
+					// Set NMPC init value
+					NMPC_SetState(&nmpc, x_current);
+					NMPC_SetReference(&nmpc, x_ref, u_ref);
 
-	  				NMPC_SetState(&nmpc, x_current);
-	  				NMPC_SetReference(&nmpc, x_ref, u_ref);
 
-	  				int ret = NMPC_Solve(&nmpc);
+					// --------------------------------------------------------------------------------------------------------
+					// Run NMPC control logic //
+					int ret = NMPC_Solve(&nmpc);
 
-	  				// --- Solver result monitoring ---
-	  				if (ret == NMPC_OK)
-	  				{
-	  				    AmonDrone.data.nmpc_solver_fail_cnt = 0;
-	  				}
-	  				else
-	  				{
-	  					AmonDrone.data.nmpc_solver_fail_cnt++;
+					// --- Solver result monitoring ---
+					if (ret == NMPC_OK)
+					{
+						AmonDrone.data.nmpc_solver_fail_cnt = 0;
+					}
+					else
+					{
+						AmonDrone.data.nmpc_solver_fail_cnt++;
 
-	  				    if (AmonDrone.data.nmpc_solver_fail_cnt > 5)
-	  				    {
-	  				        // 5 solver fails back-to-back -> disarm or hold last good u
-	  				        AmonDrone.data.NMPC_enable = 0;
-	  				        // optionally: keep last good actuator values
-	  				    }
-	  				}
+						if (AmonDrone.data.nmpc_solver_fail_cnt > 5)
+						{
+							// 5 solver fails back-to-back -> disarm or hold last good u
+							AmonDrone.data.NMPC_enable = 0;
+							// optionally: keep last good actuator values
+						}
+					}
 
-	  				// Run NMPC control logic, limit actuator values and write them to actuators
-	  				if (ret == NMPC_OK || ret == NMPC_SOLVER_ERR)
-	  				{
-	  				    double u[NMPC_NU];
-	  				    NMPC_GetControl(&nmpc, u);
 
-	  				    // Clamp before applying — defensive programming
-	  				    u[0] = fmax(0.0,  fmin(100.0, u[0]));  // thrust  [0..100]
-	  				    u[1] = fmax(-45.0, fmin(45.0, u[1]));  // servo
-	  				    u[2] = fmax(-45.0, fmin(45.0, u[2]));
-	  				    u[3] = fmax(-45.0, fmin(45.0, u[3]));
-	  				    u[4] = fmax(-45.0, fmin(45.0, u[4]));
+					// --------------------------------------------------------------------------------------------------------
+					// Limit actuator values and write them to actuators //
+					if (ret == NMPC_OK || ret == NMPC_SOLVER_ERR)
+					{
+						double u[NMPC_NU];
+						NMPC_GetControl(&nmpc, u);
 
-	  				    // Save actuators values
-	  				    AmonDrone.actuators.edf_percent = u[0];
-	  				    AmonDrone.actuators.servo_xp = u[1];
-	  				    AmonDrone.actuators.servo_xn = u[2];
-	  				    AmonDrone.actuators.servo_yp = u[3];
-	  				    AmonDrone.actuators.servo_yn = u[4];
-	  				}
-	  			}
+						// Clamp before applying - defensive programming
+						u[0] = fmax(0.0,  fmin(100.0, u[0]));  // thrust	[0..100]
+						u[1] = fmax(-45.0, fmin(45.0, u[1]));  // servo		[-45..45]
+						u[2] = fmax(-45.0, fmin(45.0, u[2]));
+						u[3] = fmax(-45.0, fmin(45.0, u[3]));
+						u[4] = fmax(-45.0, fmin(45.0, u[4]));
+
+						// Save actuators values
+						AmonDrone.actuators.edf_percent = u[0];
+						AmonDrone.actuators.servo_xp = u[1];
+						AmonDrone.actuators.servo_xn = u[2];
+						AmonDrone.actuators.servo_yp = u[3];
+						AmonDrone.actuators.servo_yn = u[4];
+
+						// Set motor to position/power
+						DegresToCCR(AmonDrone.actuators.servo_xn, SERVO_XN);
+						DegresToCCR(AmonDrone.actuators.servo_xp, SERVO_XP);
+						DegresToCCR(AmonDrone.actuators.servo_yn, SERVO_YN);
+						DegresToCCR(AmonDrone.actuators.servo_yp, SERVO_YP);
+						PowerToPWMValue(AmonDrone.actuators.edf_percent);
+					}
+				}
 	  		  } // TIMER 100Hz
 
 
@@ -1081,7 +1130,7 @@ int main(void)
 
 	  		if (HMC5883L_CheckID(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
 	  		if (HMC5883L_Init(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
-	  		if (HMC5883L_SelfTest(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1;
+	  		//if (HMC5883L_SelfTest(&hmc5883l, &hi2c2) != 0) AmonDrone.error_code.err_hmc5883l = 1; // Fail - can be faulty/cloned ic
 
 	  		/* PMW3901 */
 #ifdef USE_OPTICAL_FLOW
@@ -1161,77 +1210,79 @@ int main(void)
 	  		radio2.irq_on_pipe = 0xFF;
 	  		AmonDrone.radio_data.flag_stream_data = 0;
 
-	  		/* Logging 1 */
-	  		AmonDrone.uart_buffer.flag_log_available = 0;
-	  		AmonDrone.uart_buffer.flag_logging_active = 0;
-	  		AmonDrone.uart_buffer.log_file = "log.txt";
-
 	  		// Radios initialization and setup
 	  		NRF24_pin_config(&radio1, &hspi3, RF1_CSN_GPIO_Port, RF1_CSN_Pin, RF1_CE_GPIO_Port, RF1_CE_Pin);        // Map pins for radio 1
 	  		NRF24_pin_config(&radio2, &hspi3, RF2_CSN_GPIO_Port, RF2_CSN_Pin, RF2_CE_GPIO_Port, RF2_CE_Pin);        // Map pins for radio 2
 
-	  		HAL_Delay(10);
-	  		// Read status before even test device - strange SPI behaver
-	  		NRF24_ReadStatus(&radio1, NULL);
-	  		NRF24_ReadStatus(&radio2, NULL);
-
+	  		HAL_Delay(100);
 
 	  		uint8_t stat = 0;
-	  		if (NRF24_ReadStatus(&radio1, &stat) == 0)
+	  		NRF24_ReadStatus(&radio1, &stat);
+	  		if (stat == 0x00 || stat == 0xFF)
 	  		{
-	  			if (stat != 0x0E)
-	  			{
-	  				radio1.radioErr = NRF_ERR_BOOT;
-	  				AmonDrone.error_code.err_radio1 = 1;
-	  			}
-	  			else
-	  			{
-	  				radio1.radioErr = NRF_ERR_NONE;
-	  				radio1.op_modes = NRF_MODE_PWR_DOWN;
-	  			}
+	  		    radio1.radioErr = NRF_ERR_BOOT;
+	  		    AmonDrone.error_code.err_radio1 = 1;
 	  		}
-
-	  		if (NRF24_ReadStatus(&radio2, &stat) == 0)
+	  		else
 	  		{
-	  			if (stat != 0x0E)
-	  			{
-
-	  				radio2.radioErr = NRF_ERR_BOOT;
-	  				AmonDrone.error_code.err_radio2 = 1;
-	  			}
-	  			else
-	  			{
-	  				radio2.radioErr = NRF_ERR_NONE;
-	  				radio2.op_modes = NRF_MODE_PWR_DOWN;
-	  			}
+	  		    // Radio answered
+	  		    NRF24_WriteRegister(&radio1, RF_STATUS, RX_DR | TX_DS | MAX_RT, NULL);
+	  		    radio1.radioErr = NRF_ERR_NONE;
 	  		}
 
 
-	  		if (radio1.radioErr == 1) AmonDrone.error_code.err_radio1 = 1;
+	  		NRF24_ReadStatus(&radio2, &stat);
+			if (stat == 0x00 || stat == 0xFF)
+			{
+				radio2.radioErr = NRF_ERR_BOOT;
+				AmonDrone.error_code.err_radio2 = 1;
+			}
+			else
+			{
+				// Radio answered
+				NRF24_WriteRegister(&radio2, RF_STATUS, RX_DR | TX_DS | MAX_RT, NULL);
+				radio2.radioErr = NRF_ERR_NONE;
+			}
 
-			// Set radio configurations and init
-			radio1.role     = NRF_ROLE_PTX;
-			radio1.config   = &radio_tx_normal_cfg;
-			radio1.address  = &radio_tx_addr;
-			radio1.id       = NRF_ID_1;
-			NRF24_init(&radio1);
-			NRF24_SetTXAddress(&radio1, radio1.address->tx_addr);
+
+	  		if (radio1.radioErr == 1)
+			{
+	  			AmonDrone.error_code.err_radio1 = 1;
+			}
+	  		else
+	  		{
+	  			// Set radio configurations and init
+				radio1.role     = NRF_ROLE_PTX;
+				radio1.config   = &radio_tx_normal_cfg;
+				radio1.address  = &radio_tx_addr;
+				NRF24_SetTXAddress(&radio1, radio1.address->tx_addr);
+				NRF24_init(&radio1);
+
+				NRF24_ReadStatus(&radio1, &stat);
+				if (stat != 0x0E) AmonDrone.error_code.err_radio1 = 1;
+	  		}
 
 
 
-	  		if (radio2.radioErr == 1) AmonDrone.error_code.err_radio2 = 1;
+	  		if (radio2.radioErr == 1)
+	  		{
+	  			AmonDrone.error_code.err_radio2 = 1;
+	  		}
+	  		else
+	  		{
+				// Set radio configurations and init
+				radio2.role     = NRF_ROLE_PRX;
+				radio2.config   = &radio_rx_normal_cfg;
+				radio2.address  = &radio_rx_addr;
+				NRF24_SetRXAddress(&radio2, 0, radio2.address->pipe0_rx_addr);
+				NRF24_init(&radio2);
 
-			// Set radio configurations and init
-			radio2.role     = NRF_ROLE_PRX;
-			radio2.config   = &radio_rx_normal_cfg;
-			radio2.address  = &radio_rx_addr;
-			radio2.id       = NRF_ID_2;
-			NRF24_init(&radio2);
-			NRF24_SetRXAddress(&radio2, 0, radio2.address->pipe0_rx_addr);
-
+				NRF24_ReadStatus(&radio2, &stat);
+				if (stat != 0x0E) AmonDrone.error_code.err_radio2 = 1;
+	  		}
 
 	  		/* Timers - NOT PWM! */
-	  		HAL_TIM_Base_Start_IT(&htim5); // TVC LOOP, leg leds (50Hz)
+	  		HAL_TIM_Base_Start_IT(&htim5); // sensor read, leg leds (50Hz)
 	  		HAL_TIM_Base_Start_IT(&htim6); // Complementary Filter
 	  		HAL_TIM_Base_Start_IT(&htim7); // Second timer - time
 
@@ -1242,16 +1293,19 @@ int main(void)
 	  		HAL_UART_Receive_IT(&huart5, AmonDrone.uart_buffer.buffer_temp, 1);
 	  #endif
 
+	  		/* Logging */
+	  		AmonDrone.uart_buffer.flag_log_available = 0;
+	  		AmonDrone.uart_buffer.flag_logging_active = 0;
+	  		AmonDrone.uart_buffer.log_file = "log.txt";
 
-	  		/* Logging 2 */
 	  #ifdef LOG_ENABLE
 
 	  		Flash_Init();     	// if not inside LOG_Init
 	  		log_init();       	// mount filesystem
 
-	  		// test
-	  //		log_test_write();  	// write test file
-	  //		log_test_read();	// read test file back
+	  		// LittleFS test //
+//	  		log_test_write();  	// write test file
+//	  		log_test_read();	// read test file back
 
 	  #endif
 
@@ -1350,7 +1404,6 @@ int main(void)
 	  					  AmonDrone.uart_buffer.flag_logging_active = 1;
 	  					  log_open_file();
 	  				  }
-
 
 	  				  break;
 
@@ -1661,7 +1714,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x00B03FDB;
+  hi2c2.Init.Timing = 0x307075B1;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -1812,12 +1865,12 @@ static void MX_SPI3_Init(void)
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi3.Init.CRCPolynomial = 0x0;
-  hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi3.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
   hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
   hspi3.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
@@ -1825,7 +1878,7 @@ static void MX_SPI3_Init(void)
   hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
   hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
   hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
-  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;
   hspi3.Init.IOSwap = SPI_IO_SWAP_DISABLE;
   if (HAL_SPI_Init(&hspi3) != HAL_OK)
   {
@@ -1865,7 +1918,7 @@ static void MX_SPI4_Init(void)
   hspi4.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi4.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi4.Init.CRCPolynomial = 0x0;
-  hspi4.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi4.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   hspi4.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
   hspi4.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
   hspi4.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
@@ -1904,9 +1957,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 167;
+  htim1.Init.Prescaler = 23999;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 9999;
+  htim1.Init.Period = 99;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -1952,7 +2005,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 199;
+  htim2.Init.Prescaler = 239;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 19999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -2023,7 +2076,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 199;
+  htim3.Init.Prescaler = 239;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 19999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -2084,7 +2137,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 199;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 999;
+  htim4.Init.Period = 23999;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -2148,7 +2201,7 @@ static void MX_TIM5_Init(void)
 
   /* USER CODE END TIM5_Init 1 */
   htim5.Instance = TIM5;
-  htim5.Init.Prescaler = 19999;
+  htim5.Init.Prescaler = 23999;
   htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim5.Init.Period = 199;
   htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -2192,7 +2245,7 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 19999;
+  htim6.Init.Prescaler = 23999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 49;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -2230,7 +2283,7 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 19999;
+  htim7.Init.Prescaler = 23999;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 9999;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -2441,16 +2494,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : OF_MOT_Pin IRQ_DRDY_Pin */
-  GPIO_InitStruct.Pin = OF_MOT_Pin|IRQ_DRDY_Pin;
+  /*Configure GPIO pin : OF_MOT_Pin */
+  GPIO_InitStruct.Pin = OF_MOT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  HAL_GPIO_Init(OF_MOT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : IRQ_DRDY_Pin */
+  GPIO_InitStruct.Pin = IRQ_DRDY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(IRQ_DRDY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RF1_IRQ_Pin */
   GPIO_InitStruct.Pin = RF1_IRQ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RF1_IRQ_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RF1_CSN_Pin RF1_CE_Pin RF2_CSN_Pin RF2_CE_Pin */
@@ -2463,8 +2522,15 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : RF2_IRQ_Pin */
   GPIO_InitStruct.Pin = RF2_IRQ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RF2_IRQ_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(RF2_IRQ_EXTI_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(RF2_IRQ_EXTI_IRQn);
+
+  HAL_NVIC_SetPriority(RF1_IRQ_EXTI_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(RF1_IRQ_EXTI_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -2480,12 +2546,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	if (huart->Instance == USART1)
 	{
 		// Copy data to buffer for later decoding
+		SCB_InvalidateDCache_by_Addr((uint32_t*)USART1_GPSRX_DMA, sizeof(USART1_GPSRX_DMA));
+		HAL_UART_Receive_DMA(&huart1, USART1_GPSRX_DMA, 512); 	// enable USART receive again - 426
 		memset(AmonDrone.gps_data.GPS_RX_buffer, 0, sizeof(AmonDrone.gps_data.GPS_RX_buffer));
 		memcpy(AmonDrone.gps_data.GPS_RX_buffer, USART1_GPSRX_DMA, sizeof(AmonDrone.gps_data.GPS_RX_buffer));
 		memset(USART1_GPSRX_DMA, 0, sizeof(USART1_GPSRX_DMA));
 		NewGPSData = 1;											// set flag that new data has arrived
-		SCB_InvalidateDCache_by_Addr((uint32_t*)USART1_GPSRX_DMA, sizeof(USART1_GPSRX_DMA));
-		HAL_UART_Receive_DMA(&huart1, USART1_GPSRX_DMA, 512); 	// enable USART receive again - 426
 	}
 
 
@@ -2541,6 +2607,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if(GPIO_Pin == RF2_IRQ_Pin)
 	{
     	radio2.irq_flag = 1;
+	}
+
+    if(GPIO_Pin == OF_MOT_Pin)
+	{
+    	// ...
+	}
+
+    if(GPIO_Pin == IRQ_DRDY_Pin)
+	{
+    	// Disabled - used pulling at specific time
 	}
 }
 
@@ -2699,51 +2775,51 @@ void StatusLED(uint8_t Status)
 
 	switch(Status){
 	case STATUS_STARTUP: // STARTUP (red)
-		TIM1->CCR2 = 0; // LED-RGB (blue)
-		TIM1->CCR3 = 0; // LED-RGB (green)
-		TIM2->CCR3 = 500; // LED-RGB (red)
+		TIM4->CCR3 = 0; // LED-RGB (blue)
+		TIM4->CCR2 = 0; // LED-RGB (green)
+		TIM4->CCR1 = 500; // LED-RGB (red)
 		break;
 
 	case STATUS_IDLE: // IDLE (blue)
-		TIM1->CCR2 = 1000; // LED-RGB (blue)
-		TIM1->CCR3 = 0; // LED-RGB (green)
-		TIM2->CCR3 = 0; // LED-RGB (red)
+		TIM4->CCR3 = 1000; // LED-RGB (blue)
+		TIM4->CCR2 = 0; // LED-RGB (green)
+		TIM4->CCR1 = 0; // LED-RGB (red)
 		break;
 
 	case STATUS_ERROR: // ERROR (red + brd led on)
-		TIM1->CCR2 = 0; // LED-RGB (blue)
-		TIM1->CCR3 = 0; // LED-RGB (green)
-		TIM2->CCR3 = 1000; // LED-RGB (red)
+		TIM4->CCR3 = 0; // LED-RGB (blue)
+		TIM4->CCR2 = 0; // LED-RGB (green)
+		TIM4->CCR1 = 1000; // LED-RGB (red)
 		break;
 
 	case STATUS_ARM: // ARM (yellow-green)
-		TIM1->CCR2 = 0; // LED-RGB (blue)
-		TIM1->CCR3 = 100; // LED-RGB (green)
-		TIM2->CCR3 = 100; // LED-RGB (red)
+		TIM4->CCR3 = 0; // LED-RGB (blue)
+		TIM4->CCR2 = 100; // LED-RGB (green)
+		TIM4->CCR1 = 100; // LED-RGB (red)
 		break;
 
 	case STATUS_FLY: // FLY ()
-		TIM1->CCR2 = 100; // LED-RGB (blue)
-		TIM1->CCR3 = 0; // LED-RGB (green)
-		TIM2->CCR3 = 100; // LED-RGB (red)
+		TIM4->CCR3 = 100; // LED-RGB (blue)
+		TIM4->CCR2 = 0; // LED-RGB (green)
+		TIM4->CCR1 = 100; // LED-RGB (red)
 		break;
 
 	case STATUS_FLY_OVER: // FLY OVER (green)
-		TIM1->CCR2 = 0; // LED-RGB (blue)
-		TIM1->CCR3 = 100; // LED-RGB (green)
-		TIM2->CCR3 = 500; // LED-RGB (red)
+		TIM4->CCR3 = 0; // LED-RGB (blue)
+		TIM4->CCR2 = 100; // LED-RGB (green)
+		TIM4->CCR1 = 500; // LED-RGB (red)
 		break;
 
 	case STATUS_CALIB: // CALIBRATION - RGB
-		TIM1->CCR2 = RGB_Blue; // LED-RGB (blue)
-		TIM1->CCR3 = RGB_Green; // LED-RGB (green)
-		TIM2->CCR3 = RGB_Red; // LED-RGB (red)
+		TIM4->CCR3 = RGB_Blue; // LED-RGB (blue)
+		TIM4->CCR2 = RGB_Green; // LED-RGB (green)
+		TIM4->CCR1 = RGB_Red; // LED-RGB (red)
 		break;
 
 	default: // DEFAULT STATE
-		TIM1->CCR2 = 500; // LED-RGB (blue)
-		TIM1->CCR3 = 500; // LED-RGB (green)
-		TIM2->CCR3 = 500; // LED-RGB (red)
+		TIM4->CCR3 = 500; // LED-RGB (blue)
+		TIM4->CCR2 = 500; // LED-RGB (green)
+		TIM4->CCR1 = 500; // LED-RGB (red)
 		break;
 	}
 }
@@ -2795,7 +2871,7 @@ uint16_t ADC_Read_7V2_Buck()
 
 // DMA data from ADC ready
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
-	SCB_InvalidateDCache_by_Addr((uint32_t*)adc_raw, sizeof(adc_raw));
+	SCB_InvalidateDCache_by_Addr((uint32_t*)adc_raw, 32); // sizeof(adc_raw)
 	ADC_DMA_DataRdy = 1;
 }
 

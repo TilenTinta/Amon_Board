@@ -29,27 +29,27 @@ static inline float degToRad(float angle);
 */
 void Complementary_deg(s_MPU6050 *dev, s_drone_data *drone){
 
-	// Axis orientation on drone are: X+ points down, Z+ points out of sensor and Y+ points right if you watch drone from the board side
+	// Axis orientation on drone are: X+ points right, Y+ points forward, Z+ points up
 	float accel_pitch = 0;
 	float accel_roll = 0;
 	float mag_yaw = 0;
 
 	/* Calculate drone pitch */
-	//accel_pitch = atan2f(-dev->ACCEL_Z, sqrtf(dev->ACCEL_Y * dev->ACCEL_Y +  dev->ACCEL_X * dev->ACCEL_X)) * RAD_TO_DEG;
-	accel_pitch = atan2f( dev->ACCEL_Z, -dev->ACCEL_X ) * RAD_TO_DEG;
+	//accel_pitch = atan2f(-drone->position.accel_x, sqrtf(drone->position.accel_y * drone->position.accel_y +  drone->position.accel_z * drone->position.accel_z)) * RAD_TO_DEG;
+	accel_pitch = atan2f( drone->position.accel_x, drone->position.accel_z ) * RAD_TO_DEG;
 
 	/* Calculate drone Roll */
-	//accel_roll  = atan2f(dev->ACCEL_Y, sqrtf(dev->ACCEL_Z * dev->ACCEL_Z + dev->ACCEL_X * dev->ACCEL_X)) * RAD_TO_DEG;
-	accel_roll  = atan2f( dev->ACCEL_Y, -dev->ACCEL_X ) * RAD_TO_DEG;
+	//accel_roll  = atan2f(-drone->position.accel_y, sqrtf(drone->position.accel_x * drone->position.accel_x + drone->position.accel_z * drone->position.accel_z)) * RAD_TO_DEG;
+	accel_roll  = atan2f( -drone->position.accel_y, drone->position.accel_z ) * RAD_TO_DEG;
 
 	/* Calculate drone Yaw */
 	mag_yaw = unwrap_to_ref(mag_yaw, drone->position.Yaw);
 
 	/* Complementary Filter */
-	drone->position.Pitch = ALPHA * (drone->position.Pitch + dev->GYRO_Y * DT) + (1.0f - ALPHA) * accel_pitch;
-	drone->position.Roll = ALPHA * (drone->position.Roll + dev->GYRO_Z * DT) + (1.0f - ALPHA) * accel_roll;
-	//drone->position.Yaw = drone->position.Yaw + dev->GYRO_X * DT;
-	drone->position.Yaw = ALPHA * (drone->position.Yaw + dev->GYRO_X * DT) + (1.0f - ALPHA) * mag_yaw;
+	drone->position.Pitch = ALPHA * (drone->position.Pitch + drone->position.gyro_y * DT) + (1.0f - ALPHA) * accel_pitch;
+	drone->position.Roll = ALPHA * (drone->position.Roll + drone->position.gyro_x * DT) + (1.0f - ALPHA) * accel_roll;
+	//drone->position.Yaw = drone->position.Yaw + drone->position.gyro_z * DT;
+	drone->position.Yaw = ALPHA * (drone->position.Yaw + drone->position.gyro_z * DT) + (1.0f - ALPHA) * mag_yaw;
 }
 
 
@@ -211,17 +211,17 @@ void Kalman_Init(s_Kalman *k)
  *
  * @return  	angle for calculated axis
  */
-void Kalman_rawToAngles(s_MPU6050 *dev, float *roll_angle_accel, float *pitch_angle_accel)
+void Kalman_rawToAngles(s_drone_data *drone, float *roll_angle_accel, float *pitch_angle_accel)
 {
-	float ax = dev->ACCEL_X;
-	float ay = dev->ACCEL_Y;
-	float az = dev->ACCEL_Z;
+	float ax = drone->position.accel_x;
+	float ay = drone->position.accel_y;
+	float az = drone->position.accel_z;
 
 	accel_normalize(&ax, &ay, &az); // Normalize accel vector
 
 	// Tilt angles (standard stable formulas) - angles from gravitation
-	*roll_angle_accel  = atan2f(ay, -ax) * RAD_TO_DEG;
-	*pitch_angle_accel = atan2f(az, -ax) * RAD_TO_DEG;
+	*roll_angle_accel  = atan2f(-ay, az) * RAD_TO_DEG;
+	*pitch_angle_accel = atan2f(ax, az) * RAD_TO_DEG;
 }
 
 

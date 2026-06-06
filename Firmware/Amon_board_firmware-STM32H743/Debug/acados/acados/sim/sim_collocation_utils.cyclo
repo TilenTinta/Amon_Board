@@ -1,8 +1,4 @@
-../acados/acados/sim/sim_collocation_utils.c:54:15:lu_system_solve	19
-../acados/acados/sim/sim_collocation_utils.c:156:22:gauss_legendre_nodes_work_calculate_size	1
-../acados/acados/sim/sim_collocation_utils.c:172:13:gauss_legendre_nodes	14
-../acados/acados/sim/sim_collocation_utils.c:248:13:gauss_radau_iia_nodes	10
 ../acados/acados/sim/sim_collocation_utils.c:464:15:butcher_tableau_work_calculate_size	1
-../acados/acados/sim/sim_collocation_utils.c:481:6:calculate_butcher_tableau_from_nodes	10
-../acados/acados/sim/sim_collocation_utils.c:537:6:calculate_butcher_tableau	4
+../acados/acados/sim/sim_collocation_utils.c:481:6:calculate_butcher_tableau_from_nodes	28
 ../acados/acados/sim/sim_collocation_utils.c:560:6:get_explicit_butcher_tableau	4
+../acados/acados/sim/sim_collocation_utils.c:537:6:calculate_butcher_tableau	23

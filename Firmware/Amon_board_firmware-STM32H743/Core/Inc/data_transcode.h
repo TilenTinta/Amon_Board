@@ -154,6 +154,7 @@ extern "C" {
 #define TVL_IMU_TEMP			0x34	// IMU temperature
 #define TVL_GPS                 0x35    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
 #define TVL_THROTTLE			0x36	// EDF throttle level
+#define TVL_SERVO_ANGL			0x37	// Servos angle
 // TODO: TBD
 
 #define TVL_STATE_STARTUP       0x40    // Drone state - startup (OPT_DRONE_SET_STATE)

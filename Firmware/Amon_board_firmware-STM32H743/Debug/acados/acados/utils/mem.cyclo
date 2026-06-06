@@ -1,4 +1,4 @@
-../acados/acados/utils/mem.c:48:5:acados_get_pointer_size	2
+../acados/acados/utils/mem.c:48:5:acados_get_pointer_size	1
 ../acados/acados/utils/mem.c:60:6:make_int_multiple_of	2
 ../acados/acados/utils/mem.c:70:5:align_char_to	1
 ../acados/acados/utils/mem.c:84:7:acados_malloc	1

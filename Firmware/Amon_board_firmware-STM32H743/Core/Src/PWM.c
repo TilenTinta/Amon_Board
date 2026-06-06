@@ -86,7 +86,6 @@ void PowerToPWMValue(uint8_t power)
     // TIM2 tick is ~100us with PSC=8399 at 84MHz, period=20ms (50Hz)
     uint32_t pulse_us = SERVO_MIN_US + ((SERVO_MAX_US - SERVO_MIN_US) * power) / 100;
 
-
     SetPWMValue(PWM_EDF, pulse_us);
 }
 

@@ -5,4 +5,4 @@
 ../Core/Src/drone_data.c:224:13:packet_create_ping_pong	16	static
 ../Core/Src/drone_data.c:246:6:packet_create_telemetry	40	static
 ../Core/Src/drone_data.c:464:13:packet_set_flight_path	32	static
-../Core/Src/drone_data.c:608:6:packet_create_uart_data	56	static
+../Core/Src/drone_data.c:608:6:packet_create_uart_data	64	static

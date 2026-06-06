@@ -6,9 +6,10 @@
 ../Core/Src/HMC5883L.c:244:9:HMC5883L_ReadRawData	32	static
 ../Core/Src/HMC5883L.c:297:9:HMC5883L_ReadGaussData	24	static
 ../Core/Src/HMC5883L.c:335:9:HMC5883L_ReadHeading	48	static
-../Core/Src/HMC5883L.c:380:9:HMC5883L_SelfTest	24	static
-../Core/Src/HMC5883L.c:439:14:HMC5883L_GetLsbPerGauss	16	static
-../Core/Src/HMC5883L.c:484:14:HMC5883L_NormalizeHeading	16	static
-../Core/Src/HMC5883L.c:503:26:HMC5883L_ReadRegister	40	static
-../Core/Src/HMC5883L.c:508:26:HMC5883L_ReadRegisters	40	static
-../Core/Src/HMC5883L.c:513:26:HMC5883L_WriteRegister	32	static
+../Core/Src/HMC5883L.c:382:9:HMC5883L_WaitReady	32	static
+../Core/Src/HMC5883L.c:412:9:HMC5883L_SelfTest	32	static
+../Core/Src/HMC5883L.c:480:14:HMC5883L_GetLsbPerGauss	16	static
+../Core/Src/HMC5883L.c:525:14:HMC5883L_NormalizeHeading	16	static
+../Core/Src/HMC5883L.c:544:26:HMC5883L_ReadRegister	40	static
+../Core/Src/HMC5883L.c:549:26:HMC5883L_ReadRegisters	40	static
+../Core/Src/HMC5883L.c:554:26:HMC5883L_WriteRegister	32	static

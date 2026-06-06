@@ -2504,12 +2504,12 @@
 		)
 		(uuid "26ac9b48-71f9-4f43-8da5-e86930ba84e0")
 	)
-	(text "57k"
+	(text "200k||100k"
 		(exclude_from_sim no)
-		(at 123.952 61.976 0)
+		(at 117.602 63.754 0)
 		(effects
 			(font
-				(size 1.27 1.27)
+				(size 1 1)
 			)
 			(justify left bottom)
 		)

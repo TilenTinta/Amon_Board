@@ -116,6 +116,7 @@ void Error_Handler(void);
 #define OF_RST_GPIO_Port GPIOE
 #define OF_MOT_Pin GPIO_PIN_13
 #define OF_MOT_GPIO_Port GPIOE
+#define OF_MOT_EXTI_IRQn EXTI15_10_IRQn
 #define CS_SD_Pin GPIO_PIN_14
 #define CS_SD_GPIO_Port GPIOE
 #define IRQ_DRDY_Pin GPIO_PIN_15
@@ -138,6 +139,7 @@ void Error_Handler(void);
 #define I2C_SDA_EXT_GPIO_Port GPIOD
 #define RF1_IRQ_Pin GPIO_PIN_12
 #define RF1_IRQ_GPIO_Port GPIOA
+#define RF1_IRQ_EXTI_IRQn EXTI15_10_IRQn
 #define SPI3_SCK_RF_Pin GPIO_PIN_10
 #define SPI3_SCK_RF_GPIO_Port GPIOC
 #define SPI3_MISO_RF_Pin GPIO_PIN_11
@@ -150,6 +152,7 @@ void Error_Handler(void);
 #define RF1_CE_GPIO_Port GPIOD
 #define RF2_IRQ_Pin GPIO_PIN_5
 #define RF2_IRQ_GPIO_Port GPIOD
+#define RF2_IRQ_EXTI_IRQn EXTI9_5_IRQn
 #define RF2_CSN_Pin GPIO_PIN_6
 #define RF2_CSN_GPIO_Port GPIOD
 #define RF2_CE_Pin GPIO_PIN_7

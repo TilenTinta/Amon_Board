@@ -368,6 +368,38 @@ uint8_t HMC5883L_ReadHeading(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, floa
 
 
 /*********************************************************************
+* @fn     	HMC5883L_WaitReady
+*
+* @param 	*dev: struct to device data
+* @param 	*i2cHandle: i2c handle struct
+* @param 	timeout_ms: timeout value in miliseconds
+*
+* @brief   	Wait on status ready from device
+* 			If device is not ready it returns error
+*
+* @return  	OK: 0, NOK: 1
+*/
+uint8_t HMC5883L_WaitReady(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, uint32_t timeout_ms)
+{
+    uint8_t status = 0;
+    uint32_t start = HAL_GetTick();
+
+    do
+    {
+        if (HMC5883L_ReadStatus(dev, i2cHandle, &status) != 0)
+            return 1;
+
+        if (status & STATUS_RDY)
+            return 0;
+
+    } while ((HAL_GetTick() - start) < timeout_ms);
+
+    return 1;
+}
+
+
+
+/*********************************************************************
 * @fn     	HMC5883L_SelfTest
 *
 * @param 	*dev: struct to device data
@@ -383,6 +415,10 @@ uint8_t HMC5883L_SelfTest(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle)
 
     s_config oldConfig = dev->config;
 
+    // Clear possible old/locked data
+    uint8_t dummy[6];
+    HMC5883L_ReadRegisters(dev, DATA_OUT_X_MSB, dummy, 6);
+
     /* Positive bias mode, gain 2.5 Ga (0x60) as recommended in datasheet */
     dev->config.measurement_mode = MEAS_MODE_POSITIVE_BIAS;
     dev->config.gain = GAIN_2_5GA;
@@ -394,7 +430,12 @@ uint8_t HMC5883L_SelfTest(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle)
         return 1;   // NOK
     }
 
-    HAL_Delay(10);
+    if (HMC5883L_WaitReady(dev, i2cHandle, 100) != 0)
+    {
+        dev->config = oldConfig;
+        HMC5883L_SetConfig(dev, i2cHandle);
+        return 1;
+    }
 
     if (HMC5883L_ReadRawData(dev, i2cHandle) != 0)
     {
@@ -414,9 +455,9 @@ uint8_t HMC5883L_SelfTest(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle)
      * X, Y around +766 LSB
      * Z around +713 LSB
      */
-    if ((dev->X_Axis <= 0) || (dev->Y_Axis <= 0) || (dev->Z_Axis <= 0))
+    if ((dev->X_Axis < 400 || dev->X_Axis > 1100) || (dev->Y_Axis < 400 || dev->Y_Axis > 1100) || (dev->Z_Axis < 350 || dev->Z_Axis > 1000))
     {
-        return 1;   // NOK
+        return 1; // NOK
     }
 
     return 0; // OK

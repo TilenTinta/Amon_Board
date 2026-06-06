@@ -1,6 +1,6 @@
-../acados/acados_c/ocp_qp_interface.c:91:6:ocp_qp_xcond_solver_config_initialize_from_plan	3
-../acados/acados_c/ocp_qp_interface.c:185:29:ocp_qp_xcond_solver_config_create_from_name	3
+../acados/acados_c/ocp_qp_interface.c:91:6:ocp_qp_xcond_solver_config_initialize_from_plan	2
 ../acados/acados_c/ocp_qp_interface.c:262:29:ocp_qp_xcond_solver_config_create	1
+../acados/acados_c/ocp_qp_interface.c:185:29:ocp_qp_xcond_solver_config_create_from_name	3
 ../acados/acados_c/ocp_qp_interface.c:275:6:ocp_qp_xcond_solver_config_free	1
 ../acados/acados_c/ocp_qp_interface.c:284:14:ocp_qp_dims_create	1
 ../acados/acados_c/ocp_qp_interface.c:298:6:ocp_qp_dims_free	1
@@ -8,12 +8,12 @@
 ../acados/acados_c/ocp_qp_interface.c:317:6:ocp_qp_xcond_solver_dims_set	1
 ../acados/acados_c/ocp_qp_interface.c:325:27:ocp_qp_xcond_solver_dims_create_from_ocp_qp_dims	2
 ../acados/acados_c/ocp_qp_interface.c:361:6:ocp_qp_xcond_solver_dims_free	1
-../acados/acados_c/ocp_qp_interface.c:370:12:ocp_qp_in_create_from_xcond_dims	1
 ../acados/acados_c/ocp_qp_interface.c:378:12:ocp_qp_in_create	1
+../acados/acados_c/ocp_qp_interface.c:370:12:ocp_qp_in_create_from_xcond_dims	1
 ../acados/acados_c/ocp_qp_interface.c:390:6:ocp_qp_in_set	1
 ../acados/acados_c/ocp_qp_interface.c:398:6:ocp_qp_in_free	1
-../acados/acados_c/ocp_qp_interface.c:408:13:ocp_qp_out_create_from_xcond_dims	1
 ../acados/acados_c/ocp_qp_interface.c:416:13:ocp_qp_out_create	1
+../acados/acados_c/ocp_qp_interface.c:408:13:ocp_qp_out_create_from_xcond_dims	1
 ../acados/acados_c/ocp_qp_interface.c:429:6:ocp_qp_out_free	1
 ../acados/acados_c/ocp_qp_interface.c:435:6:ocp_qp_out_get	7
 ../acados/acados_c/ocp_qp_interface.c:484:7:ocp_qp_xcond_solver_opts_create	1
@@ -25,6 +25,4 @@
 ../acados/acados_c/ocp_qp_interface.c:567:5:ocp_qp_solve	1
 ../acados/acados_c/ocp_qp_interface.c:573:6:ocp_qp_xcond_solver_get_scalar	3
 ../acados/acados_c/ocp_qp_interface.c:598:6:ocp_qp_solver_destroy	1
-../acados/acados_c/ocp_qp_interface.c:605:20:ocp_qp_res_create	1
-../acados/acados_c/ocp_qp_interface.c:616:23:ocp_qp_res_workspace_create	1
 ../acados/acados_c/ocp_qp_interface.c:628:6:ocp_qp_inf_norm_residuals	1

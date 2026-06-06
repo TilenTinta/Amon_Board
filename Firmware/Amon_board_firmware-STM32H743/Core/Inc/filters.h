@@ -16,9 +16,9 @@
 /* Defines */
 
 /* --- Drone orientation ---
- * 	- Yaw: X+ points DOWN (along lander body, toward ground)
- * 	- Roll: Z+ points OUT of PCB
- * 	- Pitch: Y+ points RIGHT
+ *  - X+ points RIGHT
+ *  - Y+ points FORWARD
+ *  - Z+ points UP
  *
  * 	future use: Madgwick or Mahony quaternion filter
  */
@@ -62,7 +62,7 @@ void Complementary_deg(s_MPU6050 *dev, s_drone_data *drone);
 
 // Kalman filter
 void Kalman_Init(s_Kalman *k);
-void Kalman_rawToAngles(s_MPU6050 *dev, float *roll_angle_accel, float *pitch_angle_accel);
+void Kalman_rawToAngles(s_drone_data *drone, float *roll_angle_accel, float *pitch_angle_accel);
 float Kalman_Update(s_Kalman *k, float gyro_meas, float accel_angle, float dt);
 float unwrap_to_ref(float meas, float ref);
 s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw);

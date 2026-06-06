@@ -7,8 +7,6 @@
 ../acados/acados_c/dense_qp_interface.c:158:18:dense_qp_assign	1
 ../acados/acados_c/dense_qp_interface.c:181:18:dense_qp_create	1
 ../acados/acados_c/dense_qp_interface.c:192:5:dense_qp_solve	1
-../acados/acados_c/dense_qp_interface.c:198:22:dense_qp_res_create	1
-../acados/acados_c/dense_qp_interface.c:207:25:dense_qp_res_workspace_create	1
 ../acados/acados_c/dense_qp_interface.c:217:6:dense_qp_inf_norm_residuals	1
 ../acados/acados_c/dense_qp_interface.c:229:6:dense_qp_set_field_double_array	14
 ../acados/acados_c/dense_qp_interface.c:292:6:dense_qp_set_field_int_array	3

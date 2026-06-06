@@ -1,2 +1,2 @@
-../acados/acados/ocp_nlp/ocp_nlp_constraints_common.c:49:15:ocp_nlp_constraints_config_calculate_size	16	static
-../acados/acados/ocp_nlp/ocp_nlp_constraints_common.c:60:29:ocp_nlp_constraints_config_assign	24	static
+../acados/acados/ocp_nlp/ocp_nlp_constraints_common.c:49:15:ocp_nlp_constraints_config_calculate_size	0	static
+../acados/acados/ocp_nlp/ocp_nlp_constraints_common.c:60:29:ocp_nlp_constraints_config_assign	0	static

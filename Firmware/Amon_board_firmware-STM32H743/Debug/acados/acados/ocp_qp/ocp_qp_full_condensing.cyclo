@@ -1,16 +1,13 @@
+../acados/acados/ocp_qp/ocp_qp_full_condensing.c:437:15:ocp_qp_full_condensing_workspace_calculate_size	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:58:15:ocp_qp_full_condensing_dims_calculate_size	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:80:7:ocp_qp_full_condensing_dims_assign	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:114:6:ocp_qp_full_condensing_dims_set	1
-../acados/acados/ocp_qp/ocp_qp_full_condensing.c:127:6:ocp_qp_full_condensing_dims_get	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:153:15:ocp_qp_full_condensing_opts_calculate_size	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:185:7:ocp_qp_full_condensing_opts_assign	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:222:6:ocp_qp_full_condensing_opts_initialize_default	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:248:6:ocp_qp_full_condensing_opts_update	1
-../acados/acados/ocp_qp/ocp_qp_full_condensing.c:260:6:ocp_qp_full_condensing_opts_set	3
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:298:15:ocp_qp_full_condensing_memory_calculate_size	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:333:7:ocp_qp_full_condensing_memory_assign	1
-../acados/acados/ocp_qp/ocp_qp_full_condensing.c:392:6:ocp_qp_full_condensing_memory_get	5
-../acados/acados/ocp_qp/ocp_qp_full_condensing.c:437:15:ocp_qp_full_condensing_workspace_calculate_size	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:450:5:ocp_qp_full_condensing	2
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:492:5:ocp_qp_full_condensing_condense_qp_out	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:508:5:ocp_qp_full_condensing_condense_lhs	1
@@ -18,4 +15,7 @@
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:565:5:ocp_qp_full_condensing_condense_rhs_seed	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:595:5:ocp_qp_full_expansion	1
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:620:5:ocp_qp_full_condensing_expand_sol_seed	1
+../acados/acados/ocp_qp/ocp_qp_full_condensing.c:127:6:ocp_qp_full_condensing_dims_get	1
+../acados/acados/ocp_qp/ocp_qp_full_condensing.c:392:6:ocp_qp_full_condensing_memory_get	5
+../acados/acados/ocp_qp/ocp_qp_full_condensing.c:260:6:ocp_qp_full_condensing_opts_set	3
 ../acados/acados/ocp_qp/ocp_qp_full_condensing.c:645:6:ocp_qp_full_condensing_config_initialize_default	1

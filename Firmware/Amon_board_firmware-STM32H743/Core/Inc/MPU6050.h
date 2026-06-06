@@ -110,6 +110,17 @@
 
 
 /*###########################################################################################################################################################*/
+/* Additional data */
+
+/* Must be calibrated per sensor */
+// On AMON board is sensor oriented in the way that "Z+ points out of the board/craft and X+ points down"
+#define X_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
+#define Y_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
+#define Z_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
+
+
+
+/*###########################################################################################################################################################*/
 /* Structs */
 
 typedef struct {
@@ -143,17 +154,6 @@ typedef struct {
 	float FT_ZA;  		/* Factory trim for Z accel */
 
 } s_MPU6050;
-
-
-/*###########################################################################################################################################################*/
-/* Additional data */
-
-/* Must be calibrated per sensor */
-// On AMON board is sensor oriented in the way that "Z+ points out of the board/craft and X+ points down"
-#define X_ACCEL_OFFSET 				-0.03	// Offset value for acceleration correction
-#define Y_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
-#define Z_ACCEL_OFFSET 				0.00	// Offset value for acceleration correction
-
 
 
 

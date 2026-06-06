@@ -19,7 +19,7 @@
 /*###########################################################################################################################################################*/
 /* Defines */
 
-// Calibration
+// Calibration //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
 //#define IDENTIFICATION
 //#define TEST_MOMENTS				// Uncomment to enable serial print over GPS connector - testing of fin moments
@@ -38,18 +38,20 @@
 #define CAL_ROLL			0
 #define CAL_LIDAR			0
 
+// Drone options //
 #define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
-
+#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
 #define LOG_ENABLE					// Enable logging of telemetry data
+#define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
 
-#define ANGLE_SCALE			100.0f	// Factor for angle scaling of angle
-
+// Radio / telemetry //
 #define RADIO_NUM			2 		// Set number of radios mounted on board
 #define CONN_TIMEOUT_SEC	3		// Amount off seconds that triggers timeout/lost connection
 //#define CONN_STEPS_2				// If using only OPT_PAIR_START signal for pairing comment this
 #define STREAM_EN_TIME		3		// Time in seconds over which stream mode is enabled
+#define ANGLE_SCALE			100.0f	// Factor for angle scaling of angle when sending over radio
 
-// Select GPS decoding (comment/uncomment for enable/disable)
+// Select GPS decoding (comment/uncomment for enable/disable) //
 //#define USE_GPS
 #define USE_GPS_GGA
 //#define USE_GPS_GLL
@@ -58,18 +60,21 @@
 #define USE_GPS_RMC
 #define USE_GPS_VTG
 
+#define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
 #define ALTITUDE_M			98		// Height where drone will take off
 #define DECLINATION_DEG		4.34f	// Deskle declination = +4.28deg (+4.34deg) (source: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml?)
 
-#define MAIN_BOARD_V		3.27	// Main board voltage
-#define R1_MAIN_BAT			100000	// Voltage divider resistor R1 - main battery
-#define R2_MAIN_BAT		 	10000	// Voltage divider resistor R2 - main battery
-#define R1_EDF_BAT			100000	// Voltage divider resistor R1 - EDF battery
-#define R2_EDF_BAT		 	10000	// Voltage divider resistor R2 - EDF battery
-#define R1_5V_BUCK			100000	// Voltage divider resistor R1 - 5V buck converter
-#define R2_5V_BUCK		 	150000	// Voltage divider resistor R2 - 5V buck converter
-#define R1_7V2_BUCK			100000	// Voltage divider resistor R1 - 7.2V buck converter
-#define R2_7V2_BUCK		 	75000	// Voltage divider resistor R2 - 7.2V buck converter
+
+// Flight controller HW / SW definitions //
+#define MAIN_BOARD_V		3.27f		// Main board voltage
+#define R1_MAIN_BAT			100000.0f	// Voltage divider resistor R1 - main battery
+#define R2_MAIN_BAT		 	10000.0f	// Voltage divider resistor R2 - main battery
+#define R1_EDF_BAT			100000.0f	// Voltage divider resistor R1 - EDF battery
+#define R2_EDF_BAT		 	10000.0f	// Voltage divider resistor R2 - EDF battery
+#define R1_5V_BUCK			100000.0f	// Voltage divider resistor R1 - 5V buck converter
+#define R2_5V_BUCK		 	100000.0f	// Voltage divider resistor R2 - 5V buck converter
+#define R1_7V2_BUCK			100000.0f	// Voltage divider resistor R1 - 7.2V buck converter
+#define R2_7V2_BUCK		 	75000.0f	// Voltage divider resistor R2 - 7.2V buck converter
 #define DISABLE				0		// Helper define for enable/disable buck
 #define ENABLE				1		// Helper define for enable/disable buck
 
@@ -78,11 +83,9 @@
 #define TIM_50HZ_DT			0.02f	// 50Hz timer period time delta
 #define TIM_1HZ_DT			1.0f	// 1Hz timer period time delta
 
-#define TOF_OFFSET			121		// Height of TOF sensor of the ground when device is on the ground
 
-#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
 
-#define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
+
 
 
 /*###########################################################################################################################################################*/

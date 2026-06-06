@@ -1,10 +1,8 @@
-C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados/utils/strsep.h:42:20:extract_module_name	2
-../acados/acados_c/ocp_nlp_interface.c:76:22:ocp_nlp_plan_calculate_size	1
-../acados/acados_c/ocp_nlp_interface.c:89:24:ocp_nlp_plan_assign	1
-../acados/acados_c/ocp_nlp_interface.c:115:13:ocp_nlp_plan_initialize_default	5
-../acados/acados_c/ocp_nlp_interface.c:158:17:ocp_nlp_plan_create	1
+../acados/acados_c/ocp_nlp_interface.c:1338:22:ocp_nlp_calculate_size	1
+../acados/acados_c/ocp_nlp_interface.c:1508:13:get_from_qp_in	34
+../acados/acados_c/ocp_nlp_interface.c:158:17:ocp_nlp_plan_create	5
 ../acados/acados_c/ocp_nlp_interface.c:173:6:ocp_nlp_plan_destroy	1
-../acados/acados_c/ocp_nlp_interface.c:184:17:ocp_nlp_config_create	27
+../acados/acados_c/ocp_nlp_interface.c:184:17:ocp_nlp_config_create	23
 ../acados/acados_c/ocp_nlp_interface.c:374:6:ocp_nlp_config_destroy	1
 ../acados/acados_c/ocp_nlp_interface.c:384:15:ocp_nlp_dims_create	1
 ../acados/acados_c/ocp_nlp_interface.c:401:6:ocp_nlp_dims_destroy	1
@@ -36,8 +34,6 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados
 ../acados/acados_c/ocp_nlp_interface.c:1315:6:ocp_nlp_solver_opts_get	1
 ../acados/acados_c/ocp_nlp_interface.c:1321:6:ocp_nlp_solver_opts_set_at_stage	1
 ../acados/acados_c/ocp_nlp_interface.c:1327:6:ocp_nlp_solver_opts_destroy	1
-../acados/acados_c/ocp_nlp_interface.c:1338:22:ocp_nlp_calculate_size	1
-../acados/acados_c/ocp_nlp_interface.c:1350:24:ocp_nlp_assign	1
 ../acados/acados_c/ocp_nlp_interface.c:1376:17:ocp_nlp_solver_create	1
 ../acados/acados_c/ocp_nlp_interface.c:1391:6:ocp_nlp_solver_destroy	1
 ../acados/acados_c/ocp_nlp_interface.c:1398:6:ocp_nlp_solver_reset_qp_memory	1
@@ -52,8 +48,7 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados
 ../acados/acados_c/ocp_nlp_interface.c:1479:6:ocp_nlp_eval_params_jac	1
 ../acados/acados_c/ocp_nlp_interface.c:1495:6:ocp_nlp_eval_solution_sens_adj_p	1
 ../acados/acados_c/ocp_nlp_interface.c:1501:6:ocp_nlp_get	1
-../acados/acados_c/ocp_nlp_interface.c:1508:13:get_from_qp_in	34
-../acados/acados_c/ocp_nlp_interface.c:1688:6:ocp_nlp_get_at_stage	35
+../acados/acados_c/ocp_nlp_interface.c:1688:6:ocp_nlp_get_at_stage	34
 ../acados/acados_c/ocp_nlp_interface.c:1878:6:ocp_nlp_get_from_iterate	1
 ../acados/acados_c/ocp_nlp_interface.c:1898:6:ocp_nlp_get_all	19
 ../acados/acados_c/ocp_nlp_interface.c:2002:6:ocp_nlp_set_all	19

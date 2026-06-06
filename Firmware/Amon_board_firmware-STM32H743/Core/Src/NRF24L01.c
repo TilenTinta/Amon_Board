@@ -242,13 +242,17 @@ uint8_t NRF24_SPI_Transceive(s_nRF24L01 *dev, const uint8_t *tx, uint8_t *rx, ui
  */
 uint8_t NRF24_ReadStatus(s_nRF24L01 *dev, uint8_t *status_out)
 {
+	uint8_t status;
+
     nrf_cs_low(dev);
-
-    *status_out = nrf_spi_txrx(dev, NOP);   // No Operation. Might be used to read the RF_STATUS register
-
+    status  = nrf_spi_txrx(dev, NOP);   // No Operation. Might be used to read the RF_STATUS register
     nrf_cs_high(dev);
 
     // A dead bus often reads 0xFF or 0x00
+    if (status_out)
+	{
+	   *status_out = status;
+	}
     return 0;
 }
 
@@ -303,6 +307,7 @@ void NRF24_HandleIRQ(s_nRF24L01 *dev)
 
     // clear only the flags that were set
     NRF24_WriteRegister(dev, RF_STATUS, status & (RX_DR | TX_DS | MAX_RT), NULL);
+
 }
 
 
