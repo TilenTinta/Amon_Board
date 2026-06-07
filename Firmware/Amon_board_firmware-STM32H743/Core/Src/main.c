@@ -32,7 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RGB_MAX 500      // match your PWM max
+#define RGB_MAX 500      // PWM max
 #define STEP    1        // speed of transition
 
 /* USER CODE END PD */
@@ -161,7 +161,7 @@ VL53L1_DEV 			vl53l1Dev;		// VL53L1 device driver
 s_HMC5883L			hmc5883l;		// HMC5883L device driver
 s_PMW3901 			pmw3901;		// PMW3901 device driver
 //VL53L1X_Version_t vl53l1xVersion_t; // Lidar - unused
-//VL53L1X_Result_t vl53l1xResult_t; // Lidar - unused
+//VL53L1X_Result_t vl53l1xResult_t;   // Lidar - unused
 s_nRF24L01 			radio1;			// nRF24L01 device driver
 s_nRF24L01 			radio2;			// nRF24L01 device driver
 s_drone_data 		AmonDrone; 		// All drone data
@@ -858,12 +858,46 @@ int main(void)
 	  		  {
 				IRQ_NMPCLoopEN = 0;
 
-				AmonDrone.flight_path.path_stage_time += TIM_1HZ_DT;		// Current command time
-				AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;		// Full flight time
+
+
+
+
 
 				// ================== NMPC ==================
-				if (AmonDrone.data.NMPC_enable == 1)
+				if (AmonDrone.data.NMPC_enable)
 				{
+					// --------------------------------------------------------------------------------------------------------
+					// Path planing - regulator reference planner //
+					AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;			// Full flight time in seconds
+
+					/* Command check - time or position */
+					uint8_t time_done = 0;
+					uint8_t position_done = 0;
+
+					s_flight_command *cmd = &AmonDrone.flight_path.flight_path[AmonDrone.flight_path.command_index];
+
+					// Check if current command reached its timeout value (if 0 then the command dont have timeout)
+					if (AmonDrone.flight_path.command_timeout_s != 0)
+					{
+						if (AmonDrone.flight_path.command_time_s >= AmonDrone.flight_path.command_timeout_s)
+						{
+							time_done = 1;
+						}
+						else
+						{
+							AmonDrone.flight_path.command_time_s += TIM_100HZ_DT; // Current command elapsed time in seconds
+						}
+					}
+
+					position_done = command_position_reached(cmd, x_current, x_ref);
+
+					if (time_done || position_done)
+					{
+						AmonDrone.flight_path.command_time_s = 0; // Reset elapsed time command counter
+						AmonDrone.flight_path.command_index++;
+					}
+
+
 					// --------------------------------------------------------------------------------------------------------
 					// Refresh all values in state vector //
 					double x_current[NMPC_NX] = {0}; 	// Reset everything
@@ -871,8 +905,8 @@ int main(void)
 					// --- Position [0:3] ---
 					x_current[0] = 0.0f;                                       // pos x (GPS/optical flow)
 					x_current[1] = 0.0f;                                       // pos y (GPS/optical flow)
-				//	  				x_current[0] = AmonDrone.position.position_x;              // [m]
-				//	  				x_current[1] = AmonDrone.position.position_y;              // [m]
+//	  				x_current[0] = AmonDrone.position.position_x;              // [m]
+//	  				x_current[1] = AmonDrone.position.position_y;              // [m]
 					x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0;  // pos z [m]
 
 					// --- Velocity [3:6] ---
@@ -915,6 +949,7 @@ int main(void)
 					x_current[21] = 0.0;
 					x_current[22] = 0.0;
 
+
 					// --------------------------------------------------------------------------------------------------------
 					// Set NMPC controller reference values //
 					double x_ref[NMPC_NX] = {0};		// Reset everything
@@ -922,11 +957,13 @@ int main(void)
 					execute_flight_command(&AmonDrone.flight_path, x_ref);
 					// TODO: Trajectory generator?
 
-					x_ref[2]  = 1.0;   // target height z = 1m
-					x_ref[6]  = 1.0;   // qw = 1 → no rotation (upright)
-					// everything else 0: no position drift, zero velocity, zero rates
-
-					double u_ref[NMPC_NU] = {87.0, 0.0, 0.0, 0.0, 0.0};  // hover thrust ~87%
+					double u_ref[NMPC_NU] = {
+					    87.0,  // hover thrust / EDF nominal
+					    0.0,   // servo XP neutral or trim/offset
+					    0.0,   // servo XN neutral or trim/offset
+					    0.0,   // servo YP neutral or trim/offset
+					    0.0    // servo YN neutral or trim/offset
+					};
 
 					// Set NMPC init value
 					NMPC_SetState(&nmpc, x_current);
@@ -997,6 +1034,7 @@ int main(void)
 	  		  {
 	  			  NewGPSData = 0;
 
+	  			  // Used decoders selected with define in drone_data.h
 	  	#ifdef USE_GPS_GGA
 	  			  GPS_Decode_GGA(AmonDrone.gps_data.GPS_RX_buffer, &AmonDrone.gps_data.gga);
 	  	#endif
@@ -1022,8 +1060,6 @@ int main(void)
 	  	#endif
 
 	  		  }
-
-
 	  	  } // Boot done / Startup
 
 
@@ -1043,6 +1079,7 @@ int main(void)
 	  		//AmonDrone.DroneStatus = STATUS_STARTUP;
 	  		uint8_t status = 0;
 
+	  		// Set special flags
 	  #ifdef IDENTIFICATION
 	  		AmonDrone.identifications.flag_test_identification = 1;
 	  #endif
@@ -1056,12 +1093,6 @@ int main(void)
 			AmonDrone.actuators.servo_xn = 0;
 			AmonDrone.actuators.servo_yp = 0;
 			AmonDrone.actuators.servo_yn = 0;
-			// comment out
-			TVCServoEnable();
-			enable_7v2_buck(ENABLE);
-			enable_5v_buck(ENABLE);
-			HAL_Delay(100);
-	  		servoTest();
 
 	  #ifdef IDENTIFICATION
 	  		if (AmonDrone.data.edf_enable == 0) EDFEnable();
@@ -1069,9 +1100,12 @@ int main(void)
 	  		PowerToPWMValue(AmonDrone.actuators.edf_percent);
 	  #endif
 
-	  		/* Read both batteries and save in drone data struct */
+	  		/* Trigger ADC DMA to read battery and buck status */
 	  		HAL_StatusTypeDef ret;
 	  		ADC_DMA_DataRdy = 0;
+	  		enable_7v2_buck(ENABLE);
+			enable_5v_buck(ENABLE);
+
 	  		ret = HAL_ADCEx_Calibration_Start(&hadc1, ADC_CALIB_OFFSET, ADC_SINGLE_ENDED);	// ADC calibration
 	  		if (ret != HAL_OK) Error_Handler();
 
@@ -1084,6 +1118,9 @@ int main(void)
 	  		AmonDrone.data.buck_5v_voltage = ADC_Read_5V_Buck();
 	  		AmonDrone.data.buck_7v2_voltage = ADC_Read_7V2_Buck();
 	  		ADC_DMA_DataRdy = 0;
+
+	  		enable_7v2_buck(DISABLE);
+			enable_5v_buck(DISABLE);
 
 	  		/* Check battery voltage */
 	  		if (AmonDrone.data.battery_main_voltage < 1050) // minimal voltage: 10.5V
@@ -1304,8 +1341,10 @@ int main(void)
 	  		log_init();       	// mount filesystem
 
 	  		// LittleFS test //
-//	  		log_test_write();  	// write test file
-//	  		log_test_read();	// read test file back
+#ifdef TEST_LITTLEFS
+	  		log_test_write();  	// write test file
+	  		log_test_read();	// read test file back
+#endif
 
 	  #endif
 
@@ -1364,8 +1403,8 @@ int main(void)
 	  			  case STATUS_IDLE:
 
 	  #ifndef IDENTIFICATION
-	  				  if (AmonDrone.data.servo_enable == 1) TVCServoDisable();	// Disable TVC servos
-	  				  if (AmonDrone.data.edf_enable == 1) EDFDisable();			// Disable EDF
+	  				  if (AmonDrone.actuators.servo_enable == 1) TVCServoDisable();	// Disable TVC servos
+	  				  if (AmonDrone.actuators.edf_enable == 1) EDFDisable();			// Disable EDF
 	  #endif
 
 	  				  break;
@@ -1378,7 +1417,7 @@ int main(void)
 	  				  //TODO: Check sensor values and check flying path
 
 	  				  // Enable servo motors
-	  				  if (AmonDrone.data.servo_enable == 0)
+	  				  if (AmonDrone.actuators.servo_enable == 0)
 	  				  {
 	  					  TVCServoEnable();
 	  					  enable_7v2_buck(ENABLE);
@@ -1387,7 +1426,7 @@ int main(void)
 	  				  }
 
 	  				  // Enable EDF
-	  				  if (AmonDrone.data.edf_enable == 0) EDFEnable();
+	  				  if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
 
 	  				  // Enable NMPC regulator
 	  				  if (AmonDrone.data.NMPC_enable == 0)
@@ -1411,8 +1450,9 @@ int main(void)
 	  			  // STATE: Flying
 	  			  case STATUS_FLY:
 
-	  				  // TODO: Regulator
-	  				  switch (AmonDrone.flight_status) {
+	  				  // TODO: Regulator parameter switch? (take off more aggressive, flight smooth, landing slow)
+	  				  switch (AmonDrone.flight_status)
+	  				  {
 	  					case STATUS_FLIGHT_GROUND:
 
 	  						break;
@@ -1441,13 +1481,13 @@ int main(void)
 	  			  case STATUS_FLY_OVER:
 
 	  #ifndef IDENTIFICATION
-	  				  if (AmonDrone.data.servo_enable == 1)
+	  				  if (AmonDrone.actuators.servo_enable == 1)
 					  {
 	  					  TVCServoDisable();
 	  					  enable_7v2_buck(DISABLE);
 					  }
 
-	  				  if (AmonDrone.data.edf_enable == 1) EDFDisable();
+	  				  if (AmonDrone.actuators.edf_enable == 1) EDFDisable();
 
 					  if (AmonDrone.data.NMPC_enable == 1)
 					  {
@@ -1495,7 +1535,24 @@ int main(void)
 	  	   * This is set in MPU6050.h file (#define X_ACCEL_OFFSET, X_ACCEL_OFFSET, X_ACCEL_OFFSET)
 	  	   * To get these values change CALIBRATION value to 1 and reupload code on board
 	  	   * Disconnect everything from the board and unmount it from drone.
-	  	   * On GPS port connect FTDI module to read UART communication. DO NOT CONNECT POWER PIN (3.3V) IF YOU ARE PLANNING TO POWER THE BOARD FROM BATTERY !!!
+	  	   * ## For PCB_V2 - STM32F405
+	  	   * 	On GPS port connect FTDI module to read UART communication. DO NOT CONNECT POWER PIN (3.3V) IF YOU ARE PLANNING TO POWER THE BOARD FROM BATTERY !!!
+	  	   * 	Use parameter:
+	  	   * 		- Baud rate: 9600
+	  	   * 		- Data bit: 8
+	  	   * 		- Stop bit: 1
+	  	   * 		- Parity: None
+	  	   * 		- Flow control: None
+	  	   *
+	  	   * ## For PCB_V3 - STMH743
+	  	   * 	Connect USB port on board with cable directly to the PC (no need for additional FTDI converted)
+	  	   * 	Use parameter:
+	  	   * 		- Baud rate: 115200
+	  	   * 		- Data bit: 8
+	  	   * 		- Stop bit: 1
+	  	   * 		- Parity: None
+	  	   * 		- Flow control: None
+	  	   *
 	  	   * Open serial port on PC and connect to FTDI. After initialization the dron will start to read data from gyroscope and send it over UART.
 	  	   * Rotate board in all three directions (flat, vertical and sideways) at 90deg. In every position the one value will be around 1.
 	  	   * The difference value and 1 is the offset value. Enter that value in firmware as offset.
@@ -2625,7 +2682,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 uint8_t TVCServoEnable()
 {
 	uint8_t status = 0;
-	AmonDrone.data.servo_enable = !AmonDrone.data.servo_enable;
+	AmonDrone.actuators.servo_enable = !AmonDrone.actuators.servo_enable;
 
 	status += HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 	status += HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
@@ -2640,7 +2697,7 @@ uint8_t TVCServoEnable()
 uint8_t TVCServoDisable()
 {
 	uint8_t status = 0;
-	AmonDrone.data.edf_enable = !AmonDrone.data.edf_enable;
+	AmonDrone.actuators.servo_enable = !AmonDrone.actuators.servo_enable;
 
 	status += HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
 	status += HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
@@ -2703,7 +2760,7 @@ void servoTest()
 uint8_t EDFEnable()
 {
 	uint8_t status = 0;
-	AmonDrone.data.edf_enable = !AmonDrone.data.edf_enable;
+	AmonDrone.actuators.edf_enable = !AmonDrone.actuators.edf_enable;
 
 	status += HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
 
@@ -2715,6 +2772,7 @@ uint8_t EDFEnable()
 uint8_t EDFDisable()
 {
 	uint8_t status = 0;
+	AmonDrone.actuators.edf_enable = !AmonDrone.actuators.edf_enable;
 
 	status += HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
 
@@ -2876,7 +2934,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 }
 
 
-/* Regulator loop interrupt - 50Hz
+/* Regulator loop interrupt - 200Hz, 100Hz, 50Hz, 1Hz
  * 	- Read sensors
  * 	- Calculate TVC
  * 	- Regulate servos

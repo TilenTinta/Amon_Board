@@ -4,5 +4,5 @@
 ../Core/Src/drone_data.c:202:13:packet_create_pair_status	1
 ../Core/Src/drone_data.c:224:13:packet_create_ping_pong	1
 ../Core/Src/drone_data.c:246:6:packet_create_telemetry	8
-../Core/Src/drone_data.c:464:13:packet_set_flight_path	15
-../Core/Src/drone_data.c:608:6:packet_create_uart_data	2
+../Core/Src/drone_data.c:489:13:packet_set_flight_path	15
+../Core/Src/drone_data.c:633:6:packet_create_uart_data	2

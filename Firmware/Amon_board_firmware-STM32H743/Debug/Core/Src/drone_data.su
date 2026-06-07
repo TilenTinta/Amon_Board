@@ -3,6 +3,6 @@
 ../Core/Src/drone_data.c:179:13:packet_create_ack_nopayload	16	static
 ../Core/Src/drone_data.c:202:13:packet_create_pair_status	16	static
 ../Core/Src/drone_data.c:224:13:packet_create_ping_pong	16	static
-../Core/Src/drone_data.c:246:6:packet_create_telemetry	40	static
-../Core/Src/drone_data.c:464:13:packet_set_flight_path	32	static
-../Core/Src/drone_data.c:608:6:packet_create_uart_data	64	static
+../Core/Src/drone_data.c:246:6:packet_create_telemetry	48	static
+../Core/Src/drone_data.c:489:13:packet_set_flight_path	32	static
+../Core/Src/drone_data.c:633:6:packet_create_uart_data	56	static

@@ -607,12 +607,12 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 	}
 
 	// Save command to flight path
-	uint8_t index = drone_data->flight_path.path_index;
+	uint8_t index = drone_data->flight_path.command_index;
 
 	if (index < sizeof(drone_data->flight_path.flight_path))
 	{
 		drone_data->flight_path.flight_path[index] = cmd;
-		drone_data->flight_path.path_index++;
+		drone_data->flight_path.command_index++;
 	}
 
 }

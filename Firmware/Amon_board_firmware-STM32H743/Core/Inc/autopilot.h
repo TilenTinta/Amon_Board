@@ -19,7 +19,16 @@
 
 /*###########################################################################################################################################################*/
 /* Defines */
-#define NMPC_NX_SIZE	23	// Number of states in model
+#define NMPC_NX_SIZE		 23		// Number of states in model
+
+// Speed for take-off and landing
+#define TAKEOFF_SPEED_M_S    0.5
+#define LAND_SPEED_M_S   	-0.3
+
+// Tolerance for positions
+#define POS_TOL_M       	 0.05   // 5 cm
+#define ALT_TOL_M       	 0.05   // 5 cm
+#define VEL_TOL_M_S     	 0.10
 
 
 /*###########################################################################################################################################################*/
@@ -212,11 +221,12 @@ typedef struct {
 // Flight path data
 typedef struct {
 	s_flight_command		flight_path[100];			// Complete flight path
-	uint8_t 				path_index;					// Current active command from flight - counter
+	uint8_t 				command_index;				// Current active command from flight - counter
 
-	uint16_t				path_stage_time;			// Current time elapsed when current command/position is reached
-	uint32_t 				flight_start_time;			// Start time of flight
+	float					command_time_s;				// Time elapsed since current command was started
 	uint16_t				command_timeout_s;			// Timeout of each command in flight path
+	uint32_t 				flight_start_time;			// Start time of flight
+
 
 } s_path;
 

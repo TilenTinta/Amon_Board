@@ -23,8 +23,9 @@
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
 //#define IDENTIFICATION
 //#define TEST_MOMENTS				// Uncomment to enable serial print over GPS connector - testing of fin moments
+//#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
 
-#define TUNE_KALMAN
+//#define TUNE_KALMAN
 #ifdef TUNE_KALMAN
 	#define CAL_GYRO_X		1
 	#define CAL_GYRO_Y		1
@@ -201,8 +202,6 @@ typedef struct {
 	uint16_t			take_off_alt_m;			// Take off altitude in meters
 	uint8_t				edf_throttle;			// EDF throttle level
 
-	uint8_t				servo_enable;			// Flag for enabling servo motors
-	uint8_t				edf_enable;				// Flag for enabling edf motor
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
 	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
 
@@ -231,6 +230,9 @@ typedef struct {
 
 // Actuators values
 typedef struct {
+	uint8_t				servo_enable;			// Flag for enabling servo motors
+	uint8_t				edf_enable;				// Flag for enabling edf motor
+
 	uint8_t 			edf_percent;			// Percents of power on EDF
     float 				servo_xp;				// Servo angle - X+
     float 				servo_xn;				// Servo angle - X-
