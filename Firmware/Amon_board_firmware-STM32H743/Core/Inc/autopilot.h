@@ -235,6 +235,7 @@ typedef struct {
 /* Functions */
 
 uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE]);
+uint8_t command_position_reached(s_flight_command *cmd, double x_current[NMPC_NX_SIZE], double x_ref[NMPC_NX_SIZE]);
 
 
 #endif /* INC_AUTOPILOT_H_ */

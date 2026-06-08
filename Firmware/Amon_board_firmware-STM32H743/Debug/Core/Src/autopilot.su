@@ -12,3 +12,4 @@
 ../Core/Src/autopilot.c:514:13:ref_rotate_ccw	16	static
 ../Core/Src/autopilot.c:535:13:ref_hover	16	static
 ../Core/Src/autopilot.c:562:13:ref_return_home	16	static
+../Core/Src/autopilot.c:590:9:command_position_reached	48	static

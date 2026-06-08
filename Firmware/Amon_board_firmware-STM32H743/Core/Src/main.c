@@ -556,10 +556,10 @@ int main(void)
 	  				  // Full packet required (all fields must have value)
 	  #ifdef IDENTIFICATION
 	  				  // Identification test - EDF and Servos - UART RX
-	  				  if (AmonDrone.data.edf_enable == 0) EDFEnable();
+	  				  if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
 	  				  PowerToPWMValue(data_packets.calib_data.edf_pwr_percent);
 	  				  AmonDrone.data.edf_throttle = data_packets.calib_data.edf_pwr_percent;
-	  				  if (AmonDrone.data.servo_enable == 0) TVCServoEnable();
+	  				  if (AmonDrone.actuators.servo_enable == 0) TVCServoEnable();
 	  				  DegresToCCR(data_packets.calib_data.x_plus_angle, SERVO_XP);
 	  				  DegresToCCR(data_packets.calib_data.x_minus_angle, SERVO_XN);
 	  				  DegresToCCR(data_packets.calib_data.y_plus_angle, SERVO_YP);
@@ -867,38 +867,6 @@ int main(void)
 				if (AmonDrone.data.NMPC_enable)
 				{
 					// --------------------------------------------------------------------------------------------------------
-					// Path planing - regulator reference planner //
-					AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;			// Full flight time in seconds
-
-					/* Command check - time or position */
-					uint8_t time_done = 0;
-					uint8_t position_done = 0;
-
-					s_flight_command *cmd = &AmonDrone.flight_path.flight_path[AmonDrone.flight_path.command_index];
-
-					// Check if current command reached its timeout value (if 0 then the command dont have timeout)
-					if (AmonDrone.flight_path.command_timeout_s != 0)
-					{
-						if (AmonDrone.flight_path.command_time_s >= AmonDrone.flight_path.command_timeout_s)
-						{
-							time_done = 1;
-						}
-						else
-						{
-							AmonDrone.flight_path.command_time_s += TIM_100HZ_DT; // Current command elapsed time in seconds
-						}
-					}
-
-					position_done = command_position_reached(cmd, x_current, x_ref);
-
-					if (time_done || position_done)
-					{
-						AmonDrone.flight_path.command_time_s = 0; // Reset elapsed time command counter
-						AmonDrone.flight_path.command_index++;
-					}
-
-
-					// --------------------------------------------------------------------------------------------------------
 					// Refresh all values in state vector //
 					double x_current[NMPC_NX] = {0}; 	// Reset everything
 
@@ -1020,6 +988,37 @@ int main(void)
 						DegresToCCR(AmonDrone.actuators.servo_yp, SERVO_YP);
 						PowerToPWMValue(AmonDrone.actuators.edf_percent);
 					}
+
+					// --------------------------------------------------------------------------------------------------------
+					// Path planing - regulator reference planner //
+					AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;			// Full flight time in seconds
+
+					/* Command check - time or position */
+					uint8_t time_done = 0;
+					uint8_t position_done = 0;
+
+					s_flight_command *cmd = &AmonDrone.flight_path.flight_path[AmonDrone.flight_path.command_index];
+
+					// Check if current command reached its timeout value (if 0 then the command dont have timeout)
+					if (AmonDrone.flight_path.command_timeout_s != 0)
+					{
+						if (AmonDrone.flight_path.command_time_s >= AmonDrone.flight_path.command_timeout_s)
+						{
+							time_done = 1;
+						}
+						else
+						{
+							AmonDrone.flight_path.command_time_s += TIM_100HZ_DT; // Current command elapsed time in seconds
+						}
+					}
+
+					position_done = command_position_reached(cmd, x_current, x_ref);
+
+					if (time_done || position_done)
+					{
+						AmonDrone.flight_path.command_time_s = 0; // Reset elapsed time command counter
+						AmonDrone.flight_path.command_index++;
+					}
 				}
 	  		  } // TIMER 100Hz
 
@@ -1095,7 +1094,7 @@ int main(void)
 			AmonDrone.actuators.servo_yn = 0;
 
 	  #ifdef IDENTIFICATION
-	  		if (AmonDrone.data.edf_enable == 0) EDFEnable();
+	  		if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
 	  		AmonDrone.actuators.edf_percent = 0;
 	  		PowerToPWMValue(AmonDrone.actuators.edf_percent);
 	  #endif
@@ -1879,7 +1878,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi2.Init.CRCPolynomial = 0x0;
-  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi2.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
   hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
   hspi2.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
@@ -2496,7 +2495,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, CS_F_Pin|CS_OF_Pin|CS_SD_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOE, CS_F_Pin|CS_OF_Pin|OF_RST_Pin|CS_SD_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, EN_BUCK_5V_Pin|EN_BUCK_7V2_Pin, GPIO_PIN_RESET);
@@ -2508,20 +2507,17 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, AUX_PORT_Pin|LED_BRD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(OF_RST_GPIO_Port, OF_RST_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, RF1_CSN_Pin|RF2_CSN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, RF1_CE_Pin|RF2_CE_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : CS_F_Pin */
-  GPIO_InitStruct.Pin = CS_F_Pin;
+  /*Configure GPIO pins : CS_F_Pin CS_OF_Pin */
+  GPIO_InitStruct.Pin = CS_F_Pin|CS_OF_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  HAL_GPIO_Init(CS_F_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : EN_BUCK_5V_Pin EN_BUCK_7V2_Pin */
   GPIO_InitStruct.Pin = EN_BUCK_5V_Pin|EN_BUCK_7V2_Pin;
@@ -2544,8 +2540,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CS_OF_Pin OF_RST_Pin CS_SD_Pin */
-  GPIO_InitStruct.Pin = CS_OF_Pin|OF_RST_Pin|CS_SD_Pin;
+  /*Configure GPIO pins : OF_RST_Pin CS_SD_Pin */
+  GPIO_InitStruct.Pin = OF_RST_Pin|CS_SD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

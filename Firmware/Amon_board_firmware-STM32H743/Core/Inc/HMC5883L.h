@@ -18,6 +18,13 @@
  *  - OP_MODE_CONTINUOUS
  */
 
+/* Compass results - heading 0-360deg
+ * 0deg = North
+ * 90deg = East
+ * 180deg = South
+ * 270deg = West
+ */
+
 /*###########################################################################################################################################################*/
 /* Includes */
 #include <stdio.h>
@@ -65,6 +72,16 @@
 
 /* Overflow / invalid measurement value */
 #define HMC5883L_OVERFLOW_VALUE         ((int16_t)-4096)
+
+
+// Hard-iron correction offsets
+/* Correction definition
+ * 	 X_OFFSET = (x_min + x_max) / 2.0f;
+ * 	 Y_OFFSET = (y_min + y_max) / 2.0f;
+ */
+#define X_GAUSS_CORR					0.0f
+#define Y_GAUSS_CORR					0.008f
+#define Z_GAUSS_CORR					0.040f
 
 
 /*###########################################################################################################################################################*/

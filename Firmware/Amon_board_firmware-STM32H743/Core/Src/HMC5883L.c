@@ -349,14 +349,17 @@ uint8_t HMC5883L_ReadHeading(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, floa
         return 1;   // NOK
     }
 
+    // Flat PCB on a desk
+//  float x_corr = dev->X_Gauss + X_GAUSS_CORR; // 0.049f
+//  float y_corr = dev->Y_Gauss + Y_GAUSS_CORR; // 0.012f
+//  headingRad = atan2f(dev->Y_Gauss, dev->X_Gauss); // Flat PCB orientation
+
     // IC on drone mapping
-    float mx = dev->Y_Gauss;
-    float my = -dev->X_Gauss;
-    float mz = dev->Z_Gauss;
-
-    headingRad = atan2f(my, mx); // Vertical PCB orientation
-
-    //headingRad = atan2f(dev->Y_Gauss, dev->X_Gauss); // *Flat PCB orientation
+    float y_corr = dev->Y_Gauss - Y_GAUSS_CORR;
+    float z_corr = dev->Z_Gauss - Z_GAUSS_CORR;
+    headingRad = atan2f(z_corr, y_corr); // Vertical PCB orientation
+//    headingRad = atan2f(-z_corr, y_corr);
+//    headingRad = atan2f(z_corr, -y_corr);
 
     headingRad += (declination_deg * pi / 180.0f);
 

@@ -21,8 +21,8 @@
 
 // Calibration //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
-//#define IDENTIFICATION
-//#define TEST_MOMENTS				// Uncomment to enable serial print over GPS connector - testing of fin moments
+#define IDENTIFICATION				// Uncomment to enable serial communication over USB
+//#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments
 //#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
 
 //#define TUNE_KALMAN

@@ -587,7 +587,7 @@ static void ref_return_home(s_data_return_home *data, double x_ref[NMPC_NX_SIZE]
  *
  * @return  none
  */
-static uint8_t command_position_reached(s_flight_command *cmd, double x_current[NMPC_NX_SIZE], double x_ref[NMPC_NX_SIZE])
+uint8_t command_position_reached(s_flight_command *cmd, double x_current[NMPC_NX_SIZE], double x_ref[NMPC_NX_SIZE])
 {
     double dx = x_current[0] - x_ref[0];
     double dy = x_current[1] - x_ref[1];
