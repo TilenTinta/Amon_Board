@@ -7,6 +7,7 @@
 *****************************************************************/
 
 #include "filters.h"
+#include <math.h>
 
 /*###########################################################################################################################################################*/
 /* Private functions */
@@ -198,6 +199,29 @@ void Kalman_Init(s_Kalman *k)
 }
 
 
+/*********************************************************************
+* @fn     	KalmanZ_Init
+*
+* @param 	*kz: struct to kalman filter data
+* @param 	*Q_z: process noise - position
+* @param 	*Q_vz: process noise - velocity
+* @param 	 R: measurement noise - TOF sensor
+*
+* @brief   Kalman filter initialization - ToF
+*
+* @return  None
+*/
+void KalmanZ_Init(s_KalmanZ *kf, float Q_z, float Q_vz, float R)
+{
+	kf->z = 0.0f;
+	kf->vz = 0.0f;
+	kf->P[0][0] = 1.0f; kf->P[0][1] = 0.0f;
+	kf->P[1][0] = 0.0f; kf->P[1][1] = 1.0f;
+	kf->Q_z = Q_z;
+	kf->Q_vz = Q_vz;
+	kf->R = R;
+}
+
 
  /*********************************************************************
  * @fn     	Kalman_Update
@@ -220,8 +244,8 @@ void Kalman_rawToAngles(s_drone_data *drone, float *roll_angle_accel, float *pit
 	accel_normalize(&ax, &ay, &az); // Normalize accel vector
 
 	// Tilt angles (standard stable formulas) - angles from gravitation
-	*roll_angle_accel  = atan2f(-ay, az) * RAD_TO_DEG;
-	*pitch_angle_accel = atan2f(ax, az) * RAD_TO_DEG;
+	*pitch_angle_accel = -atan2f(-ay, az) * RAD_TO_DEG;  // angle around body X
+	*roll_angle_accel = -atan2f( ax, az) * RAD_TO_DEG;  // angle around body Y
 }
 
 
@@ -318,6 +342,146 @@ float Kalman_Update(s_Kalman *k, float gyro_meas, float accel_angle, float dt)
 	return k->angle;
 }
 
+
+
+/*********************************************************************
+* @fn     	Kalman_Update
+*
+* @param 	*k: struct to kalman filter data
+* @param	gyro_z: gyzo for this axis
+* @param	mag_yaw: compas yaw value
+* @param	mag_valid: use compass or not
+* @param 	dt: delta time - depends on timer
+*
+* @brief   	Kalman calculation for yaw rotation
+*
+* @return  	angle for calculated axis
+*/
+float Kalman_UpdateYaw(s_Kalman *k, float gyro_z, float mag_yaw, uint8_t mag_valid, float dt)
+{
+    const float Q_angle = 0.001f;
+    const float Q_bias  = 0.0005f;
+    const float R_mag   = 4.0f;
+
+    // Predict every cycle
+    k->angle += (gyro_z - k->bias) * dt;
+
+    float P00 = k->P00;
+    float P01 = k->P01;
+    float P10 = k->P10;
+    float P11 = k->P11;
+
+    k->P00 = P00 + dt * (dt * P11 - P01 - P10) + Q_angle * dt;
+    k->P01 = P01 - dt * P11;
+    k->P10 = P10 - dt * P11;
+    k->P11 = P11 + Q_bias * dt;
+
+    if (mag_valid)
+    {
+        mag_yaw = unwrap_to_ref(mag_yaw, k->angle);
+
+        float innovation = mag_yaw - k->angle;
+
+        if (innovation > 180.0f) innovation -= 360.0f;
+        if (innovation < -180.0f) innovation += 360.0f;
+
+        // Remove compass spikes
+        if (fabsf(innovation) < 120.0f)
+        {
+            float S = k->P00 + R_mag;
+            float K0 = k->P00 / S;
+            float K1 = k->P10 / S;
+
+            k->angle += K0 * innovation;
+            k->bias  += K1 * innovation;
+
+            float P00_temp = k->P00;
+            float P01_temp = k->P01;
+
+            k->P00 -= K0 * P00_temp;
+            k->P01 -= K0 * P01_temp;
+            k->P10 -= K1 * P00_temp;
+            k->P11 -= K1 * P01_temp;
+        }
+    }
+
+    if (k->angle > 180.0f)  k->angle -= 360.0f;
+    if (k->angle < -180.0f) k->angle += 360.0f;
+
+    return k->angle;
+}
+
+
+
+/*********************************************************************
+* @fn     	KalmanZ_Predict
+*
+* @param 	*kf: struct to kalman filter data
+* @param	dt: delta time of filter
+*
+* @brief   	Kalman prediction step - Call every xxxHz cycle
+*
+* @return  	predicted height
+*/
+void KalmanZ_Predict(s_KalmanZ *kf, float dt)
+{
+    // State prediction
+    kf->z  = kf->z + kf->vz * dt;
+    // kf->vz unchanged (constant velocity model)
+
+    // Covariance prediction: P = F*P*F^T + Q
+    float P00 = kf->P[0][0], P01 = kf->P[0][1];
+    float P10 = kf->P[1][0], P11 = kf->P[1][1];
+
+    float new_P00 = P00 + dt*(P10 + P01) + dt*dt*P11 + kf->Q_z;
+    float new_P01 = P01 + dt*P11;
+    float new_P10 = P10 + dt*P11;
+    float new_P11 = P11 + kf->Q_vz;
+
+    kf->P[0][0] = new_P00;
+    kf->P[0][1] = new_P01;
+    kf->P[1][0] = new_P10;
+    kf->P[1][1] = new_P11;
+}
+
+
+
+/*********************************************************************
+* @fn     	KalmanZ_Update
+*
+* @param 	*kf: struct to kalman filter data
+* @param	z_measured: actual measured height
+*
+* @brief   	Kalman correction step - Call only
+* 			when new meassurement is available
+*
+* @return  	corrected height
+*/
+void KalmanZ_Update(s_KalmanZ *kf, float z_measured)
+{
+    // Innovation
+    float y = z_measured - kf->z;
+
+    // Innovation covariance
+    float S = kf->P[0][0] + kf->R;
+
+    // Kalman gain
+    float K0 = kf->P[0][0] / S;
+    float K1 = kf->P[1][0] / S;
+
+    // State update
+    kf->z  += K0 * y;
+    kf->vz += K1 * y;
+
+    // Covariance update: P = (I - K*H) * P
+    float P00 = kf->P[0][0], P01 = kf->P[0][1];
+    float P10 = kf->P[1][0], P11 = kf->P[1][1];
+
+    kf->P[0][0] = P00 - K0 * P00;
+    kf->P[0][1] = P01 - K0 * P01;
+    kf->P[1][0] = P10 - K1 * P00;
+    kf->P[1][1] = P11 - K1 * P01;
+}
 
 
 /*********************************************************************

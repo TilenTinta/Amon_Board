@@ -28,10 +28,6 @@ Drivers/STM32H7xx_HAL_Driver/Src \
 Drivers/littlefs \
 Drivers/vl53l1x/core \
 Drivers/vl53l1x/platform \
-FATFS/App \
-FATFS/Target \
-Middlewares/Third_Party/FatFs/src \
-Middlewares/Third_Party/FatFs/src/option \
 acados/acados/dense_qp \
 acados/acados/ocp_nlp \
 acados/acados/ocp_qp \

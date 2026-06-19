@@ -82,12 +82,30 @@ int NMPC_SetState(s_NMPC *h, const double *x)
     // Store locally
     memcpy(h->x0, x, NMPC_NX * sizeof(double));
 
+    ocp_nlp_constraints_model_set(
+					s_capsule->nlp_config,
+					s_capsule->nlp_dims,
+					s_capsule->nlp_in,
+					s_capsule->nlp_out,
+					0, "lbx", h->x0
+				);
+
+    ocp_nlp_constraints_model_set(
+					s_capsule->nlp_config,
+					s_capsule->nlp_dims,
+					s_capsule->nlp_in,
+					s_capsule->nlp_out,
+					0, "ubx", h->x0
+				);
+
     // Set initial state as warm-start at node 0
-    ocp_nlp_out_set(s_capsule->nlp_config,
+    ocp_nlp_out_set(
+    				s_capsule->nlp_config,
                     s_capsule->nlp_dims,
                     s_capsule->nlp_out,
                     s_capsule->nlp_in,
-                    0, "x", h->x0);
+                    0, "x", h->x0
+				);
 
     return NMPC_OK;
 }

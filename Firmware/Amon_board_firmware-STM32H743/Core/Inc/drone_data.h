@@ -21,7 +21,7 @@
 
 // Calibration //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
-#define IDENTIFICATION				// Uncomment to enable serial communication over USB
+//#define IDENTIFICATION			// Uncomment to enable serial communication over USB
 //#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments
 //#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
 
@@ -41,11 +41,13 @@
 
 // Drone options //
 #define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
-#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
+//#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
 #define LOG_ENABLE					// Enable logging of telemetry data
+#define LOG_DELAY			3		// Delay after which log is turned off
 #define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
 
 // Radio / telemetry //
+//#define RADIO_HW_ACK				// Uncomment to enable use of HW ACK function provided by IC (NRF24L01)
 #define RADIO_NUM			2 		// Set number of radios mounted on board
 #define CONN_TIMEOUT_SEC	3		// Amount off seconds that triggers timeout/lost connection
 //#define CONN_STEPS_2				// If using only OPT_PAIR_START signal for pairing comment this
@@ -122,12 +124,13 @@ typedef enum {
 
 // Drone: date-time
 typedef struct {
-	uint8_t		day;
-	uint8_t		month;
-	uint16_t	year;
-	uint8_t 	hour;
-	uint8_t 	minutes;
-	uint8_t 	seconds;
+	uint8_t				day;
+	uint8_t				month;
+	uint16_t			year;
+	uint8_t 			hour;
+	uint8_t 			minutes;
+	uint8_t 			seconds;
+
 } s_date_time;
 
 
@@ -157,28 +160,34 @@ typedef struct {
 	float 				Roll;
 	float 				Yaw;
 
-	float				position_x;	// Drone body position in space - x axis
-	float				position_y;	// Drone body position in space - y axis
-	float				position_z;	// Drone body position in space - z axis
+	float				position_x;				// Drone body position in space - x axis
+	float				position_y;				// Drone body position in space - y axis
+	float				position_z;				// Drone body position in space - z axis
 
-	uint16_t			gyroTemp;	// Temperature of IMU
-	float				accel_x;	// Raw data - acceleration x
-	float				accel_y;	// Raw data - acceleration y
-	float				accel_z;	// Raw data - acceleration z
-	float				gyro_x;		// Raw data - gyro x
-	float				gyro_y;		// Raw data - gyro y
-	float				gyro_z;		// Raw data - gyro z
-	float				quaternion[4];	// Quaternion from Euler angles: Body to World system
+	float				velocity_x;				// Drone body velocity in space - x axis
+	float				velocity_y;				// Drone body velocity in space - y axis
+	float				velocity_z;				// Drone body velocity in space - z axis
+
+	uint16_t			gyroTemp;				// Temperature of IMU
+	float				accel_x;				// Raw data - acceleration x
+	float				accel_y;				// Raw data - acceleration y
+	float				accel_z;				// Raw data - acceleration z
+	float				gyro_x;					// Raw data - gyro x
+	float				gyro_y;					// Raw data - gyro y
+	float				gyro_z;					// Raw data - gyro z
+	float				quaternion[4];			// Quaternion from Euler angles: Body to World system
 
 	/* Height of drone (when on ground the height is 0, offset on sensor set to 130mm) */
+	uint8_t				flag_new_ToF_data;		// Flag indicating new data acquired from ToF sensor
 	uint16_t 			height_TOF_mm;
+	float	 			height_TOF_mm_filtered;
 	uint16_t			height_baro_m;
 
 	// Compass
-    float               x_gauss;	// X axis in Gauss
-    float               y_gauss;	// Y axis in Gauss
-    float               z_gauss;	// Z axis in Gauss
-    float				heading_deg;// Heading direction in degrees
+    float               x_gauss;				// X axis in Gauss
+    float               y_gauss;				// Y axis in Gauss
+    float               z_gauss;				// Z axis in Gauss
+    float				heading_deg;			// Heading direction in degrees
 
 } s_position;
 
@@ -200,10 +209,12 @@ typedef struct {
 	uint8_t				humidity;				// Humidity
 	uint32_t			pressure;				// Pressure
 	uint16_t			take_off_alt_m;			// Take off altitude in meters
-	uint8_t				edf_throttle;			// EDF throttle level
 
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
 	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
+
+	uint8_t				flag_e_kill;			// Emergency stop/kill flag
+	uint8_t				flag_land_now;			// Land immediately no matter what
 
 } s_data;
 
@@ -222,6 +233,7 @@ typedef struct {
     const char		    *log_file;				// Name of log file
     uint8_t				flag_log_dump;			// Flag indication complete log dump over UART
     uint8_t				flag_log_remove;		// Flag for deleting log file
+    uint8_t				log_save_delay;			// Delay at the end of flight after which log is turned off
 
     s_packets			packets;				// UART and RF packets
 
@@ -261,6 +273,7 @@ typedef struct {
 	uint8_t				err_radio2;				// Error flag - radio2 / nrf24l01 radio error
 	uint8_t				err_hmc5883l;			// Error flag - hmc5883l sensor error
 	uint8_t				err_pmw3901;			// Error flag - pmw3901 sensorerror
+	uint8_t				err_flash;				// Error flag - flash chip of LittleFS
 
 } s_errors;
 

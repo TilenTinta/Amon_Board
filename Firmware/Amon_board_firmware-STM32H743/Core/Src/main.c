@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -116,6 +115,7 @@ void StatusLED(uint8_t Status);
 volatile uint8_t DroneStatusLocal = 0;
 volatile uint8_t DroneStatusOld = 20;
 volatile uint8_t StartupInit = 0;
+volatile uint8_t armCheck = 0;
 
 uint8_t LED_blink_cnt_ON;
 uint8_t LED_blink_cnt_double;
@@ -132,6 +132,8 @@ uint16_t RGB_Blue = 600;
 uint16_t RGB_RedMax = 0;
 uint16_t RGB_GreenMax = 0;
 uint16_t RGB_BlueMax = 0;
+
+uint8_t timer_divider_100to50 = 0;		// Test to convert 100Hz timer to 50Hz
 
 // Battery data
 volatile uint8_t ADC_DMA_DataRdy = 0;
@@ -170,6 +172,7 @@ s_packets 			data_packets;	// Data structure for communication packets
 s_Kalman			kalman_pitch;	// Kalman values for pitch
 s_Kalman			kalman_roll;	// Kalman values for roll
 s_Kalman			kalman_yaw;		// Kalman values for yaw
+s_KalmanZ			kalman_tof;		// Kalman values for height
 s_Quaternion		quaternion;		// Quaternion based on Euler angles
 s_NMPC				nmpc = {0};		// NMPC regulator
 
@@ -216,7 +219,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_FATFS_Init();
   MX_ADC1_Init();
   MX_SPI4_Init();
   MX_UART5_Init();
@@ -242,7 +244,11 @@ int main(void)
     static const s_nrf_config radio_tx_normal_cfg = {
         .channel = 100,	//42
         .addr_width = AW_5BYTE,
-        .auto_ack = 0, // 1 TEST
+#ifdef RADIO_HW_ACK
+        .auto_ack = 1,
+#else
+		.auto_ack = 0,
+#endif
         .dynamic_payload = 1,
         .retries = 15,
         .retry_delay = ARD_3500us, //ARD_1250us
@@ -270,8 +276,12 @@ int main(void)
     static const s_nrf_config radio_rx_normal_cfg = {
         .channel = 70,
         .addr_width = AW_5BYTE,
-        .auto_ack = 0, // 1
-        .dynamic_payload = 1,
+#ifdef RADIO_HW_ACK
+        .auto_ack = 1,
+#else
+		.auto_ack = 0,
+#endif
+		.dynamic_payload = 1,
         .retries = 0,
         .retry_delay = 0,
         .datarate = NRF_DATARATE_1MBPS,
@@ -401,9 +411,11 @@ int main(void)
 	  			  if (AmonDrone.radio_data.flag_stream_data == 1)
 	  			  {
 	  				  AmonDrone.radio_data.flag_stream_data = 0;
+#ifdef RADIO_HW_ACK
 	  				  radio1.config = &radio_tx_normal_cfg;
 	  				  NRF24_init(&radio1);
 	  				  HAL_Delay(10);
+#endif
 	  			  }
 	  		  }
 
@@ -415,8 +427,6 @@ int main(void)
 	  			  memset(radio1.buffers.TX_FIFO, 0, sizeof(radio1.buffers.TX_FIFO));
 	  			  RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
 	  			  NRF24_Send(&radio1);
-
-
 	  		  }
 	  	  }
 
@@ -431,22 +441,18 @@ int main(void)
 	  			if (AmonDrone.radio_data.flag_stream_data == 1)
 	  			{
 	  				AmonDrone.radio_data.flag_stream_data = 0;
+#ifdef RADIO_HW_ACK
 	  				radio1.config = &radio_tx_normal_cfg;
 	  				NRF24_init(&radio1);
-	  				HAL_Delay(10);
+	  				HAL_Delay(2);
+#endif
 	  			}
 
 	  			// Detect successful connection
 	  			if (AmonDrone.radio_data.flag_connection_begin == 1)
 	  			{
 	  				AmonDrone.radio_data.conn_status = CONN_STATUS_CONNECTED;
-	  				HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
 	  			}
-	  			else
-	  			{
-	  				HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
-	  			}
-
 
 	  			break;
 
@@ -463,6 +469,7 @@ int main(void)
 	  				RF_encode(&data_packets, radio1.buffers.TX_FIFO, &radio1.buffers.tx_lenght);
 	  				//radio1.flag_tx_in_progress = 0;
 	  				NRF24_Send(&radio1);
+	  				HAL_GPIO_TogglePin(LED_BRD_GPIO_Port, LED_BRD_Pin);
 	  			}
 
 	  			break;
@@ -605,10 +612,14 @@ int main(void)
 	  			  // Read sensors //
 	  			  MPU6050_ReadAllDirect(&mpu6050, &hi2c2);
 
-	  			  /* Save raw data for telemetry - Sensor -> Drone frame
+	  			  /* Axis mapping: Sensor -> Drone frame
 				   * Drone X+ = Right
 				   * Drone Y+ = Forward
 				   * Drone Z+ = Up
+				   *
+				   * body X =  sensor Y
+				   * body Y = -sensor Z
+				   * body Z =  sensor X
 				   */
 	  			  AmonDrone.position.gyroTemp = (uint16_t)mpu6050.Temp_C;
 
@@ -631,16 +642,17 @@ int main(void)
 	  			  float pitch_angle_accel = 0;
 
 	  			  Kalman_rawToAngles(&AmonDrone, &roll_angle_accel, &pitch_angle_accel);
-	  			  float mag_yaw = AmonDrone.position.heading_deg;
+				  roll_angle_accel  = unwrap_to_ref(roll_angle_accel,  kalman_roll.angle);
+				  pitch_angle_accel = unwrap_to_ref(pitch_angle_accel, kalman_pitch.angle);
 
-	  			  // Unwrap accel based on current estimation
-	  			  roll_angle_accel  = unwrap_to_ref(roll_angle_accel,  kalman_roll.angle);
-	  			  pitch_angle_accel = unwrap_to_ref(pitch_angle_accel, kalman_pitch.angle);
-	  			  mag_yaw = unwrap_to_ref(mag_yaw, AmonDrone.position.Yaw);
+	  			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, -AmonDrone.position.gyro_x, pitch_angle_accel, DT);
+	  			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, -AmonDrone.position.gyro_y, roll_angle_accel, DT);
 
-	  			  AmonDrone.position.Pitch = Kalman_Update(&kalman_pitch, AmonDrone.position.gyro_y, pitch_angle_accel, DT);
-	  			  AmonDrone.position.Roll = Kalman_Update(&kalman_roll, AmonDrone.position.gyro_x, roll_angle_accel, DT);
-	  			  AmonDrone.position.Yaw = Kalman_Update(&kalman_yaw, AmonDrone.position.gyro_z, mag_yaw, DT);
+
+	  			  uint8_t mag_valid = hmc5883l.flag_new_data;
+	  			  hmc5883l.flag_new_data = 0;
+
+	  			  AmonDrone.position.Yaw = Kalman_UpdateYaw(&kalman_yaw, AmonDrone.position.gyro_z, AmonDrone.position.heading_deg, mag_valid, DT);
 
 	  			  //quaternion = eulerToQuaternion(AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw);
 	  			  //gyroToQuaternion(&quaternion, AmonDrone.position.gyro_x, AmonDrone.position.gyro_y, AmonDrone.position.gyro_z, DT); // Check order of angles
@@ -682,6 +694,7 @@ int main(void)
 	  			  {
 	  				  VL53L1X_GetDistance(&vl53l1Dev, &hi2c2, &AmonDrone.position.height_TOF_mm);
 	  				  VL53L1X_ClearInterrupt(&vl53l1Dev, &hi2c2);
+	  				  AmonDrone.position.flag_new_ToF_data = 1;
 	  				  dataRdy = 0; // remove?
 	  			  }
 
@@ -694,15 +707,25 @@ int main(void)
 	  			  AmonDrone.position.height_baro_m = bme280.altitude_m;
 
 	  			  // HMC5883L
+	  			  /* Axis mapping: Sensor -> drone body
+	  			   * body X/right   = -compass Y
+	  			   * body Y/forward = -compass Z
+	  			   * body Z/up      =  compass X
+	  			   *
+	  			   * */
 	  			  uint8_t status = 0;
 	  			  HMC5883L_ReadStatus(&hmc5883l, &hi2c2, &status);
 	  			  if (hmc5883l.DataReady)
 	  			  {
-	  				  HMC5883L_ReadHeading(&hmc5883l, &hi2c2, DECLINATION_DEG);
-	  				  AmonDrone.position.heading_deg = hmc5883l.HeadingDeg;
-	  				  AmonDrone.position.x_gauss = hmc5883l.X_Gauss;
-	  				  AmonDrone.position.y_gauss = hmc5883l.Y_Gauss;
-	  				  AmonDrone.position.z_gauss = hmc5883l.Z_Gauss;
+	  				  //HMC5883L_ReadHeading(&hmc5883l, &hi2c2, DECLINATION_DEG);
+	  				  if (HMC5883L_ReadHeadingTiltCompensated(&hmc5883l, &hi2c2, DECLINATION_DEG, AmonDrone.position.Roll, AmonDrone.position.Pitch) == 0)
+	  				  {
+						  AmonDrone.position.heading_deg = hmc5883l.HeadingDeg;
+						  AmonDrone.position.x_gauss = -hmc5883l.Y_Gauss;
+						  AmonDrone.position.y_gauss = -hmc5883l.Z_Gauss;
+						  AmonDrone.position.z_gauss = hmc5883l.X_Gauss;
+						  hmc5883l.flag_new_data = 1;
+	  				  }
 	  			  }
 
 
@@ -720,8 +743,11 @@ int main(void)
 	  			  if (AmonDrone.uart_buffer.flag_logging_active == 1) log_add_sample(&AmonDrone.position, &AmonDrone.data, &AmonDrone.actuators);
 
 	  			  // EDF ramp-up //
-	  #ifdef EDF_RAMP_UP_EN
-	  			  if (!AmonDrone.actuators.rampUpDone) EDFSlowRamp(&AmonDrone.actuators);
+	  #if defined(EDF_RAMP_UP_EN) && !defined(IDENTIFICATION)
+	  			  if (!AmonDrone.actuators.rampUpDone && AmonDrone.DroneStatus == STATUS_FLY)
+	  			  {
+	  				  EDFSlowRamp(&AmonDrone.actuators);
+	  			  }
 	  #endif
 
 
@@ -763,6 +789,23 @@ int main(void)
 	  					  HAL_Delay(10);
 	  				  }
 	  			  }
+
+	  			  // After hopefully successful landing turn off logging with delay
+	  			  if (AmonDrone.uart_buffer.flag_logging_active == 1 && AmonDrone.DroneStatus == STATUS_FLY_OVER)
+	  			  {
+	  				  if (AmonDrone.uart_buffer.log_save_delay >= LOG_DELAY)
+	  				  {
+	  					  AmonDrone.uart_buffer.flag_logging_active = 0;
+	  				  }
+	  				  else
+	  				  {
+	  					AmonDrone.uart_buffer.log_save_delay++;
+	  				  }
+	  			  }
+
+  				  // Path planing - regulator reference planner //
+  				  if (AmonDrone.DroneStatus == STATUS_FLY) AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;			// Full flight time in seconds
+
 	  		  } // TIMER 1Hz
 
 
@@ -800,28 +843,22 @@ int main(void)
 	  			  AmonDrone.data.buck_5v_voltage = buck_5v_temp / (sizeof(AmonDrone.data.buck_5V_v) / sizeof(uint16_t));
 	  			  AmonDrone.data.buck_7v2_voltage = buck_7v2_temp / (sizeof(AmonDrone.data.buck_7V2_v) / sizeof(uint16_t));
 
-	  			  if (AmonDrone.data.battery_main_voltage)
-	  			  {
-					  if (AmonDrone.data.battery_main_voltage < 1050) // less than 10.5V
-					  {
-						  AmonDrone.error_code.err_main_bat = 1;
-					  }
-					  else
-					  {
-						  AmonDrone.error_code.err_main_bat = 0;
-					  }
-	  			  }
-
-	  			  if (AmonDrone.data.battery_edf_voltage)
+				  if (AmonDrone.data.battery_main_voltage < 1050) // less than 10.5V
 				  {
-					  if (AmonDrone.data.battery_edf_voltage < 2100) // less than 21V
-					  {
-						  AmonDrone.error_code.err_edf_bat = 1;
-					  }
-					  else
-					  {
-						  AmonDrone.error_code.err_edf_bat = 0;
-					  }
+					  AmonDrone.error_code.err_main_bat = 1;
+				  }
+				  else
+				  {
+					  AmonDrone.error_code.err_main_bat = 0;
+				  }
+
+				  if (AmonDrone.data.battery_edf_voltage < 2100) // less than 21V
+				  {
+					  AmonDrone.error_code.err_edf_bat = 1;
+				  }
+				  else
+				  {
+					  AmonDrone.error_code.err_edf_bat = 0;
 				  }
 
 	  			  if (AmonDrone.data.buck_5v_enable)
@@ -835,6 +872,10 @@ int main(void)
 						  AmonDrone.error_code.err_buck_5v = 0;
 					  }
 	  			  }
+	  			  else
+				  {
+					  AmonDrone.error_code.err_buck_5v = 0;
+				  }
 
 	  			  if (AmonDrone.data.buck_7v2_enable)
 	  			  {
@@ -847,6 +888,10 @@ int main(void)
 	  					  AmonDrone.error_code.err_buck_7v2 = 0;
 	  				  }
 	  			  }
+	  			  else
+				  {
+					  AmonDrone.error_code.err_buck_7v2 = 0;
+				  }
 
 	  			  ADC_DMA_DataRdy = 0;
 	  		  }
@@ -857,15 +902,24 @@ int main(void)
 	  		  if (IRQ_NMPCLoopEN == 1)
 	  		  {
 				IRQ_NMPCLoopEN = 0;
+				timer_divider_100to50++;
 
+				// Kalman filter for height - ToF //
+				KalmanZ_Predict(&kalman_tof, TIM_100HZ_DT);
 
-
-
-
-
-				// ================== NMPC ==================
-				if (AmonDrone.data.NMPC_enable)
+				if (AmonDrone.position.flag_new_ToF_data)
 				{
+				    float z_meas = AmonDrone.position.height_TOF_mm / 1000.0f;
+				    KalmanZ_Update(&kalman_tof, z_meas);
+				    AmonDrone.position.flag_new_ToF_data = 0;
+				    AmonDrone.position.height_TOF_mm_filtered = kalman_tof.z;    // position z [m]
+				    AmonDrone.position.velocity_z = kalman_tof.vz;	// vz [m/s]
+				}
+
+				// =========================== NMPC ===========================
+				if (AmonDrone.data.NMPC_enable && timer_divider_100to50 >= 2)
+				{
+					timer_divider_100to50 = 0;
 					// --------------------------------------------------------------------------------------------------------
 					// Refresh all values in state vector //
 					double x_current[NMPC_NX] = {0}; 	// Reset everything
@@ -875,23 +929,19 @@ int main(void)
 					x_current[1] = 0.0f;                                       // pos y (GPS/optical flow)
 //	  				x_current[0] = AmonDrone.position.position_x;              // [m]
 //	  				x_current[1] = AmonDrone.position.position_y;              // [m]
-					x_current[2] = AmonDrone.position.height_TOF_mm / 1000.0;  // pos z [m]
+					x_current[2] = AmonDrone.position.height_TOF_mm_filtered;  // pos z [m]
 
 					// --- Velocity [3:6] ---
 					// You don't have direct velocity measurement — estimate or keep 0
-					// A simple numerical derivative works for z:
-					// vz = (z_current - z_previous) / dt;
-					static double vz = 0;
 					x_current[3] = 0.0;  // vx
 					x_current[4] = 0.0;  // vy
-					x_current[5] = vz;  // vz  (or numerical derivative of height)
-					vz = (vz - (AmonDrone.position.height_TOF_mm / 1000.0)) / TIM_100HZ_DT;
+					x_current[5] = AmonDrone.position.velocity_z;			// vz [m/s] - kalman
 
 					// --- Quaternion [6:10] ---
-					x_current[6]  = AmonDrone.position.quaternion[0];	// qw
-					x_current[7]  = AmonDrone.position.quaternion[1];	// qx
-					x_current[8]  = AmonDrone.position.quaternion[2];	// qy
-					x_current[9]  = AmonDrone.position.quaternion[3];	// qz
+					x_current[6]  = AmonDrone.position.quaternion[0];		// qw
+					x_current[7]  = AmonDrone.position.quaternion[1];		// qx
+					x_current[8]  = AmonDrone.position.quaternion[2];		// qy
+					x_current[9]  = AmonDrone.position.quaternion[3];		// qz
 
 					// --- Angular rates [10:13] ---
 					// gyro values must be in rad/s
@@ -922,8 +972,18 @@ int main(void)
 					// Set NMPC controller reference values //
 					double x_ref[NMPC_NX] = {0};		// Reset everything
 
-					execute_flight_command(&AmonDrone.flight_path, x_ref);
-					// TODO: Trajectory generator?
+					if (AmonDrone.data.flag_land_now)
+					{
+					    // Cancel current flight path execution
+						AmonDrone.flight_status = STATUS_FLIGHT_LANDING;
+						land_now(&AmonDrone.flight_path, x_ref, AmonDrone.position.position_x, AmonDrone.position.position_y);
+					}
+					else
+					{
+						execute_flight_command(&AmonDrone.flight_path, x_ref);
+						// TODO: Trajectory generator?
+					}
+
 
 					double u_ref[NMPC_NU] = {
 					    87.0,  // hover thrust / EDF nominal
@@ -962,37 +1022,50 @@ int main(void)
 
 					// --------------------------------------------------------------------------------------------------------
 					// Limit actuator values and write them to actuators //
-					if (ret == NMPC_OK || ret == NMPC_SOLVER_ERR)
+					if (ret == NMPC_OK ) // || ret == NMPC_SOLVER_ERR
 					{
+					    static float servo_xp_old = 0.0f;
+					    static float servo_xn_old = 0.0f;
+					    static float servo_yp_old = 0.0f;
+					    static float servo_yn_old = 0.0f;
+
 						double u[NMPC_NU];
 						NMPC_GetControl(&nmpc, u);
 
 						// Clamp before applying - defensive programming
-						u[0] = fmax(0.0,  fmin(100.0, u[0]));  // thrust	[0..100]
-						u[1] = fmax(-45.0, fmin(45.0, u[1]));  // servo		[-45..45]
-						u[2] = fmax(-45.0, fmin(45.0, u[2]));
-						u[3] = fmax(-45.0, fmin(45.0, u[3]));
-						u[4] = fmax(-45.0, fmin(45.0, u[4]));
+						u[0] = fmax(NMPC_U0_MIN, fmin(NMPC_U0_MAX, u[0]));  // thrust	[0..100]
+						u[1] = fmax(NMPC_UX_MIN, fmin(NMPC_UX_MAX, u[1]));  // servo	[-45..45]
+						u[2] = fmax(NMPC_UX_MIN, fmin(NMPC_UX_MAX, u[2]));
+						u[3] = fmax(NMPC_UX_MIN, fmin(NMPC_UX_MAX, u[3]));
+						u[4] = fmax(NMPC_UX_MIN, fmin(NMPC_UX_MAX, u[4]));
 
-						// Save actuators values
-						AmonDrone.actuators.edf_percent = u[0];
-						AmonDrone.actuators.servo_xp = u[1];
-						AmonDrone.actuators.servo_xn = u[2];
-						AmonDrone.actuators.servo_yp = u[3];
-						AmonDrone.actuators.servo_yn = u[4];
+						// Servo slew-rate limitation ("jumpy and spiny servos") - sort of real servo feedback
+						float servo_xp_cmd = SlewLimit((float)u[1], servo_xp_old, SERVO_MAX_STEP_DEG);
+						float servo_xn_cmd = SlewLimit((float)u[2], servo_xn_old, SERVO_MAX_STEP_DEG);
+						float servo_yp_cmd = SlewLimit((float)u[3], servo_yp_old, SERVO_MAX_STEP_DEG);
+						float servo_yn_cmd = SlewLimit((float)u[4], servo_yn_old, SERVO_MAX_STEP_DEG);
+
+						AmonDrone.actuators.edf_percent = (float)u[0];
+						AmonDrone.actuators.servo_xp = servo_xp_cmd;
+						AmonDrone.actuators.servo_xn = servo_xn_cmd;
+						AmonDrone.actuators.servo_yp = servo_yp_cmd;
+						AmonDrone.actuators.servo_yn = servo_yn_cmd;
 
 						// Set motor to position/power
+						PowerToPWMValue(AmonDrone.actuators.edf_percent);
 						DegresToCCR(AmonDrone.actuators.servo_xn, SERVO_XN);
 						DegresToCCR(AmonDrone.actuators.servo_xp, SERVO_XP);
 						DegresToCCR(AmonDrone.actuators.servo_yn, SERVO_YN);
 						DegresToCCR(AmonDrone.actuators.servo_yp, SERVO_YP);
-						PowerToPWMValue(AmonDrone.actuators.edf_percent);
+
+						// Save current values for next iteration check
+						servo_xp_old = AmonDrone.actuators.servo_xp;
+						servo_xn_old = AmonDrone.actuators.servo_xn;
+						servo_yp_old = AmonDrone.actuators.servo_yp;
+						servo_yn_old = AmonDrone.actuators.servo_yn;
 					}
 
 					// --------------------------------------------------------------------------------------------------------
-					// Path planing - regulator reference planner //
-					AmonDrone.flight_path.flight_start_time += TIM_1HZ_DT;			// Full flight time in seconds
-
 					/* Command check - time or position */
 					uint8_t time_done = 0;
 					uint8_t position_done = 0;
@@ -1008,7 +1081,7 @@ int main(void)
 						}
 						else
 						{
-							AmonDrone.flight_path.command_time_s += TIM_100HZ_DT; // Current command elapsed time in seconds
+							AmonDrone.flight_path.command_time_s += TIM_50HZ_DT; // Current command elapsed time in seconds
 						}
 					}
 
@@ -1018,6 +1091,11 @@ int main(void)
 					{
 						AmonDrone.flight_path.command_time_s = 0; // Reset elapsed time command counter
 						AmonDrone.flight_path.command_index++;
+						if (AmonDrone.flight_path.command_index >= AmonDrone.flight_path.command_cnt)
+						{
+							//TODO: Check last command and land if not already
+							AmonDrone.DroneStatus = STATUS_FLY_OVER;
+						}
 					}
 				}
 	  		  } // TIMER 100Hz
@@ -1093,12 +1171,6 @@ int main(void)
 			AmonDrone.actuators.servo_yp = 0;
 			AmonDrone.actuators.servo_yn = 0;
 
-	  #ifdef IDENTIFICATION
-	  		if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
-	  		AmonDrone.actuators.edf_percent = 0;
-	  		PowerToPWMValue(AmonDrone.actuators.edf_percent);
-	  #endif
-
 	  		/* Trigger ADC DMA to read battery and buck status */
 	  		HAL_StatusTypeDef ret;
 	  		ADC_DMA_DataRdy = 0;
@@ -1118,8 +1190,15 @@ int main(void)
 	  		AmonDrone.data.buck_7v2_voltage = ADC_Read_7V2_Buck();
 	  		ADC_DMA_DataRdy = 0;
 
-	  		enable_7v2_buck(DISABLE);
 			enable_5v_buck(DISABLE);
+
+#ifdef IDENTIFICATION
+		if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
+		AmonDrone.actuators.edf_percent = 0;
+		PowerToPWMValue(AmonDrone.actuators.edf_percent);
+#else
+		enable_7v2_buck(DISABLE);
+#endif
 
 	  		/* Check battery voltage */
 	  		if (AmonDrone.data.battery_main_voltage < 1050) // minimal voltage: 10.5V
@@ -1181,6 +1260,7 @@ int main(void)
 	  		Kalman_Init(&kalman_pitch);
 	  		Kalman_Init(&kalman_roll);
 	  		Kalman_Init(&kalman_yaw);
+	  		KalmanZ_Init(&kalman_tof, 0.001f, 0.05f, 0.02f);
 	  #endif
 
 	  		/* Filters and other drone flight variables */
@@ -1266,6 +1346,7 @@ int main(void)
 	  		    radio1.radioErr = NRF_ERR_NONE;
 	  		}
 
+	  		HAL_Delay(10); // Safe delay for checking radio status
 
 	  		NRF24_ReadStatus(&radio2, &stat);
 			if (stat == 0x00 || stat == 0xFF)
@@ -1281,6 +1362,7 @@ int main(void)
 			}
 
 
+			HAL_Delay(10); // Safe delay before radio init
 	  		if (radio1.radioErr == 1)
 			{
 	  			AmonDrone.error_code.err_radio1 = 1;
@@ -1299,7 +1381,7 @@ int main(void)
 	  		}
 
 
-
+	  		HAL_Delay(10); // Safe delay before radio init
 	  		if (radio2.radioErr == 1)
 	  		{
 	  			AmonDrone.error_code.err_radio2 = 1;
@@ -1336,8 +1418,8 @@ int main(void)
 
 	  #ifdef LOG_ENABLE
 
-	  		Flash_Init();     	// if not inside LOG_Init
-	  		log_init();       	// mount filesystem
+	  		//Flash_Init();     	// if not inside LOG_Init
+	  		if (log_init() != 0) AmonDrone.error_code.err_flash = 1; // init flash and mount filesystem
 
 	  		// LittleFS test //
 #ifdef TEST_LITTLEFS
@@ -1355,7 +1437,7 @@ int main(void)
 
 	  		// Start timers for sensors and LEDs & indicate end of init
 	  		HAL_GPIO_WritePin(RGB_R_GPIO_Port, RGB_R_Pin, GPIO_PIN_SET);
-	  		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+	  		HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
 	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1); // RGB (50Hz)
 	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2); // RGB (50Hz)
 	  		HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3); // RGB (50Hz)
@@ -1404,6 +1486,7 @@ int main(void)
 	  #ifndef IDENTIFICATION
 	  				  if (AmonDrone.actuators.servo_enable == 1) TVCServoDisable();	// Disable TVC servos
 	  				  if (AmonDrone.actuators.edf_enable == 1) EDFDisable();			// Disable EDF
+	  				  //if (armCheck != 0) armCheck = 0;	// Clear sensor check at the beginning of arm state
 	  #endif
 
 	  				  break;
@@ -1413,41 +1496,92 @@ int main(void)
 	  			  case STATUS_ARM:
 
 	  #ifndef IDENTIFICATION
-	  				  //TODO: Check sensor values and check flying path
-
-	  				  // Enable servo motors
-	  				  if (AmonDrone.actuators.servo_enable == 0)
+	  				  // Check sensor values and check flying path
+	  				  if (armCheck == 0)
 	  				  {
-	  					  TVCServoEnable();
-	  					  enable_7v2_buck(ENABLE);
-	  					  HAL_Delay(100);
-	  					  servoTest();
-	  				  }
+	  					  uint8_t err_cnt = 0;
+//	  					  if (AmonDrone.radio_data.conn_status != CONN_STATUS_CONNECTED) err_cnt++;
+//	  					  if (AmonDrone.error_code.err_bme280 == 1   ||
+//							  AmonDrone.error_code.err_hmc5883l == 1 ||
+//							  AmonDrone.error_code.err_mpu6050 == 1  ||
+//							  AmonDrone.error_code.err_pmw3901 == 1  ||
+//							  AmonDrone.error_code.err_vl53l1x == 1  ||
+//							  AmonDrone.error_code.err_radio1 == 1   ||
+//							  AmonDrone.error_code.err_radio2 == 1   ||
+//							  AmonDrone.error_code.err_flash == 1    ||
+//							  AmonDrone.error_code.err_main_bat == 1 ||
+//							  AmonDrone.error_code.err_edf_bat == 1  ||
+//							  AmonDrone.error_code.err_buck_7v2 == 1) err_cnt++;
+//	  					  if (AmonDrone.position.height_TOF_mm > 100) err_cnt++;
+//	  					  if (AmonDrone.position.Pitch > 10 || AmonDrone.position.Pitch < -10) err_cnt++;
+//	  					  if (AmonDrone.position.Roll > 10 || AmonDrone.position.Roll < -10) err_cnt++;
+//	  					  if (AmonDrone.position.accel_x > 10 || AmonDrone.position.accel_x < -10) err_cnt++;
+//	  					  if (AmonDrone.position.accel_y > 10 || AmonDrone.position.accel_y < -10) err_cnt++;
+//	  					  if (AmonDrone.position.accel_z > 10 || AmonDrone.position.accel_z < -10) err_cnt++;
+//	  					  if (AmonDrone.position.gyro_x > 10 || AmonDrone.position.gyro_x < -10) err_cnt++;
+//	  					  if (AmonDrone.position.gyro_y > 10 || AmonDrone.position.gyro_y < -10) err_cnt++;
+//	  					  if (AmonDrone.position.gyro_z > 10 || AmonDrone.position.gyro_z < -10) err_cnt++;
+//	  					  // TBD...
 
-	  				  // Enable EDF
-	  				  if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
+	  					  // Final check
+	  					  if (err_cnt == 0 && armCheck == 0)
+						  {
+	  						  armCheck = 1;
+	  						  AmonDrone.flight_path.command_index = 0;
+	  						  AmonDrone.flight_path.flight_start_time = 0;
+	  						  AmonDrone.flight_path.command_time_s = 0;
 
-	  				  // Enable NMPC regulator
-	  				  if (AmonDrone.data.NMPC_enable == 0)
-	  				  {
-	  					  AmonDrone.data.NMPC_enable = 1;
-	  					  NMPC_Init(&nmpc);
-	  					  HAL_TIM_Base_Start_IT(&htim1);
+	  						  // Enable and test servo motors
+	  						  if (AmonDrone.actuators.servo_enable == 0)
+	  						  {
+	  							  enable_7v2_buck(ENABLE);
+	  							  HAL_Delay(100);
+	  							  servoTest();
+	  						  }
+
+	  						  // Logging
+	  						  if (AmonDrone.uart_buffer.flag_logging_active == 0)
+	  						  {
+	  							  AmonDrone.uart_buffer.flag_logging_active = 1;
+	  							  log_open_file();
+	  						  }
+
+	  						  // Enable NMPC regulator
+							  if (AmonDrone.data.NMPC_enable == 0)
+							  {
+								  if (NMPC_Init(&nmpc) != NMPC_OK)
+								  {
+									  AmonDrone.DroneStatus = STATUS_ERROR;
+								  }
+							  }
+						  }
+	  					  else
+	  					  {
+	  						  AmonDrone.DroneStatus = STATUS_ERROR;
+	  						  break;
+	  					  }
 	  				  }
 	  #endif
-
-	  				  // Logging
-	  				  if (AmonDrone.uart_buffer.flag_logging_active == 0)
-	  				  {
-	  					  AmonDrone.uart_buffer.flag_logging_active = 1;
-	  					  log_open_file();
-	  				  }
-
 	  				  break;
 
 
 	  			  // STATE: Flying
 	  			  case STATUS_FLY:
+
+	  				  if (AmonDrone.data.flag_e_kill) AmonDrone.DroneStatus = STATUS_ERROR;
+
+	  				  // Enable EDF
+	  				  if (AmonDrone.actuators.edf_enable == 0) EDFEnable();
+
+	  				  // Enable NMPC
+	  				  if (AmonDrone.actuators.edf_enable && AmonDrone.actuators.rampUpDone && AmonDrone.data.flag_e_kill == 0 && AmonDrone.data.flag_land_now == 0)
+	  				  {
+						  if (AmonDrone.data.NMPC_enable == 0)
+						  {
+							  AmonDrone.data.NMPC_enable = 1;
+							  HAL_TIM_Base_Start_IT(&htim1);
+						  }
+	  				  }
 
 	  				  // TODO: Regulator parameter switch? (take off more aggressive, flight smooth, landing slow)
 	  				  switch (AmonDrone.flight_status)
@@ -1494,12 +1628,13 @@ int main(void)
 						NMPC_DeInit(&nmpc);
 						HAL_TIM_Base_Stop_IT(&htim1);
 					  }
+
+					  if (AmonDrone.actuators.rampUpDone) AmonDrone.actuators.rampUpDone = 0;
 	  #endif
 
-	  				  // Logging
-	  				  if (AmonDrone.uart_buffer.flag_logging_active == 1)
+	  				  // Logging - after delay turn it off
+	  				  if (AmonDrone.uart_buffer.flag_logging_active == 0)
 	  				  {
-	  					  // TODO: add last sample save
 	  					  log_close_file();
 	  					  AmonDrone.uart_buffer.flag_logging_active = 0;
 	  				  }
@@ -1508,6 +1643,24 @@ int main(void)
 
 	  				  break;
 
+				  // STATE: Error
+				  case STATUS_ERROR:
+
+					  if (AmonDrone.actuators.servo_enable == 1)
+					  {
+						  TVCServoDisable();
+						  enable_7v2_buck(DISABLE);
+					  }
+
+					  if (AmonDrone.actuators.edf_enable == 1) EDFDisable();
+
+					  if (AmonDrone.data.NMPC_enable == 1)
+					  {
+						AmonDrone.data.NMPC_enable = 0;
+						NMPC_DeInit(&nmpc);
+						HAL_TIM_Base_Stop_IT(&htim1);
+					  }
+
 
 	  			  // STATE: Wrong state
 	  			  default:
@@ -1515,6 +1668,8 @@ int main(void)
 	  				  AmonDrone.DroneStatus = STATUS_ERROR;
 	  				  TVCServoDisable();
 	  				  EDFDisable();
+	  				  enable_5v_buck(DISABLE);
+	  				  enable_7v2_buck(DISABLE);
 
 	  				  break;
 	  		  }
@@ -2065,7 +2220,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 19999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -2136,7 +2291,7 @@ static void MX_TIM3_Init(void)
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 19999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -2533,12 +2688,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : AUX_PORT_Pin LED_BRD_Pin */
-  GPIO_InitStruct.Pin = AUX_PORT_Pin|LED_BRD_Pin;
+  /*Configure GPIO pin : AUX_PORT_Pin */
+  GPIO_InitStruct.Pin = AUX_PORT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(AUX_PORT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : OF_RST_Pin CS_SD_Pin */
   GPIO_InitStruct.Pin = OF_RST_Pin|CS_SD_Pin;
@@ -2577,6 +2732,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(RF2_IRQ_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_BRD_Pin */
+  GPIO_InitStruct.Pin = LED_BRD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+  HAL_GPIO_Init(LED_BRD_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(RF2_IRQ_EXTI_IRQn, 0, 0);
@@ -2678,7 +2840,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 uint8_t TVCServoEnable()
 {
 	uint8_t status = 0;
-	AmonDrone.actuators.servo_enable = !AmonDrone.actuators.servo_enable;
+	AmonDrone.actuators.servo_enable = 1;
 
 	status += HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 	status += HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
@@ -2693,7 +2855,7 @@ uint8_t TVCServoEnable()
 uint8_t TVCServoDisable()
 {
 	uint8_t status = 0;
-	AmonDrone.actuators.servo_enable = !AmonDrone.actuators.servo_enable;
+	AmonDrone.actuators.servo_enable = 0;
 
 	status += HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
 	status += HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
@@ -2756,7 +2918,7 @@ void servoTest()
 uint8_t EDFEnable()
 {
 	uint8_t status = 0;
-	AmonDrone.actuators.edf_enable = !AmonDrone.actuators.edf_enable;
+	AmonDrone.actuators.edf_enable = 1;
 
 	status += HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
 
@@ -2768,7 +2930,7 @@ uint8_t EDFEnable()
 uint8_t EDFDisable()
 {
 	uint8_t status = 0;
-	AmonDrone.actuators.edf_enable = !AmonDrone.actuators.edf_enable;
+	AmonDrone.actuators.edf_enable = 0;
 
 	status += HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_4);
 

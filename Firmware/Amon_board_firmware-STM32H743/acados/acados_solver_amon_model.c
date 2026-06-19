@@ -151,7 +151,7 @@ void amon_model_acados_create_set_plan(ocp_nlp_plan_t* nlp_solver_plan, const in
     *  plan
     ************************************************/
 
-    nlp_solver_plan->nlp_solver = SQP;
+    nlp_solver_plan->nlp_solver = SQP_RTI;
 
     nlp_solver_plan->ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
     nlp_solver_plan->relaxed_ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
@@ -242,7 +242,7 @@ static ocp_nlp_dims* amon_model_acados_create_setup_dimensions(amon_model_solver
     nsbx[0] = 0;
     ns[0] = NS0;
     
-    nbxe[0] = 0;
+    nbxe[0] = 13;
     
     ny[0] = NY0;
     nh[0] = NH0;
@@ -414,24 +414,19 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     {
         // set time_steps
     
-        double time_step = 0.01;
+        double time_step = 0.02;
         for (int i = 0; i < N; i++)
         {
             ocp_nlp_in_set(nlp_config, nlp_dims, nlp_in, i, "Ts", &time_step);
         }
         // set cost scaling
         double* cost_scaling = malloc((N+1)*sizeof(double));
-        cost_scaling[0] = 0.01;
-        cost_scaling[1] = 0.01;
-        cost_scaling[2] = 0.01;
-        cost_scaling[3] = 0.01;
-        cost_scaling[4] = 0.01;
-        cost_scaling[5] = 0.01;
-        cost_scaling[6] = 0.01;
-        cost_scaling[7] = 0.01;
-        cost_scaling[8] = 0.01;
-        cost_scaling[9] = 0.01;
-        cost_scaling[10] = 1;
+        cost_scaling[0] = 0.02;
+        cost_scaling[1] = 0.02;
+        cost_scaling[2] = 0.02;
+        cost_scaling[3] = 0.02;
+        cost_scaling[4] = 0.02;
+        cost_scaling[5] = 1;
         for (int i = 0; i <= N; i++)
         {
             ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "scaling", &cost_scaling[i]);
@@ -453,39 +448,32 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     /**** Cost ****/
     double* yref_0 = calloc(NY0, sizeof(double));
     // change only the non-zero elements:
+    yref_0[2] = 1;
+    yref_0[6] = 1;
+    yref_0[13] = 90;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "yref", yref_0);
     free(yref_0);
 
    double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[0+(NY0) * 0] = 10;
-    W_0[1+(NY0) * 1] = 10;
-    W_0[2+(NY0) * 2] = 50;
-    W_0[3+(NY0) * 3] = 1;
-    W_0[4+(NY0) * 4] = 1;
-    W_0[5+(NY0) * 5] = 5;
-    W_0[6+(NY0) * 6] = 10;
-    W_0[7+(NY0) * 7] = 10;
-    W_0[8+(NY0) * 8] = 10;
-    W_0[9+(NY0) * 9] = 10;
-    W_0[10+(NY0) * 10] = 1;
-    W_0[11+(NY0) * 11] = 1;
-    W_0[12+(NY0) * 12] = 1;
-    W_0[13+(NY0) * 13] = 0.1;
-    W_0[14+(NY0) * 14] = 0.01;
-    W_0[15+(NY0) * 15] = 1;
-    W_0[16+(NY0) * 16] = 1;
-    W_0[17+(NY0) * 17] = 1;
-    W_0[18+(NY0) * 18] = 1;
-    W_0[19+(NY0) * 19] = 0.1;
-    W_0[20+(NY0) * 20] = 0.1;
-    W_0[21+(NY0) * 21] = 0.1;
-    W_0[22+(NY0) * 22] = 0.1;
-    W_0[23+(NY0) * 23] = 0.1;
-    W_0[24+(NY0) * 24] = 0.1;
-    W_0[25+(NY0) * 25] = 0.1;
-    W_0[26+(NY0) * 26] = 0.1;
-    W_0[27+(NY0) * 27] = 0.1;
+    W_0[0+(NY0) * 0] = 0.002;
+    W_0[1+(NY0) * 1] = 0.002;
+    W_0[2+(NY0) * 2] = 3.2;
+    W_0[3+(NY0) * 3] = 0.04;
+    W_0[4+(NY0) * 4] = 0.04;
+    W_0[5+(NY0) * 5] = 3.2;
+    W_0[6+(NY0) * 6] = 5;
+    W_0[7+(NY0) * 7] = 80;
+    W_0[8+(NY0) * 8] = 80;
+    W_0[9+(NY0) * 9] = 5;
+    W_0[10+(NY0) * 10] = 0.3;
+    W_0[11+(NY0) * 11] = 0.3;
+    W_0[12+(NY0) * 12] = 0.05;
+    W_0[13+(NY0) * 13] = 0.00075;
+    W_0[14+(NY0) * 14] = 0.00375;
+    W_0[15+(NY0) * 15] = 0.00375;
+    W_0[16+(NY0) * 16] = 0.00375;
+    W_0[17+(NY0) * 17] = 0.00375;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -503,29 +491,22 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     Vx_0[10+(NY0) * 10] = 1;
     Vx_0[11+(NY0) * 11] = 1;
     Vx_0[12+(NY0) * 12] = 1;
-    Vx_0[13+(NY0) * 13] = 1;
-    Vx_0[14+(NY0) * 14] = 1;
-    Vx_0[15+(NY0) * 15] = 1;
-    Vx_0[16+(NY0) * 16] = 1;
-    Vx_0[17+(NY0) * 17] = 1;
-    Vx_0[18+(NY0) * 18] = 1;
-    Vx_0[19+(NY0) * 19] = 1;
-    Vx_0[20+(NY0) * 20] = 1;
-    Vx_0[21+(NY0) * 21] = 1;
-    Vx_0[22+(NY0) * 22] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "Vx", Vx_0);
     free(Vx_0);
     double* Vu_0 = calloc(NY0*NU, sizeof(double));
     // change only the non-zero elements:
-    Vu_0[23+(NY0) * 0] = 1;
-    Vu_0[24+(NY0) * 1] = 1;
-    Vu_0[25+(NY0) * 2] = 1;
-    Vu_0[26+(NY0) * 3] = 1;
-    Vu_0[27+(NY0) * 4] = 1;
+    Vu_0[13+(NY0) * 0] = 1;
+    Vu_0[14+(NY0) * 1] = 1;
+    Vu_0[15+(NY0) * 2] = 1;
+    Vu_0[16+(NY0) * 3] = 1;
+    Vu_0[17+(NY0) * 4] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "Vu", Vu_0);
     free(Vu_0);
     double* yref = calloc(NY, sizeof(double));
     // change only the non-zero elements:
+    yref[2] = 1;
+    yref[6] = 1;
+    yref[13] = 90;
 
     for (int i = 1; i < N; i++)
     {
@@ -534,34 +515,24 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     free(yref);
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
-    W[0+(NY) * 0] = 10;
-    W[1+(NY) * 1] = 10;
-    W[2+(NY) * 2] = 50;
-    W[3+(NY) * 3] = 1;
-    W[4+(NY) * 4] = 1;
-    W[5+(NY) * 5] = 5;
-    W[6+(NY) * 6] = 10;
-    W[7+(NY) * 7] = 10;
-    W[8+(NY) * 8] = 10;
-    W[9+(NY) * 9] = 10;
-    W[10+(NY) * 10] = 1;
-    W[11+(NY) * 11] = 1;
-    W[12+(NY) * 12] = 1;
-    W[13+(NY) * 13] = 0.1;
-    W[14+(NY) * 14] = 0.01;
-    W[15+(NY) * 15] = 1;
-    W[16+(NY) * 16] = 1;
-    W[17+(NY) * 17] = 1;
-    W[18+(NY) * 18] = 1;
-    W[19+(NY) * 19] = 0.1;
-    W[20+(NY) * 20] = 0.1;
-    W[21+(NY) * 21] = 0.1;
-    W[22+(NY) * 22] = 0.1;
-    W[23+(NY) * 23] = 0.1;
-    W[24+(NY) * 24] = 0.1;
-    W[25+(NY) * 25] = 0.1;
-    W[26+(NY) * 26] = 0.1;
-    W[27+(NY) * 27] = 0.1;
+    W[0+(NY) * 0] = 0.002;
+    W[1+(NY) * 1] = 0.002;
+    W[2+(NY) * 2] = 3.2;
+    W[3+(NY) * 3] = 0.04;
+    W[4+(NY) * 4] = 0.04;
+    W[5+(NY) * 5] = 3.2;
+    W[6+(NY) * 6] = 5;
+    W[7+(NY) * 7] = 80;
+    W[8+(NY) * 8] = 80;
+    W[9+(NY) * 9] = 5;
+    W[10+(NY) * 10] = 0.3;
+    W[11+(NY) * 11] = 0.3;
+    W[12+(NY) * 12] = 0.05;
+    W[13+(NY) * 13] = 0.00075;
+    W[14+(NY) * 14] = 0.00375;
+    W[15+(NY) * 15] = 0.00375;
+    W[16+(NY) * 16] = 0.00375;
+    W[17+(NY) * 17] = 0.00375;
 
     for (int i = 1; i < N; i++)
     {
@@ -583,16 +554,6 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     Vx[10+(NY) * 10] = 1;
     Vx[11+(NY) * 11] = 1;
     Vx[12+(NY) * 12] = 1;
-    Vx[13+(NY) * 13] = 1;
-    Vx[14+(NY) * 14] = 1;
-    Vx[15+(NY) * 15] = 1;
-    Vx[16+(NY) * 16] = 1;
-    Vx[17+(NY) * 17] = 1;
-    Vx[18+(NY) * 18] = 1;
-    Vx[19+(NY) * 19] = 1;
-    Vx[20+(NY) * 20] = 1;
-    Vx[21+(NY) * 21] = 1;
-    Vx[22+(NY) * 22] = 1;
     for (int i = 1; i < N; i++)
     {
         ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vx", Vx);
@@ -602,11 +563,11 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     
     double* Vu = calloc(NY*NU, sizeof(double));
     // change only the non-zero elements:
-    Vu[23+(NY) * 0] = 1;
-    Vu[24+(NY) * 1] = 1;
-    Vu[25+(NY) * 2] = 1;
-    Vu[26+(NY) * 3] = 1;
-    Vu[27+(NY) * 4] = 1;
+    Vu[13+(NY) * 0] = 1;
+    Vu[14+(NY) * 1] = 1;
+    Vu[15+(NY) * 2] = 1;
+    Vu[16+(NY) * 3] = 1;
+    Vu[17+(NY) * 4] = 1;
 
     for (int i = 1; i < N; i++)
     {
@@ -615,34 +576,26 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     free(Vu);
     double* yref_e = calloc(NYN, sizeof(double));
     // change only the non-zero elements:
+    yref_e[2] = 1;
+    yref_e[6] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "yref", yref_e);
     free(yref_e);
 
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
-    W_e[0+(NYN) * 0] = 10;
-    W_e[1+(NYN) * 1] = 10;
-    W_e[2+(NYN) * 2] = 50;
-    W_e[3+(NYN) * 3] = 1;
-    W_e[4+(NYN) * 4] = 1;
-    W_e[5+(NYN) * 5] = 5;
-    W_e[6+(NYN) * 6] = 10;
-    W_e[7+(NYN) * 7] = 10;
-    W_e[8+(NYN) * 8] = 10;
-    W_e[9+(NYN) * 9] = 10;
-    W_e[10+(NYN) * 10] = 1;
-    W_e[11+(NYN) * 11] = 1;
-    W_e[12+(NYN) * 12] = 1;
-    W_e[13+(NYN) * 13] = 0.1;
-    W_e[14+(NYN) * 14] = 0.01;
-    W_e[15+(NYN) * 15] = 1;
-    W_e[16+(NYN) * 16] = 1;
-    W_e[17+(NYN) * 17] = 1;
-    W_e[18+(NYN) * 18] = 1;
-    W_e[19+(NYN) * 19] = 0.1;
-    W_e[20+(NYN) * 20] = 0.1;
-    W_e[21+(NYN) * 21] = 0.1;
-    W_e[22+(NYN) * 22] = 0.1;
+    W_e[0+(NYN) * 0] = 0.006;
+    W_e[1+(NYN) * 1] = 0.006;
+    W_e[2+(NYN) * 2] = 9.6;
+    W_e[3+(NYN) * 3] = 0.12;
+    W_e[4+(NYN) * 4] = 0.12;
+    W_e[5+(NYN) * 5] = 9.6;
+    W_e[6+(NYN) * 6] = 15;
+    W_e[7+(NYN) * 7] = 240;
+    W_e[8+(NYN) * 8] = 240;
+    W_e[9+(NYN) * 9] = 15;
+    W_e[10+(NYN) * 10] = 0.8999999999999999;
+    W_e[11+(NYN) * 11] = 0.8999999999999999;
+    W_e[12+(NYN) * 12] = 0.15000000000000002;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
     double* Vx_e = calloc(NYN*NX, sizeof(double));
@@ -660,16 +613,6 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     Vx_e[10+(NYN) * 10] = 1;
     Vx_e[11+(NYN) * 11] = 1;
     Vx_e[12+(NYN) * 12] = 1;
-    Vx_e[13+(NYN) * 13] = 1;
-    Vx_e[14+(NYN) * 14] = 1;
-    Vx_e[15+(NYN) * 15] = 1;
-    Vx_e[16+(NYN) * 16] = 1;
-    Vx_e[17+(NYN) * 17] = 1;
-    Vx_e[18+(NYN) * 18] = 1;
-    Vx_e[19+(NYN) * 19] = 1;
-    Vx_e[20+(NYN) * 20] = 1;
-    Vx_e[21+(NYN) * 21] = 1;
-    Vx_e[22+(NYN) * 22] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Vx", Vx_e);
     free(Vx_e);
 
@@ -682,6 +625,51 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     /**** Constraints ****/
 
     // bounds for initial stage
+    // x0
+    int* idxbx0 = malloc(NBX0 * sizeof(int));
+    idxbx0[0] = 0;
+    idxbx0[1] = 1;
+    idxbx0[2] = 2;
+    idxbx0[3] = 3;
+    idxbx0[4] = 4;
+    idxbx0[5] = 5;
+    idxbx0[6] = 6;
+    idxbx0[7] = 7;
+    idxbx0[8] = 8;
+    idxbx0[9] = 9;
+    idxbx0[10] = 10;
+    idxbx0[11] = 11;
+    idxbx0[12] = 12;
+
+    double* lubx0 = calloc(2*NBX0, sizeof(double));
+    double* lbx0 = lubx0;
+    double* ubx0 = lubx0 + NBX0;
+    // change only the non-zero elements:
+    lbx0[6] = 1;
+    ubx0[6] = 1;
+
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "idxbx", idxbx0);
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "lbx", lbx0);
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "ubx", ubx0);
+    free(idxbx0);
+    free(lubx0);
+    // idxbxe_0
+    int* idxbxe_0 = malloc(13 * sizeof(int));
+    idxbxe_0[0] = 0;
+    idxbxe_0[1] = 1;
+    idxbxe_0[2] = 2;
+    idxbxe_0[3] = 3;
+    idxbxe_0[4] = 4;
+    idxbxe_0[5] = 5;
+    idxbxe_0[6] = 6;
+    idxbxe_0[7] = 7;
+    idxbxe_0[8] = 8;
+    idxbxe_0[9] = 9;
+    idxbxe_0[10] = 10;
+    idxbxe_0[11] = 11;
+    idxbxe_0[12] = 12;
+    ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, nlp_out, 0, "idxbxe", idxbxe_0);
+    free(idxbxe_0);
 
 
 
@@ -705,7 +693,8 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     double* lubu = calloc(2*NBU, sizeof(double));
     double* lbu = lubu;
     double* ubu = lubu + NBU;
-    ubu[0] = 100;
+    lbu[0] = 70;
+    ubu[0] = 90;
     lbu[1] = -45;
     ubu[1] = 45;
     lbu[2] = -45;
@@ -814,7 +803,7 @@ static void amon_model_acados_create_set_opts(amon_model_solver_capsule* capsule
 
     // set up sim_method_num_stages
     // all sim_method_num_stages are identical
-    int sim_method_num_stages = 4;
+    int sim_method_num_stages = 2;
     for (int i = 0; i < N; i++)
         ocp_nlp_solver_opts_set_at_stage(nlp_config, nlp_opts, i, "dynamics_num_stages", &sim_method_num_stages);
 
@@ -835,7 +824,7 @@ static void amon_model_acados_create_set_opts(amon_model_solver_capsule* capsule
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "levenberg_marquardt", &levenberg_marquardt);
 
     /* options QP solver */
-    int qp_solver_cond_N;const int qp_solver_cond_N_ori = 10;
+    int qp_solver_cond_N;const int qp_solver_cond_N_ori = 5;
     qp_solver_cond_N = N < qp_solver_cond_N_ori ? N : qp_solver_cond_N_ori; // use the minimum value here
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_cond_N", &qp_solver_cond_N);
 
@@ -844,14 +833,6 @@ static void amon_model_acados_create_set_opts(amon_model_solver_capsule* capsule
 
     bool store_iterates = false;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "store_iterates", &store_iterates);
-    int log_primal_step_norm = false;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "log_primal_step_norm", &log_primal_step_norm);
-
-    int log_dual_step_norm = false;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "log_dual_step_norm", &log_dual_step_norm);
-
-    double nlp_solver_tol_min_step_norm = 0;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_min_step_norm", &nlp_solver_tol_min_step_norm);
     // set HPIPM mode: should be done before setting other QP solver options
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_hpipm_mode", "BALANCE");
 
@@ -863,75 +844,17 @@ static void amon_model_acados_create_set_opts(amon_model_solver_capsule* capsule
 
 
 
-    // set SQP specific options
-    double nlp_solver_tol_stat = 0.000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_stat", &nlp_solver_tol_stat);
+    int as_rti_iter = 1;
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "as_rti_iter", &as_rti_iter);
 
-    double nlp_solver_tol_eq = 0.000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_eq", &nlp_solver_tol_eq);
+    int as_rti_level = 4;
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "as_rti_level", &as_rti_level);
 
-    double nlp_solver_tol_ineq = 0.000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_ineq", &nlp_solver_tol_ineq);
+    int rti_log_residuals = 0;
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_log_residuals", &rti_log_residuals);
 
-    double nlp_solver_tol_comp = 0.000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_comp", &nlp_solver_tol_comp);
-
-    int nlp_solver_max_iter = 100;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "max_iter", &nlp_solver_max_iter);
-
-    // set options for adaptive Levenberg-Marquardt Update
-    bool with_adaptive_levenberg_marquardt = false;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "with_adaptive_levenberg_marquardt", &with_adaptive_levenberg_marquardt);
-
-    double adaptive_levenberg_marquardt_lam = 5;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "adaptive_levenberg_marquardt_lam", &adaptive_levenberg_marquardt_lam);
-
-    double adaptive_levenberg_marquardt_mu_min = 0.0000000000000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "adaptive_levenberg_marquardt_mu_min", &adaptive_levenberg_marquardt_mu_min);
-
-    double adaptive_levenberg_marquardt_mu0 = 0.001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "adaptive_levenberg_marquardt_mu0", &adaptive_levenberg_marquardt_mu0);
-
-    double adaptive_levenberg_marquardt_obj_scalar = 2;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "adaptive_levenberg_marquardt_obj_scalar", &adaptive_levenberg_marquardt_obj_scalar);
-
-    bool eval_residual_at_max_iter = false;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "eval_residual_at_max_iter", &eval_residual_at_max_iter);
-
-    // QP scaling
-    double qpscaling_ub_max_abs_eig = 100000;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qpscaling_ub_max_abs_eig", &qpscaling_ub_max_abs_eig);
-
-    double qpscaling_lb_norm_inf_grad_obj = 0.0001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qpscaling_lb_norm_inf_grad_obj", &qpscaling_lb_norm_inf_grad_obj);
-
-    qpscaling_scale_objective_type qpscaling_scale_objective = NO_OBJECTIVE_SCALING;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qpscaling_scale_objective", &qpscaling_scale_objective);
-
-    ocp_nlp_qpscaling_constraint_type qpscaling_scale_constraints = NO_CONSTRAINT_SCALING;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qpscaling_scale_constraints", &qpscaling_scale_constraints);
-
-    // NLP QP tol strategy
-    ocp_nlp_qp_tol_strategy_t nlp_qp_tol_strategy = FIXED_QP_TOL;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_strategy", &nlp_qp_tol_strategy);
-
-    double nlp_qp_tol_reduction_factor = 0.1;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_reduction_factor", &nlp_qp_tol_reduction_factor);
-
-    double nlp_qp_tol_safety_factor = 0.1;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_safety_factor", &nlp_qp_tol_safety_factor);
-
-    double nlp_qp_tol_min_stat = 0.000000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_min_stat", &nlp_qp_tol_min_stat);
-
-    double nlp_qp_tol_min_eq = 0.0000000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_min_eq", &nlp_qp_tol_min_eq);
-
-    double nlp_qp_tol_min_ineq = 0.0000000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_min_ineq", &nlp_qp_tol_min_ineq);
-
-    double nlp_qp_tol_min_comp = 0.00000000001;
-    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "nlp_qp_tol_min_comp", &nlp_qp_tol_min_comp);
+    int rti_log_only_available_residuals = 0;
+    ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "rti_log_only_available_residuals", &rti_log_only_available_residuals);
 
     bool with_anderson_acceleration = false;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "with_anderson_acceleration", &with_anderson_acceleration);
@@ -939,7 +862,7 @@ static void amon_model_acados_create_set_opts(amon_model_solver_capsule* capsule
     double anderson_activation_threshold = 10;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "anderson_activation_threshold", &anderson_activation_threshold);
 
-    int qp_solver_iter_max = 50;
+    int qp_solver_iter_max = 20;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_iter_max", &qp_solver_iter_max);
 
 
@@ -972,7 +895,9 @@ void amon_model_acados_set_nlp_out(amon_model_solver_capsule* capsule)
     double* xu0 = calloc(NX+NU, sizeof(double));
     double* x0 = xu0;
 
-    // initialize with zeros
+    // initialize with x0
+    x0[6] = 1;
+
 
     double* u0 = xu0 + NX;
 
@@ -1229,29 +1154,19 @@ void amon_model_acados_print_stats(amon_model_solver_capsule* capsule)
         printf("stat_n_max = %d is too small, increase it in the template!\n", stat_n_max);
         exit(1);
     }
-    double stat[1616];
+    double stat[32];
     ocp_nlp_get(capsule->nlp_solver, "statistics", stat);
 
     int nrow = nlp_iter+1 < stat_m ? nlp_iter+1 : stat_m;
 
 
-    printf("iter\tres_stat\tres_eq\t\tres_ineq\tres_comp\tqp_stat\tqp_iter\talpha");
-    if (stat_n > 8)
-        printf("\t\tqp_res_stat\tqp_res_eq\tqp_res_ineq\tqp_res_comp");
-    printf("\n");
+    printf("iter\tqp_stat\tqp_iter\n");
     for (int i = 0; i < nrow; i++)
     {
         for (int j = 0; j < stat_n + 1; j++)
         {
-            if (j == 0 || j == 5 || j == 6)
-            {
-                tmp_int = (int) stat[i + j * nrow];
-                printf("%d\t", tmp_int);
-            }
-            else
-            {
-                printf("%e\t", stat[i + j * nrow]);
-            }
+            tmp_int = (int) stat[i + j * nrow];
+            printf("%d\t", tmp_int);
         }
         printf("\n");
     }

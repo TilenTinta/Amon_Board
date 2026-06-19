@@ -18,6 +18,25 @@ void SetPWMValue(uint8_t output, uint32_t val);
 /* Functions */
 
 /*********************************************************************
+* @fn    SlewLimit
+*
+* @param target: degress that you want to set
+* @param previous: current degress
+* @param max_step: servo motor degrees change per second
+*
+* @brief   Limit servo moves based on real servo caracteristics
+*
+* @return  limited servo angle
+*/
+float SlewLimit(float target, float previous, float max_step)
+{
+    float delta = target - previous;
+    if (delta >  max_step) delta =  max_step;
+    if (delta < -max_step) delta = -max_step;
+    return previous + delta;
+}
+
+/*********************************************************************
 * @fn     DegresToCCR
 *
 * @param Degress: degress that you want to set
@@ -30,26 +49,26 @@ void SetPWMValue(uint8_t output, uint32_t val);
 void DegresToCCR(float degrees, uint8_t Servo)
 {
 	// Clamp degrees
-	if (degrees < -90.0f)   degrees = -90.0f;
-	if (degrees > 90.0f) degrees = 90.0f;
+	if (degrees < -45.0f)   degrees = -45.0f;
+	if (degrees > 45.0f) degrees = 45.0f;
 
 	// Add offset and zero correction
 	switch(Servo)
 	{
-		case SERVO_XN:			// X-
-			degrees = degrees + SERVOS_ZERO + SERVO_XN_OFFSET;
-			break;
-
 		case SERVO_XP:			// X+
 			degrees = degrees + SERVOS_ZERO + SERVO_XP_OFFSET;
 			break;
 
-		case SERVO_YN:			// Y-
-			degrees = degrees + SERVOS_ZERO + SERVO_YN_OFFSET;
+		case SERVO_XN:			// X-
+			degrees = degrees + SERVOS_ZERO + SERVO_XN_OFFSET;
 			break;
 
 		case SERVO_YP:			// Y+
 			degrees = degrees + SERVOS_ZERO + SERVO_YP_OFFSET;
+			break;
+
+		case SERVO_YN:			// Y-
+			degrees = degrees + SERVOS_ZERO + SERVO_YN_OFFSET;
 			break;
 
 		default:
@@ -108,6 +127,10 @@ void EDFSlowRamp(s_actuators *actuators)
 
 		uint8_t steps = RAMPUP_TIME_MS / RAMPUP_TIME_STEP_MS;
 		actuators->rampUpStep = (uint8_t)round((float)RAMPUP_TARGET_PERC / steps);
+		if (actuators->rampUpStep < 1)
+		{
+		    actuators->rampUpStep = 1;
+		}
 		actuators->rampUpDone = 0;
 	}
 
@@ -144,6 +167,9 @@ void EDFSlowRamp(s_actuators *actuators)
 */
 void SetPWMValue(uint8_t output, uint32_t val)
 {
+	if (val < SERVO_MIN_US) val = SERVO_MIN_US;
+	if (val > SERVO_MAX_US) val = SERVO_MAX_US;
+
 	switch(output){
 		case SERVO_XN:			// X-
 			TIM2->CCR2 = val;

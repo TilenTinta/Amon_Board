@@ -126,6 +126,8 @@ extern "C" {
 #define OPT_IDENTI_EDF			0x71	// Enable drone identification mode (payload ON/OFF) - EDF test
 #define OPT_IDENTI_SERVO		0x72	// Enable drone identification mode (payload ON/OFF) - servo test
 #define OPT_IDENTI_MOMENT		0x73	// Enable drone identification mode (payload ON/OFF) - moment test
+#define OPT_E_KILL				0xF0	// Emergency stop/kill drone (turn off everything)
+#define OPT_LAND_NOW			0xF1	// Land immediately
 
 // Payload format - TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
 #define TVL_FW_VER              0x01    // FW version (ascii)
@@ -143,7 +145,7 @@ extern "C" {
 #define TVL_BAT_MAIN            0x21    // Main battery mV (u16 LE)
 #define TVL_BAT_EDF             0x22    // EDF battery mV (u16 LE)
 #define TVL_ERR                 0x23    // Error code (u8) + detail (optional ascii)
-#define TVL_DATE_TIME			0x24	// Date and time aquired from gps
+#define TVL_DATE_TIME			0x24	// Date and time aquired from gps / ground station
 #define TVL_TLM					0x25	// Telemetry frequency
 #define TVL_FLIGHT_MODE			0x26	// Flight state
 

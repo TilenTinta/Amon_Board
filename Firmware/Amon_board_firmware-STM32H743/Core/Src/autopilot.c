@@ -13,41 +13,52 @@
 /* Info */
 
 /*
- * ## NMPC state - size NMPC_NX = 23
- * Both following arrays has the same fields:
+ * ## NMPC state
+ * Both following arrays have the same fields:
  * 	- x_current = measured/estimated current drone state
  * 	- x_ref     = desired/reference drone state for NMPC cost
  *
- * Fields:
- * 	x[0]  = position x [m]
- * 	x[1]  = position y [m]
- * 	x[2]  = position z / height [m]
+ * Common states for all model types:
+ * 	x[0]  = px [m]
+ * 	x[1]  = py [m]
+ * 	x[2]  = pz [m]
  *
- * 	x[3]  = velocity x [m/s]
- * 	x[4]  = velocity y [m/s]
- * 	x[5]  = velocity z [m/s]
+ * 	x[3]  = vx [m/s]
+ * 	x[4]  = vy [m/s]
+ * 	x[5]  = vz [m/s]
  *
- * 	x[6]  = quaternion qw [-]
- * 	x[7]  = quaternion qx [-]
- * 	x[8]  = quaternion qy [-]
- * 	x[9]  = quaternion qz [-]
+ * 	x[6]  = qw [-]
+ * 	x[7]  = qx [-]
+ * 	x[8]  = qy [-]
+ * 	x[9]  = qz [-]
  *
- * 	x[10] = angular rate wx [rad/s]
- * 	x[11] = angular rate wy [rad/s]
- * 	x[12] = angular rate wz [rad/s]
+ * 	x[10] = wx [rad/s]
+ * 	x[11] = wy [rad/s]
+ * 	x[12] = wz [rad/s]
  *
- * 	x[13] = thrust state / EDF percent [%]
- * 	x[14] = thrust rate [%/s]
+ * Instant model:
+ * 	NMPC_NX_SIZE = 13
  *
- * 	x[15] = servo x+ angle [deg]
- * 	x[16] = servo x- angle [deg]
- * 	x[17] = servo y+ angle [deg]
- * 	x[18] = servo y- angle [deg]
+ * First order actuator model:
+ * 	NMPC_NX_SIZE = 18
+ * 	x[13] = T       [N]
+ * 	x[14] = delta_1 [rad]
+ * 	x[15] = delta_2 [rad]
+ * 	x[16] = delta_3 [rad]
+ * 	x[17] = delta_4 [rad]
  *
- * 	x[19] = servo x+ rate [deg/s]
- * 	x[20] = servo x- rate [deg/s]
- * 	x[21] = servo y+ rate [deg/s]
- * 	x[22] = servo y- rate [deg/s]
+ * Second order actuator model:
+ * 	NMPC_NX_SIZE = 23
+ * 	x[13] = T           [N]
+ * 	x[14] = T_dot       [N/s]
+ * 	x[15] = delta_1     [rad]
+ * 	x[16] = delta_2     [rad]
+ * 	x[17] = delta_3     [rad]
+ * 	x[18] = delta_4     [rad]
+ * 	x[19] = delta_dot_1 [rad/s]
+ * 	x[20] = delta_dot_2 [rad/s]
+ * 	x[21] = delta_dot_3 [rad/s]
+ * 	x[22] = delta_dot_4 [rad/s]
  *
  *
  *
@@ -577,6 +588,47 @@ static void ref_return_home(s_data_return_home *data, double x_ref[NMPC_NX_SIZE]
 
 
 /*********************************************************************
+ * @fcn    	land_now
+ *
+ * @param 	pos_x: data for x position
+ * @param 	pos_y: data for y position
+ *
+ * @brief   Fill reference value for current command - land now
+ *
+ * @return  none
+ */
+void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m, double current_y_m)
+{
+    if (path_data != NULL)
+    {
+        path_data->command_cnt = 0;
+        path_data->command_index = 0;
+        path_data->command_time_s = 0.0f;
+        path_data->command_timeout_s = 0;
+    }
+
+    ref_clear(x_ref);
+    ref_upright(x_ref);
+
+    // Hold horizontal position where land_now was requested
+    x_ref[0] = current_x_m;
+    x_ref[1] = current_y_m;
+
+    // Land target
+    x_ref[2] = 0.0;             // ground height
+    x_ref[3] = 0.0;             // no X velocity
+    x_ref[4] = 0.0;             // no Y velocity
+    x_ref[5] = LAND_SPEED_M_S;  // negative vertical speed
+
+    // Upright attitude is already set by ref_upright()
+    x_ref[10] = 0.0;
+    x_ref[11] = 0.0;
+    x_ref[12] = 0.0;
+}
+
+
+
+/*********************************************************************
  * @fcn    	command_position_reached
  *
  * @param 	*cmd: pointer to current command data
@@ -600,7 +652,7 @@ uint8_t command_position_reached(s_flight_command *cmd, double x_current[NMPC_NX
     {
         case COMM_TAKE_OFF:
         case COMM_HEIGHT:
-        case COMM_HOVER:
+        //case COMM_HOVER:
             return fabs(dz) < ALT_TOL_M;	// Check if position in z-axis is reached
 
         case COMM_FORWARD:

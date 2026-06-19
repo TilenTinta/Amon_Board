@@ -26,11 +26,11 @@
 /* Defines */
 
 // Dimensions - match acados_solver_amon_model.h !!!
-#define NMPC_NX          23 // AMON_MODEL_NX
+#define NMPC_NX          13 // AMON_MODEL_NX
 #define NMPC_NU          5  // AMON_MODEL_NU
-#define NMPC_N           10 // AMON_MODEL_N
-#define NMPC_NY          28 // AMON_MODEL_NY
-#define NMPC_NYN         23 // AMON_MODEL_NYN
+#define NMPC_N           5 // AMON_MODEL_N
+#define NMPC_NY          18 // AMON_MODEL_NY
+#define NMPC_NYN         13 // AMON_MODEL_NYN
 
 /* -----------------------------------------------------------------------
  * Input (control) bounds — from solver setup
@@ -41,7 +41,7 @@
  *   u[4]  : servo y- 	[-45 .. 45]	- angle [deg]
  * --------------------------------------------------------------------- */
 #define NMPC_U0_MIN   0.0
-#define NMPC_U0_MAX   100.0
+#define NMPC_U0_MAX   90.0
 #define NMPC_UX_MIN  -45.0
 #define NMPC_UX_MAX   45.0
 

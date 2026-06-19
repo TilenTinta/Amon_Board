@@ -40,6 +40,9 @@
 #define SERVO_MIN_US 		1000	// Minimum duty-cycle of EDF (0%)
 #define SERVO_MAX_US 		2000	// Maximum duty-cycle of EDF (100%)
 #define SERVO_RANGE_US 		(SERVO_MAX_US - SERVO_MIN_US)
+#define SERVO_MAX_SLEW_DEG_PER_S   375.0f // Servo used: MG995 (Operating speed: 0.2s/60deg (4.8 V), 0.16s/60deg (6 V) -> 375deg/s)
+#define SERVO_MAX_STEP_DEG         (SERVO_MAX_SLEW_DEG_PER_S * TIM_100HZ_DT)  // per 10ms cycle
+
 
 #define RAMPUP_TARGET_PERC	60		// Ramp-up percent target
 #define RAMPUP_TIME_MS		3000	// Ramp-up time target
@@ -62,6 +65,7 @@ typedef enum {
 /*###########################################################################################################################################################*/
 /* Functions */
 
+float SlewLimit(float target, float previous, float max_step);
 void DegresToCCR(float degrees, uint8_t Servo);
 void PowerToPWMValue(uint8_t power);
 void EDFSlowRamp(s_actuators *actuators);

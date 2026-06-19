@@ -98,6 +98,8 @@ uint8_t HMC5883L_Init(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle)
     dev->DataLocked = 0;
     dev->Overflow = 0;
 
+    dev->flag_new_data = 0;
+
     if (HMC5883L_SetConfig(dev, i2cHandle) != 0)
     {
         return 1;   // NOK
@@ -366,6 +368,76 @@ uint8_t HMC5883L_ReadHeading(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, floa
     dev->HeadingDeg = HMC5883L_NormalizeHeading(headingRad * (180.0f / pi));
 
     return 0; // OK
+}
+
+
+
+/*********************************************************************
+* @fn    	 HMC5883L_ReadHeadingTiltCompensated
+*
+* @param 	*dev: struct to device data
+* @param 	*i2cHandle: i2c handle struct
+* @param 	declination_deg: magnetic declination in degrees
+*
+* @brief   	Read data and calculate heading in degrees
+*
+* @return 	OK: 0, NOK: 1
+*/
+uint8_t HMC5883L_ReadHeadingTiltCompensated(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, float declination_deg, float roll_deg, float pitch_deg)
+{
+    dev->i2cHandle = i2cHandle;
+
+    const float pi = 3.14159265359f;
+
+    if (HMC5883L_ReadGaussData(dev, i2cHandle) != 0)
+    {
+        return 1; // NOK
+    }
+
+    if (dev->Overflow != 0)
+    {
+        return 1; // NOK
+    }
+
+    // Correct raw compass data.
+    float hx = dev->X_Gauss - X_GAUSS_CORR;
+    float hy = dev->Y_Gauss - Y_GAUSS_CORR;
+    float hz = dev->Z_Gauss - Z_GAUSS_CORR;
+
+    /* Axis mapping: Sensor -> drone body
+     *
+     * Sensor X+ -> body Z+ / up
+     * Sensor Y+ -> body X- / left
+     * Sensor Z+ -> body Y- / backward
+     *
+     * Body frame:
+     *   X+ = right
+     *   Y+ = forward
+     *   Z+ = up
+     */
+    float mx = -hy;   // body X/right
+    float my = -hz;   // body Y/forward
+    float mz =  hx;   // body Z/up
+
+    float pitch = pitch_deg * DEG_TO_RAD;  // body X rotation
+    float roll  = roll_deg  * DEG_TO_RAD;  // body Y rotation
+
+    float cp = cosf(pitch);
+    float sp = sinf(pitch);
+    float cr = cosf(roll);
+    float sr = sinf(roll);
+
+    // Tilt compensation.
+    float mx_level = cr * mx + sr * sp * my + sr * cp * mz;
+    float my_level = cp * my - sp * mz;
+
+    // Heading for drone frame:
+    float heading_rad = atan2f(mx_level, my_level);
+    heading_rad += declination_deg * DEG_TO_RAD;
+
+    dev->HeadingDeg = HMC5883L_NormalizeHeading(heading_rad * RAD_TO_DEG);
+
+    return 0;
 }
 
 

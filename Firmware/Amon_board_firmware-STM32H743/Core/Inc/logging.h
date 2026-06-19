@@ -75,6 +75,7 @@ typedef struct {
 
     uint8_t humidity;
     uint8_t edf_percent;			// Percents of power on EDF
+
 } s_logging_buffer;
 
 
@@ -82,7 +83,7 @@ typedef struct {
 /* Functions */
 
 /* LITTLEFS */
-void log_init(void);
+int log_init(void);
 void log_test_write(void);
 void log_test_read(void);
 int log_open_file(void);

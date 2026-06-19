@@ -184,8 +184,9 @@ int log_flash_sync(const struct lfs_config *c)
  *
  * @return  none
  */
-void log_init(void)
+int log_init(void)
 {
+	// TODO: add error handling
     Flash_Init();
 
     cfg.read  = log_flash_read;
@@ -206,6 +207,7 @@ void log_init(void)
         lfs_format(&lfs, &cfg);
         lfs_mount(&lfs, &cfg);
     }
+    return 0;
 }
 
 

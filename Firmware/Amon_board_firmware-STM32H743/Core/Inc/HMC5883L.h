@@ -78,10 +78,16 @@
 /* Correction definition
  * 	 X_OFFSET = (x_min + x_max) / 2.0f;
  * 	 Y_OFFSET = (y_min + y_max) / 2.0f;
+ *
+ * 	Values acquired by rotating PCB in 4 different ways (90deg steps)
+ * 	and reading HeadingDeg and raw values of Y_Gauss, X_Gauss and Z_Gauss
  */
 #define X_GAUSS_CORR					0.0f
-#define Y_GAUSS_CORR					0.008f
-#define Z_GAUSS_CORR					0.040f
+#define Y_GAUSS_CORR   					0.00459f
+#define Z_GAUSS_CORR   					0.03578f
+
+#define DEG_TO_RAD  		(3.14159265f / 180.0f)	// Degress to radians
+#define RAD_TO_DEG			(180.0f	/ 3.14159265f)	// Radians to degress
 
 
 /*###########################################################################################################################################################*/
@@ -145,6 +151,7 @@ typedef struct {
 typedef struct {
     I2C_HandleTypeDef   *i2cHandle;     // i2c Handle
     s_config            config;         // Device config registers
+    uint8_t				flag_new_data;	// Flag for indication of new data available
 
     int16_t             X_Axis;         // Raw X axis data
     int16_t             Y_Axis;         // Raw Y axis data
@@ -188,6 +195,9 @@ uint8_t HMC5883L_ReadGaussData(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle);
 
 /* Read data and calculate heading in degrees */
 uint8_t HMC5883L_ReadHeading(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, float declination_deg);
+
+/* Read data and calculate heading in degrees - with board tilt compensation */
+uint8_t HMC5883L_ReadHeadingTiltCompensated(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle, float declination_deg, float roll_deg, float pitch_deg);
 
 /* Run built-in self test in positive bias mode */
 uint8_t HMC5883L_SelfTest(s_HMC5883L *dev, I2C_HandleTypeDef *i2cHandle);

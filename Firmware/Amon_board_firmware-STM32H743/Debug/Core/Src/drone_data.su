@@ -1,8 +1,8 @@
 ../Core/Src/drone_data.c:31:9:RF_packet_decode	16	static
 ../Core/Src/drone_data.c:78:13:decode_opcode	16	static
-../Core/Src/drone_data.c:179:13:packet_create_ack_nopayload	16	static
-../Core/Src/drone_data.c:202:13:packet_create_pair_status	16	static
-../Core/Src/drone_data.c:224:13:packet_create_ping_pong	16	static
-../Core/Src/drone_data.c:246:6:packet_create_telemetry	48	static
-../Core/Src/drone_data.c:489:13:packet_set_flight_path	32	static
-../Core/Src/drone_data.c:633:6:packet_create_uart_data	56	static
+../Core/Src/drone_data.c:196:13:packet_create_ack_nopayload	16	static
+../Core/Src/drone_data.c:219:13:packet_create_pair_status	16	static
+../Core/Src/drone_data.c:241:13:packet_create_ping_pong	16	static
+../Core/Src/drone_data.c:263:6:packet_create_telemetry	48	static
+../Core/Src/drone_data.c:506:13:packet_set_flight_path	32	static
+../Core/Src/drone_data.c:658:6:packet_create_uart_data	56	static

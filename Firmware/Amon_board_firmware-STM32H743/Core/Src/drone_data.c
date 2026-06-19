@@ -86,6 +86,7 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 		case OPT_PING:
 			// Ping command
 			packet_create_ping_pong(packets);
+			packet_create_ack_nopayload(packets, OPT_PING);
 			break;
 
 		case OPT_ERROR_REPORT:
@@ -150,11 +151,27 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 		case OPT_DRONE_FPATH_CLEAR:
 			// Clear current flight path
 			memset(drone_data->flight_path.flight_path, 0, sizeof(drone_data->flight_path.flight_path));
+			drone_data->flight_path.command_cnt = 0;
+			drone_data->flight_path.command_index = 0;
+			drone_data->data.flag_e_kill = 0;
+			drone_data->data.flag_land_now = 0;
 			packet_create_ack_nopayload(packets, OPT_DRONE_FPATH_CLEAR);
 			break;
 
 		case OPT_TELEMETRY:
 			// Drone -> PC direction
+			break;
+
+		case OPT_E_KILL:
+			// Emergency stop/kill
+			drone_data->data.flag_e_kill = 1;
+			packet_create_ack_nopayload(packets, OPT_E_KILL);
+			break;
+
+		case OPT_LAND_NOW:
+			// Emergency stop/kill
+			drone_data->data.flag_land_now = 1;
+			packet_create_ack_nopayload(packets, OPT_LAND_NOW);
 			break;
 
 		default:
@@ -429,7 +446,7 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 
 			/* Throttle level */
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_THROTTLE;
-			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->data.edf_throttle;
+			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->actuators.edf_percent;
 
 
 			/* Current servo motors angles */
@@ -490,10 +507,12 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 {
 	s_flight_command cmd;
 
+	// TODO: add command ok check and return fail
+
 	cmd.command = packets->rf_packet.payload[0];	// Save command
 	cmd.command_id = packets->rf_packet.payload[1]; // Save command id
 
-	// Parse command parameter
+	// Parse command parameter (uses big-endian)
 	switch (cmd.command)
 	{
 		case COMM_TAKE_OFF:
@@ -565,6 +584,7 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 		case COMM_WAIT:
 			cmd.wait.time_s = (packets->rf_packet.payload[2] << 8) |
 							   packets->rf_packet.payload[3];
+			break;
 
 		case COMM_HOVER:
 			cmd.hover.height_cm = (packets->rf_packet.payload[2] << 8) |
@@ -607,12 +627,17 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
 	}
 
 	// Save command to flight path
-	uint8_t index = drone_data->flight_path.command_index;
+	uint8_t index = cmd.command_id;
 
-	if (index < sizeof(drone_data->flight_path.flight_path))
+	if (index < (sizeof(drone_data->flight_path.flight_path) / sizeof(drone_data->flight_path.flight_path[0])))
 	{
-		drone_data->flight_path.flight_path[index] = cmd;
-		drone_data->flight_path.command_index++;
+	    drone_data->flight_path.flight_path[index] = cmd;
+
+	    // If you send 3 commands with IDs 0, 1, 2, command_cnt must be 3
+	    if ((index + 1) > drone_data->flight_path.command_cnt)
+	    {
+	        drone_data->flight_path.command_cnt = index + 1;
+	    }
 	}
 
 }
