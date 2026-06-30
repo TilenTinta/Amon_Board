@@ -39,7 +39,7 @@ _estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
 /*_Min_Heap_Size = 0x40000;      /* required amount of heap  */
 /*_Min_Stack_Size = 0x4000; /* required amount of stack */
-_Min_Heap_Size = 0x40000;  /* 256 KB */
+_Min_Heap_Size = 0x40000;  /* 1024 B */
 _Min_Stack_Size = 0x4000;  /* 16 KB */
 
 /* Specify the memory areas */
@@ -101,7 +101,7 @@ SECTIONS
     __exidx_end = .;
   } >FLASH
   
-  /* ADDED: DMA protection for memory storage */
+  /* TINTAT - ADDED: DMA protection for memory storage */
   .dma_buffer :
   {
     *(.dma_buffer)
@@ -145,7 +145,7 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >RAM_D1 AT> FLASH
+  } >RAM_D2 AT> FLASH	/* TINTAT - RAM_D1 AT> FLASH */
 
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -161,7 +161,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM_D1
+  } >RAM_D2	/* TINTAT - RAM_D1*/
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :

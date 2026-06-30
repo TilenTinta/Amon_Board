@@ -21,7 +21,7 @@
 
 // Calibration //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
-//#define IDENTIFICATION			// Uncomment to enable serial communication over USB
+//#define IDENTIFICATION				// Uncomment to enable serial communication over USB
 //#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments
 //#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
 
@@ -51,7 +51,9 @@
 #define RADIO_NUM			2 		// Set number of radios mounted on board
 #define CONN_TIMEOUT_SEC	3		// Amount off seconds that triggers timeout/lost connection
 //#define CONN_STEPS_2				// If using only OPT_PAIR_START signal for pairing comment this
-#define STREAM_EN_TIME		3		// Time in seconds over which stream mode is enabled
+#define STREAM_EN_TIME		0		// Time in seconds over which stream mode is enabled // 3
+#define RADIO_RX_TIMEOUT	2		// Time after which if rx flag is set it gets cleared
+
 #define ANGLE_SCALE			100.0f	// Factor for angle scaling of angle when sending over radio
 
 // Select GPS decoding (comment/uncomment for enable/disable) //
@@ -188,6 +190,8 @@ typedef struct {
     float               y_gauss;				// Y axis in Gauss
     float               z_gauss;				// Z axis in Gauss
     float				heading_deg;			// Heading direction in degrees
+    uint8_t				flag_zero_compas;		// Flag indication compass zeroing
+    float 				heading_offset_deg;		// Heading offset
 
 } s_position;
 
@@ -212,6 +216,7 @@ typedef struct {
 
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
 	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
+	float				nmpc_solver_time;		// Average solver time
 
 	uint8_t				flag_e_kill;			// Emergency stop/kill flag
 	uint8_t				flag_land_now;			// Land immediately no matter what
@@ -223,12 +228,12 @@ typedef struct {
 typedef struct {
 	uint8_t				buffer_temp[1];			// Small buffer for received byte //2
     uint8_t     		buffer_UART[64];        // Buffer for saving USB data
-    uint8_t     		flag_new_uart_rx_data;  // Flag indicating a new data has arrived (packet is not complete)
-    uint8_t     		flag_new_uart_tx_data;  // Flag indicating a new data is ready to send
-    uint8_t     		flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
+    volatile uint8_t    flag_new_uart_rx_data;  // Flag indicating a new data has arrived (packet is not complete)
+    uint8_t    flag_new_uart_tx_data;  			// Flag indicating a new data is ready to send
+    volatile uint8_t    flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
 
-    uint8_t				flag_logging_active;	// Flag for logging in progress
-    uint8_t				flag_log_available;		// Flag for indicating log available in flash
+    volatile uint8_t	flag_logging_active;	// Flag for logging in progress
+    volatile uint8_t	flag_log_available;		// Flag for indicating log available in flash
 
     const char		    *log_file;				// Name of log file
     uint8_t				flag_log_dump;			// Flag indication complete log dump over UART

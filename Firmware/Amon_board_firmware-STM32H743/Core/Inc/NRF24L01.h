@@ -336,7 +336,7 @@ typedef struct {
 
     volatile uint8_t    flag_new_rx;    // New RX data available
     volatile uint8_t    flag_tx_done;   // Data transmited sucessfuly
-    uint8_t             flag_max_rxs_reached; // Maximum nuber of retransmitions reached
+    volatile uint8_t    flag_max_rxs_reached; // Maximum nuber of retransmitions reached
 
 } s_nrf_payloads;
 
@@ -352,9 +352,12 @@ typedef struct {
 
     e_nrf_error         radioErr;       // Error flag - block device 
     volatile uint8_t    irq_flag;       // IRQ flag - interrupt detected
-    uint8_t             irq_on_pipe;    // number of pipe where irq is detected
-    uint8_t             irq_status;     // Flag that indicates interrupt
-    uint8_t             flag_tx_in_progress;    // Flag that blocks next uart receive if old one not finished yet
+    volatile uint8_t    irq_on_pipe;    // number of pipe where irq is detected
+    volatile uint8_t    irq_status;     // Flag that indicates interrupt
+    volatile uint8_t    flag_tx_in_progress;    // Flag that blocks next uart receive if old one not finished yet
+    uint32_t			tx_timeout_cnt;	// Timeout tx counter
+    uint32_t 			rx_resync_cnt;	// Counter of failed/missed IRQ events
+    uint32_t			last_poll_tick;	// Tick timer for pooling irq check/watchdoog
 
     e_nrf_radion_id     id;             // Radio ID
     e_nrf_role          role;           // Set radio as receiver/transmiter
@@ -385,6 +388,7 @@ uint8_t NRF24_ReadStatus(s_nRF24L01 *dev, uint8_t *status_out);                 
 
 // API functions
 void NRF24_HandleIRQ(s_nRF24L01 *dev);                                                          // Interrupt handler
+void NRF24_PollWatchdog(s_nRF24L01 *dev);														// Watchdog for missed interrupts
 void NRF24_init(s_nRF24L01 *dev);                                                               // Device initialization functio
 uint8_t NRF24_Send(s_nRF24L01 *dev);                                                            // Send data over RF
 uint8_t NRF24_ReadRXPayload(s_nRF24L01 *dev);                                                   // Read received data from device

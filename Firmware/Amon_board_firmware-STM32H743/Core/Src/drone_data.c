@@ -7,6 +7,9 @@
 *****************************************************************/
 
 #include "drone_data.h"
+#include <stdint.h>
+#include <math.h>
+#include <limits.h>
 
 /*###########################################################################################################################################################*/
 /* Private functions */
@@ -15,6 +18,34 @@ static void packet_create_ack_nopayload(s_packets *packets, uint8_t opcode);
 static void packet_create_pair_status(s_packets *packets, s_drone_data *drone_data);
 static void packet_create_ping_pong(s_packets *packets);
 static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data);
+static int16_t scale_to_i16(float value, float scale);
+
+
+/*********************************************************************
+ * @fcn     scale_to_i16
+ *
+ * @param 	value: value to check
+ * @param 	scale: scale factor
+ *
+ * @brief   Limit input values to fit in int16
+ *
+ * @return  limited value
+ */
+static int16_t scale_to_i16(float value, float scale)
+{
+    float scaled = value * scale;
+
+    if (!isfinite(scaled))
+        return 0;
+
+    if (scaled > INT16_MAX)
+        return INT16_MAX;
+
+    if (scaled < INT16_MIN)
+        return INT16_MIN;
+
+    return (int16_t)lroundf(scaled);
+}
 
 
 
@@ -173,6 +204,13 @@ static void decode_opcode(s_packets *packets, s_drone_data *drone_data)
 			drone_data->data.flag_land_now = 1;
 			packet_create_ack_nopayload(packets, OPT_LAND_NOW);
 			break;
+
+		case OPT_ZERO_COMPAS:
+			// Zero compass value
+			drone_data->position.flag_zero_compas = 1;
+			packet_create_ack_nopayload(packets, OPT_ZERO_COMPAS);
+			break;
+
 
 		default:
 			// Default
@@ -444,6 +482,11 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_FLIGHT_MODE;
 			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->flight_status;
 
+			/* Flight command */
+			uint8_t index = drone_data->flight_path.command_index;
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_FLIGHT_COM;
+			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->flight_path.flight_path[index].command;
+
 			/* Throttle level */
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_THROTTLE;
 			packets->rf_packet_drone.payload[payload_cnt++] = drone_data->actuators.edf_percent;
@@ -472,6 +515,16 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			/* - Servo: Y- */
 			packets->rf_packet_drone.payload[payload_cnt++] = (servo_yn >> 8) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] =  servo_yn       & 0xFF;
+
+			/* NMPC solve time */
+			packets->rf_packet_drone.payload[payload_cnt++] = TVL_SOLVE_TIME;
+
+			uint32_t time = (uint32_t)(drone_data->data.nmpc_solver_time * ANGLE_SCALE);
+			packets->rf_packet_drone.payload[payload_cnt++] = (time >> 24) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (time >> 16) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] = (time >>  8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  time 	   & 0xFF;
+
 
 			packets->rf_packet_drone.plen = payload_cnt;
 
@@ -701,9 +754,9 @@ void packet_create_uart_data(s_packets *packets, s_drone_data *drone_data)
 		packets->uart_packet.payload[payload_cnt++] =  servo_yn       & 0xFF;
 
 		/* IMU angles */
-		int16_t roll  = (int16_t)(drone_data->position.Roll  * ANGLE_SCALE);
-		int16_t pitch = (int16_t)(drone_data->position.Pitch * ANGLE_SCALE);
-		int16_t yaw   = (int16_t)(drone_data->position.Yaw   * ANGLE_SCALE);
+		int16_t roll  = scale_to_i16(drone_data->position.Roll, ANGLE_SCALE);
+		int16_t pitch = scale_to_i16(drone_data->position.Pitch, ANGLE_SCALE);
+		int16_t yaw   = scale_to_i16(drone_data->position.Yaw, ANGLE_SCALE);
 
 		/* - Roll */
 		packets->uart_packet.payload[payload_cnt++] = (roll >> 8) & 0xFF;
@@ -719,9 +772,9 @@ void packet_create_uart_data(s_packets *packets, s_drone_data *drone_data)
 
 
 		/* IMU raw values */
-		int16_t acc_x = (int16_t)(drone_data->position.accel_x * ANGLE_SCALE);
-		int16_t acc_y = (int16_t)(drone_data->position.accel_y * ANGLE_SCALE);
-		int16_t acc_z = (int16_t)(drone_data->position.accel_z * ANGLE_SCALE);
+		int16_t acc_x = scale_to_i16(drone_data->position.accel_x, ANGLE_SCALE);
+		int16_t acc_y = scale_to_i16(drone_data->position.accel_y, ANGLE_SCALE);
+		int16_t acc_z = scale_to_i16(drone_data->position.accel_z, ANGLE_SCALE);
 
 		/* - acceleration x */
 		packets->uart_packet.payload[payload_cnt++] = (acc_x >> 8) & 0xFF;
@@ -736,9 +789,9 @@ void packet_create_uart_data(s_packets *packets, s_drone_data *drone_data)
 		packets->uart_packet.payload[payload_cnt++] =  acc_z       & 0xFF;
 
 
-		int16_t gyro_x = (int16_t)(drone_data->position.gyro_x * ANGLE_SCALE);
-		int16_t gyro_y = (int16_t)(drone_data->position.gyro_y * ANGLE_SCALE);
-		int16_t gyro_z = (int16_t)(drone_data->position.gyro_z * ANGLE_SCALE);
+		int16_t gyro_x = scale_to_i16(drone_data->position.gyro_x, ANGLE_SCALE);
+		int16_t gyro_y = scale_to_i16(drone_data->position.gyro_y, ANGLE_SCALE);
+		int16_t gyro_z = scale_to_i16(drone_data->position.gyro_z, ANGLE_SCALE);
 
 		/* - gyroscope x */
 		packets->uart_packet.payload[payload_cnt++] = (gyro_x >> 8) & 0xFF;

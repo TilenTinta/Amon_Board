@@ -5,13 +5,6 @@
  * Date               : 2026/05/20
  * Description        : NMPC interface for amon_model acados solver
  *
- * Model dimensions (from acados_solver_amon_model.h):
- *   NX = 23  states
- *   NU = 5   inputs:  u[0]=thrust [0..100], u[1..4]=angle_cmds [-45..45]
- *   N  = 10  horizon
- *   NY = 28  cost output: [x(23); u(5)]
- *   NYN= 23  terminal cost output: [x(23)]
- *
 *****************************************************************/
 
 #ifndef INC_NMPC_H_
@@ -25,12 +18,14 @@
 /*###########################################################################################################################################################*/
 /* Defines */
 
+//#define COMPILE_MEM_ANALYZER	// Comment / uncomment to enable
+
 // Dimensions - match acados_solver_amon_model.h !!!
-#define NMPC_NX          13 // AMON_MODEL_NX
-#define NMPC_NU          5  // AMON_MODEL_NU
-#define NMPC_N           5 // AMON_MODEL_N
-#define NMPC_NY          18 // AMON_MODEL_NY
-#define NMPC_NYN         13 // AMON_MODEL_NYN
+#define NMPC_NX          13 	// AMON_MODEL_NX
+#define NMPC_NU          5  	// AMON_MODEL_NU
+#define NMPC_N           6	 	// AMON_MODEL_N
+#define NMPC_NY          18 	// AMON_MODEL_NY
+#define NMPC_NYN         13 	// AMON_MODEL_NYN
 
 /* -----------------------------------------------------------------------
  * Input (control) bounds — from solver setup
@@ -66,16 +61,19 @@ typedef struct
     double u_opt[NMPC_NU];
 
     // Reference trajectory (same ref applied to all N stages)
-    double x_ref[NMPC_NX];     	// state  reference (used in yref[0..22])
-    double u_ref[NMPC_NU];     	// input  reference (used in yref[23..27])
+    double x_ref[NMPC_NX];     		// state  reference (used in yref[0..22])
+    double u_ref[NMPC_NU];     		// input  reference (used in yref[23..27])
 
     // Diagnostics
-    uint32_t solve_time_ms;     // wall-clock solve time in ms
-    int      last_solver_status;// raw acados return code
-    uint32_t solve_count;       // total successful solves
+    uint32_t solve_time_ms;     	// wall-clock solve time in ms
+    int      last_solver_status;	// raw acados return code
+    uint32_t solve_count;       	// total successful solves
 
     // Internal flags
     uint8_t  initialized;
+    float nmpc_solve_time_arr[10];	// Array of last 10 times used to solve NMPC
+    uint8_t nmpc_solve_time_cnt;
+    float nmpc_solve_time;
 
 } s_NMPC;
 

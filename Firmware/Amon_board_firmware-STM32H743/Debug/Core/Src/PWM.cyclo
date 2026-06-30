@@ -1,5 +1,5 @@
-../Core/Src/PWM.c:31:7:SlewLimit	3
+../Core/Src/PWM.c:31:7:SlewLimit	1
 ../Core/Src/PWM.c:49:6:DegresToCCR	7
 ../Core/Src/PWM.c:98:6:PowerToPWMValue	3
-../Core/Src/PWM.c:122:6:EDFSlowRamp	4
-../Core/Src/PWM.c:168:6:SetPWMValue	8
+../Core/Src/PWM.c:122:6:EDFSlowRamp	3
+../Core/Src/PWM.c:168:6:SetPWMValue	6

@@ -19,7 +19,6 @@
 
 /*###########################################################################################################################################################*/
 /* Defines */
-#define NMPC_NX_SIZE		 13		// Number of states in model - match acados_solver_amon_model.h !!!
 
 // Speed for take-off and landing
 #define TAKEOFF_SPEED_M_S    0.5
@@ -34,6 +33,16 @@
 #define MODEL_INSTANT
 //#define MODEL_1ST_ORDER
 //#define MODEL_2ND_ORDER
+
+
+// Number of states in model - match acados_solver_amon_model.h !!!
+#ifdef MODEL_INSTANT
+	#define NMPC_NX_SIZE		 13
+#elif MODEL_1ST_ORDER
+	#define NMPC_NX_SIZE		 18
+#elif MODEL_2ND_ORDER
+	#define NMPC_NX_SIZE		 23
+#endif
 
 
 /*###########################################################################################################################################################*/

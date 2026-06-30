@@ -39,7 +39,8 @@ Core/Src/NMPC.o: ../Core/Src/NMPC.c ../Core/Inc/NMPC.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/ocp_qp_interface.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/sim_interface.h \
  C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/external_function_interface.h \
- C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/ocp_nlp_interface.h
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/ocp_nlp_interface.h \
+ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados/ocp_nlp/ocp_nlp_sqp_rti.h
 ../Core/Inc/NMPC.h:
 ../Core/Inc/nmpc_platform.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_solver_amon_model.h:
@@ -82,3 +83,4 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/sim_interface.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/external_function_interface.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_c/ocp_nlp_interface.h:
+C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados/ocp_nlp/ocp_nlp_sqp_rti.h:

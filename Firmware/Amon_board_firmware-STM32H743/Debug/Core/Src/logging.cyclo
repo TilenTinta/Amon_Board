@@ -1,8 +1,7 @@
-../Core/Src/logging.c:67:24:log_addr	1
+../Core/Src/logging.c:167:5:log_flash_sync	1
 ../Core/Src/logging.c:89:5:log_flash_read	3
 ../Core/Src/logging.c:116:5:log_flash_prog	5
 ../Core/Src/logging.c:143:5:log_flash_erase	1
-../Core/Src/logging.c:167:5:log_flash_sync	1
 ../Core/Src/logging.c:187:5:log_init	2
 ../Core/Src/logging.c:222:6:log_test_write	1
 ../Core/Src/logging.c:244:6:log_test_read	1
@@ -11,5 +10,5 @@
 ../Core/Src/logging.c:311:5:log_close_file	1
 ../Core/Src/logging.c:328:6:log_write_buffer	1
 ../Core/Src/logging.c:348:6:log_add_sample	2
-../Core/Src/logging.c:400:5:log_dump_uart	8
+../Core/Src/logging.c:400:5:log_dump_uart	6
 ../Core/Src/logging.c:458:6:log_remove	2

@@ -9,6 +9,11 @@
 /* Includes */
 #include "NRF24L01.h"
 
+/*###########################################################################################################################################################*/
+/* Defines */
+#define NRF_TX_TIMEOUT_MS   5
+#define NRF_POLL_INTERVAL_MS  100
+
 
 /*###########################################################################################################################################################*/
 /* Private functions - used to manipulate pin states and SPI bus */
@@ -313,6 +318,33 @@ void NRF24_HandleIRQ(s_nRF24L01 *dev)
 
 
 /*********************************************************************
+ * @fn      NRF24_PollWatchdog
+ *
+ * @param   *dev: device struct
+ *
+ * @brief   IRQ watchdog - check missed irq events periodically
+ *
+ * @return  none
+ */
+void NRF24_PollWatchdog(s_nRF24L01 *dev)
+{
+    uint32_t now = HAL_GetTick();
+    if ((now - dev->last_poll_tick) < NRF_POLL_INTERVAL_MS) return;
+    dev->last_poll_tick = now;
+
+    uint8_t status;
+    NRF24_ReadStatus(dev, &status);
+
+    if (status & (RX_DR | TX_DS | MAX_RT))
+    {
+        if (dev->irq_flag == 0) dev->rx_resync_cnt++;  // indicate lost IRQ event
+        NRF24_HandleIRQ(dev);  // check irq if detected
+    }
+}
+
+
+
+/*********************************************************************
  * @fn      NRF24_init
  *
  * @param   *dev: device struct
@@ -377,7 +409,8 @@ void NRF24_init(s_nRF24L01 *dev)
     NRF24_WriteRegister(dev, RF_SETUP, reg, NULL);
 
     // Set auto retransmition
-    reg = ((dev->config->retry_delay << 4) & ARD) | (dev->config->retries & ARC);
+   // reg = ((dev->config->retry_delay << 4) & ARD) | (dev->config->retries & ARC);
+    reg = (dev->config->retry_delay & ARD) | (dev->config->retries & ARC);
 
     NRF24_WriteRegister(dev, SETUP_RETR, reg, NULL);
 
@@ -465,25 +498,40 @@ uint8_t NRF24_Send(s_nRF24L01 *dev)
 {
     uint8_t cmd;
 
-    // Block next send if previous in progress
-    uint32_t timeout = 100000; // Adjust
-    while(dev->flag_tx_in_progress) {
-        if (--timeout == 0) {
-        	break;
+    // Block next send if a previous one is still "in progress" (waiting for its IRQ)
+    uint32_t tickstart = HAL_GetTick();
+    while (dev->flag_tx_in_progress)
+    {
+        if ((HAL_GetTick() - tickstart) >= NRF_TX_TIMEOUT_MS)
+        {
+            // Previous TX never got managed by NRF24_HandleIRQ
+            uint8_t status;
+            NRF24_ReadStatus(dev, &status);
+            NRF24_WriteRegister(dev, RF_STATUS, RX_DR | TX_DS | MAX_RT, NULL);
+            cmd = FLUSH_TX;
+            NRF24_SPI_Write(dev, &cmd, 1);
+            nrf_ce_low(dev);
+
+            dev->flag_tx_in_progress = 0;
+            dev->tx_timeout_cnt++;
+            break;
         }
     }
+
     dev->flag_tx_in_progress = 1;
 
     // Device config check
     if (dev->role != NRF_ROLE_PTX) 
     {
         dev->radioErr = NRF_ERR_INVALID_STATE;
+        dev->flag_tx_in_progress = 0;
         return 1;
     }
 
     // Check payload lenght
     if (dev->buffers.tx_lenght == 0 || dev->buffers.tx_lenght > 32) 
     {
+    	dev->flag_tx_in_progress = 0;
         return 1;
     }
 

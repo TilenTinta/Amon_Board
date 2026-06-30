@@ -18,6 +18,8 @@
 #include "nmpc_platform.h"
 #include "acados_solver_amon_model.h"
 #include "acados_c/ocp_nlp_interface.h"
+#include "acados/ocp_nlp/ocp_nlp_common.h"
+#include "acados/ocp_nlp/ocp_nlp_sqp_rti.h"
 #include <string.h>
 #include <stddef.h>
 
@@ -27,6 +29,299 @@
 // Module-level capsule pointer (one solver instance)
 static amon_model_solver_capsule *s_capsule = NULL;
 
+// Helper code
+#ifdef COMPILE_MEM_ANALYZER
+
+#define NMPC_MEM_ANALYSIS_MAX_N    64
+#define NMPC_MEM_ANALYSIS_MAX_NP1  (NMPC_MEM_ANALYSIS_MAX_N + 1)
+
+typedef struct
+{
+    uint32_t valid;
+    uint32_t error_flags;
+    uint32_t progress_marker;
+    uint32_t N;
+    uint32_t recorded_N;
+
+    uint32_t sizeof_ocp_nlp_solver;
+    uint32_t solver_memory_size;
+    uint32_t solver_workspace_size;
+    uint32_t solver_total_size;
+
+    uint32_t nlp_memory_size;
+    uint32_t nlp_workspace_size;
+    uint32_t nlp_opts_size;
+    uint32_t nlp_in_size;
+    uint32_t nlp_out_size;
+    uint32_t sens_out_size;
+
+    uint32_t qp_solver_memory_size;
+    uint32_t qp_solver_workspace_size;
+    uint32_t qp_in_orig_size;
+    uint32_t qp_out_orig_size;
+    uint32_t qp_seed_orig_size;
+    uint32_t qp_res_orig_size;
+    uint32_t qp_res_workspace_orig_size;
+
+    uint32_t dynamics_memory_total;
+    uint32_t dynamics_workspace_total;
+    uint32_t dynamics_workspace_max;
+    uint32_t dynamics_ext_workspace_total;
+    uint32_t dynamics_ext_workspace_max;
+
+    uint32_t cost_memory_total;
+    uint32_t cost_workspace_total;
+    uint32_t cost_workspace_max;
+    uint32_t cost_ext_workspace_total;
+    uint32_t cost_ext_workspace_max;
+
+    uint32_t constraints_memory_total;
+    uint32_t constraints_workspace_total;
+    uint32_t constraints_workspace_max;
+    uint32_t constraints_ext_workspace_total;
+    uint32_t constraints_ext_workspace_max;
+
+    uint32_t stage_dynamics_memory[NMPC_MEM_ANALYSIS_MAX_N];
+    uint32_t stage_dynamics_workspace[NMPC_MEM_ANALYSIS_MAX_N];
+    uint32_t stage_dynamics_ext_workspace[NMPC_MEM_ANALYSIS_MAX_N];
+
+    uint32_t stage_cost_memory[NMPC_MEM_ANALYSIS_MAX_NP1];
+    uint32_t stage_cost_workspace[NMPC_MEM_ANALYSIS_MAX_NP1];
+    uint32_t stage_cost_ext_workspace[NMPC_MEM_ANALYSIS_MAX_NP1];
+
+    uint32_t stage_constraints_memory[NMPC_MEM_ANALYSIS_MAX_NP1];
+    uint32_t stage_constraints_workspace[NMPC_MEM_ANALYSIS_MAX_NP1];
+    uint32_t stage_constraints_ext_workspace[NMPC_MEM_ANALYSIS_MAX_NP1];
+} s_NMPC_MemAnalysis;
+
+volatile s_NMPC_MemAnalysis g_nmpc_mem_analysis;
+
+static void NMPC_MemAnalysisClear(void)
+{
+    volatile uint8_t *p = (volatile uint8_t *)&g_nmpc_mem_analysis;
+    for (uint32_t i = 0; i < sizeof(g_nmpc_mem_analysis); i++)
+    {
+        p[i] = 0;
+    }
+}
+
+static uint32_t NMPC_SizeToU32(acados_size_t value)
+{
+    if (value > 0xffffffffu)
+    {
+        return 0xffffffffu;
+    }
+    return (uint32_t)value;
+}
+
+static void NMPC_AddSize(volatile uint32_t *total, volatile uint32_t *maximum, uint32_t value)
+{
+    *total += value;
+    if (value > *maximum)
+    {
+        *maximum = value;
+    }
+}
+
+
+int NMPC_DebugAnalyzeMemory(void)
+{
+    NMPC_MemAnalysisClear();
+
+    if (s_capsule == NULL)
+    {
+        g_nmpc_mem_analysis.error_flags = 0x00000001u;
+        return NMPC_FAIL;
+    }
+
+    ocp_nlp_config *config = s_capsule->nlp_config;
+    ocp_nlp_dims *dims = s_capsule->nlp_dims;
+    void *solver_opts = s_capsule->nlp_opts;
+    ocp_nlp_in *nlp_in = s_capsule->nlp_in;
+
+    if (config == NULL || dims == NULL || solver_opts == NULL || nlp_in == NULL)
+    {
+        g_nmpc_mem_analysis.error_flags = 0x00000002u;
+        return NMPC_FAIL;
+    }
+
+    ocp_nlp_sqp_rti_opts *sqp_rti_opts = (ocp_nlp_sqp_rti_opts *)solver_opts;
+    ocp_nlp_opts *opts = sqp_rti_opts->nlp_opts;
+    if (opts == NULL)
+    {
+        g_nmpc_mem_analysis.error_flags = 0x00000020u;
+        return NMPC_FAIL;
+    }
+
+    const int N = dims->N;
+    const int recorded_N = (N > NMPC_MEM_ANALYSIS_MAX_N) ? NMPC_MEM_ANALYSIS_MAX_N : N;
+
+    g_nmpc_mem_analysis.N = (uint32_t)N;
+    g_nmpc_mem_analysis.recorded_N = (uint32_t)recorded_N;
+    if (N > NMPC_MEM_ANALYSIS_MAX_N)
+    {
+        g_nmpc_mem_analysis.error_flags |= 0x00000004u;
+    }
+
+    if (config->opts_update != NULL)
+    {
+        g_nmpc_mem_analysis.progress_marker = 1u;
+        config->opts_update(config, dims, solver_opts);
+    }
+    else
+    {
+        g_nmpc_mem_analysis.error_flags |= 0x00000010u;
+    }
+
+    g_nmpc_mem_analysis.sizeof_ocp_nlp_solver = (uint32_t)sizeof(ocp_nlp_solver);
+    g_nmpc_mem_analysis.progress_marker = 2u;
+    g_nmpc_mem_analysis.solver_memory_size =
+        NMPC_SizeToU32(config->memory_calculate_size(config, dims, solver_opts, nlp_in));
+    g_nmpc_mem_analysis.progress_marker = 3u;
+    g_nmpc_mem_analysis.solver_workspace_size =
+        NMPC_SizeToU32(config->workspace_calculate_size(config, dims, solver_opts, nlp_in));
+    g_nmpc_mem_analysis.solver_total_size =
+        g_nmpc_mem_analysis.sizeof_ocp_nlp_solver +
+        g_nmpc_mem_analysis.solver_memory_size +
+        g_nmpc_mem_analysis.solver_workspace_size;
+
+    g_nmpc_mem_analysis.progress_marker = 4u;
+    g_nmpc_mem_analysis.nlp_memory_size =
+        NMPC_SizeToU32(ocp_nlp_memory_calculate_size(config, dims, opts, nlp_in));
+    g_nmpc_mem_analysis.progress_marker = 5u;
+    g_nmpc_mem_analysis.nlp_workspace_size =
+        NMPC_SizeToU32(ocp_nlp_workspace_calculate_size(config, dims, opts, nlp_in));
+    g_nmpc_mem_analysis.progress_marker = 6u;
+    g_nmpc_mem_analysis.nlp_opts_size =
+        NMPC_SizeToU32(config->opts_calculate_size(config, dims));
+    g_nmpc_mem_analysis.progress_marker = 7u;
+    g_nmpc_mem_analysis.nlp_in_size =
+        NMPC_SizeToU32(ocp_nlp_in_calculate_size(config, dims));
+    g_nmpc_mem_analysis.progress_marker = 8u;
+    g_nmpc_mem_analysis.nlp_out_size =
+        NMPC_SizeToU32(ocp_nlp_out_calculate_size(config, dims));
+    g_nmpc_mem_analysis.sens_out_size = g_nmpc_mem_analysis.nlp_out_size;
+
+    if (config->qp_solver != NULL && dims->qp_solver != NULL && opts->qp_solver_opts != NULL)
+    {
+        g_nmpc_mem_analysis.progress_marker = 9u;
+        g_nmpc_mem_analysis.qp_solver_memory_size =
+            NMPC_SizeToU32(config->qp_solver->memory_calculate_size(config->qp_solver,
+                                                                    dims->qp_solver,
+                                                                    opts->qp_solver_opts));
+        g_nmpc_mem_analysis.progress_marker = 10u;
+        g_nmpc_mem_analysis.qp_solver_workspace_size =
+            NMPC_SizeToU32(config->qp_solver->workspace_calculate_size(config->qp_solver,
+                                                                       dims->qp_solver,
+                                                                       opts->qp_solver_opts));
+
+        if (dims->qp_solver->orig_dims != NULL)
+        {
+            g_nmpc_mem_analysis.qp_in_orig_size =
+                NMPC_SizeToU32(ocp_qp_in_calculate_size(dims->qp_solver->orig_dims));
+            g_nmpc_mem_analysis.qp_out_orig_size =
+                NMPC_SizeToU32(ocp_qp_out_calculate_size(dims->qp_solver->orig_dims));
+            g_nmpc_mem_analysis.qp_seed_orig_size =
+                NMPC_SizeToU32(ocp_qp_seed_calculate_size(dims->qp_solver->orig_dims));
+            g_nmpc_mem_analysis.qp_res_orig_size =
+                NMPC_SizeToU32(ocp_qp_res_calculate_size(dims->qp_solver->orig_dims));
+            g_nmpc_mem_analysis.qp_res_workspace_orig_size =
+                NMPC_SizeToU32(ocp_qp_res_workspace_calculate_size(dims->qp_solver->orig_dims));
+        }
+    }
+    else
+    {
+        g_nmpc_mem_analysis.error_flags |= 0x00000008u;
+    }
+
+    for (int i = 0; i < recorded_N; i++)
+    {
+        uint32_t value;
+
+        g_nmpc_mem_analysis.progress_marker = 100u + (uint32_t)i;
+        value = NMPC_SizeToU32(config->dynamics[i]->memory_calculate_size(config->dynamics[i],
+                                                                          dims->dynamics[i],
+                                                                          opts->dynamics[i]));
+        g_nmpc_mem_analysis.stage_dynamics_memory[i] = value;
+        g_nmpc_mem_analysis.dynamics_memory_total += value;
+
+        value = NMPC_SizeToU32(config->dynamics[i]->workspace_calculate_size(config->dynamics[i],
+                                                                             dims->dynamics[i],
+                                                                             opts->dynamics[i]));
+        g_nmpc_mem_analysis.stage_dynamics_workspace[i] = value;
+        NMPC_AddSize(&g_nmpc_mem_analysis.dynamics_workspace_total,
+                     &g_nmpc_mem_analysis.dynamics_workspace_max,
+                     value);
+
+        value = NMPC_SizeToU32(config->dynamics[i]->get_external_fun_workspace_requirement(config->dynamics[i],
+                                                                                           dims->dynamics[i],
+                                                                                           opts->dynamics[i],
+                                                                                           nlp_in->dynamics[i]));
+        g_nmpc_mem_analysis.stage_dynamics_ext_workspace[i] = value;
+        NMPC_AddSize(&g_nmpc_mem_analysis.dynamics_ext_workspace_total,
+                     &g_nmpc_mem_analysis.dynamics_ext_workspace_max,
+                     value);
+    }
+
+    for (int i = 0; i <= recorded_N; i++)
+    {
+        uint32_t value;
+
+        g_nmpc_mem_analysis.progress_marker = 200u + (uint32_t)i;
+        value = NMPC_SizeToU32(config->cost[i]->memory_calculate_size(config->cost[i],
+                                                                      dims->cost[i],
+                                                                      opts->cost[i]));
+        g_nmpc_mem_analysis.stage_cost_memory[i] = value;
+        g_nmpc_mem_analysis.cost_memory_total += value;
+
+        value = NMPC_SizeToU32(config->cost[i]->workspace_calculate_size(config->cost[i],
+                                                                         dims->cost[i],
+                                                                         opts->cost[i]));
+        g_nmpc_mem_analysis.stage_cost_workspace[i] = value;
+        NMPC_AddSize(&g_nmpc_mem_analysis.cost_workspace_total,
+                     &g_nmpc_mem_analysis.cost_workspace_max,
+                     value);
+
+        value = NMPC_SizeToU32(config->cost[i]->get_external_fun_workspace_requirement(config->cost[i],
+                                                                                       dims->cost[i],
+                                                                                       opts->cost[i],
+                                                                                       nlp_in->cost[i]));
+        g_nmpc_mem_analysis.stage_cost_ext_workspace[i] = value;
+        NMPC_AddSize(&g_nmpc_mem_analysis.cost_ext_workspace_total,
+                     &g_nmpc_mem_analysis.cost_ext_workspace_max,
+                     value);
+
+        g_nmpc_mem_analysis.progress_marker = 300u + (uint32_t)i;
+        value = NMPC_SizeToU32(config->constraints[i]->memory_calculate_size(config->constraints[i],
+                                                                             dims->constraints[i],
+                                                                             opts->constraints[i]));
+        g_nmpc_mem_analysis.stage_constraints_memory[i] = value;
+        g_nmpc_mem_analysis.constraints_memory_total += value;
+
+        value = NMPC_SizeToU32(config->constraints[i]->workspace_calculate_size(config->constraints[i],
+                                                                                dims->constraints[i],
+                                                                                opts->constraints[i]));
+        g_nmpc_mem_analysis.stage_constraints_workspace[i] = value;
+        NMPC_AddSize(&g_nmpc_mem_analysis.constraints_workspace_total,
+                     &g_nmpc_mem_analysis.constraints_workspace_max,
+                     value);
+
+        value = NMPC_SizeToU32(config->constraints[i]->get_external_fun_workspace_requirement(config->constraints[i],
+                                                                                              dims->constraints[i],
+                                                                                              opts->constraints[i],
+                                                                                              nlp_in->constraints[i]));
+        g_nmpc_mem_analysis.stage_constraints_ext_workspace[i] = value;
+        NMPC_AddSize(&g_nmpc_mem_analysis.constraints_ext_workspace_total,
+                     &g_nmpc_mem_analysis.constraints_ext_workspace_max,
+                     value);
+    }
+
+    g_nmpc_mem_analysis.progress_marker = 0xffffffffu;
+    g_nmpc_mem_analysis.valid = 1u;
+    return NMPC_OK;
+}
+
+#endif
 
 
 /*********************************************************************

@@ -128,6 +128,7 @@ extern "C" {
 #define OPT_IDENTI_MOMENT		0x73	// Enable drone identification mode (payload ON/OFF) - moment test
 #define OPT_E_KILL				0xF0	// Emergency stop/kill drone (turn off everything)
 #define OPT_LAND_NOW			0xF1	// Land immediately
+#define OPT_ZERO_COMPAS			0xF2	// Use current value of heading as zero
 
 // Payload format - TLV (Type-Length-Value): T(1B), L(1B), V(L bytes)
 #define TVL_FW_VER              0x01    // FW version (ascii)
@@ -148,6 +149,8 @@ extern "C" {
 #define TVL_DATE_TIME			0x24	// Date and time aquired from gps / ground station
 #define TVL_TLM					0x25	// Telemetry frequency
 #define TVL_FLIGHT_MODE			0x26	// Flight state
+#define TVL_FLIGHT_COM			0x27	// Current flight command
+#define TVL_SOLVE_TIME			0x28	// Average time needed to solve NMPC
 
 #define TVL_THP					0x30	// Temperature, humidity, pressure (i16, u8, u16)
 #define TVL_ANGL           		0x31    // Roll/pitch/yaw (i16 each, deg*100)
