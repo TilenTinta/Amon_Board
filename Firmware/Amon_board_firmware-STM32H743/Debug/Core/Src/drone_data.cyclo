@@ -1,3 +1,3 @@
 ../Core/Src/drone_data.c:62:9:RF_packet_decode	30
 ../Core/Src/drone_data.c:301:6:packet_create_telemetry	6
-../Core/Src/drone_data.c:711:6:packet_create_uart_data	29
+../Core/Src/drone_data.c:710:6:packet_create_uart_data	29

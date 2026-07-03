@@ -525,7 +525,6 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			packets->rf_packet_drone.payload[payload_cnt++] = (time >>  8) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] =  time 	   & 0xFF;
 
-
 			packets->rf_packet_drone.plen = payload_cnt;
 
 			packet_num = 0;

@@ -28,6 +28,10 @@
 
 // Module-level capsule pointer (one solver instance)
 static amon_model_solver_capsule *s_capsule = NULL;
+static void NMPC_ApplyCachedWarmStart(s_NMPC *h);
+static void NMPC_SaveShiftedWarmStart(s_NMPC *h);
+
+
 
 // Helper code
 #ifdef COMPILE_MEM_ANALYZER
@@ -465,27 +469,29 @@ int NMPC_Solve(s_NMPC *h)
 {
     if (!h->initialized) return NMPC_NOT_INIT;
 
-    uint32_t t0 = NMPC_PlatformGetTickMs();
+    //uint32_t t0 = NMPC_PlatformGetTickMs();
 
     int status = amon_model_acados_solve(s_capsule);
 
-    h->solve_time_ms     = NMPC_PlatformGetTickMs() - t0;
+    //h->solve_time_ms     = NMPC_PlatformGetTickMs() - t0;
     h->last_solver_status = status;
-
-    // Extract u[0] always - best available solution even if solver fails
-    ocp_nlp_out_get(s_capsule->nlp_config,
-                    s_capsule->nlp_dims,
-                    s_capsule->nlp_out,
-                    0, "u", h->u_opt);
 
     if (status == ACADOS_SUCCESS)
     {
+        ocp_nlp_out_get(s_capsule->nlp_config,
+                        s_capsule->nlp_dims,
+                        s_capsule->nlp_out,
+                        0, "u", h->u_opt);
+
+        NMPC_SaveShiftedWarmStart(h);
+
         h->solve_count++;
         return NMPC_OK;
     }
 
-    // Non-zero status: solver hit max iterations or failed to converge.
-    //	- u_opt still contains the best iteration - use it or not
+    NMPC_ApplyCachedWarmStart(h);
+
+    // Non-zero status: keep the last successful u_opt and warm-start trajectory.
     return NMPC_SOLVER_ERR;
 }
 
@@ -532,3 +538,84 @@ void NMPC_DeInit(s_NMPC *h)
         memset(h, 0, sizeof(s_NMPC));
     }
 }
+
+
+
+
+/*********************************************************************
+ * @fn      NMPC_ApplyCachedWarmStart
+ *
+ * @param   *h: nmpc struct
+ *
+ * @brief   Use previous values from solver
+ * 			as start values for a new iteration
+ * 			of optimization = warm-start
+ *
+ * @return  None
+ */
+static void NMPC_ApplyCachedWarmStart(s_NMPC *h)
+{
+    if (h == NULL || !h->warm_start_valid || s_capsule == NULL) return;
+
+    for (int k = 0; k <= NMPC_N; k++)
+    {
+        ocp_nlp_out_set(s_capsule->nlp_config,
+                        s_capsule->nlp_dims,
+                        s_capsule->nlp_out,
+                        s_capsule->nlp_in,
+                        k, "x", h->warm_x[k]);
+    }
+
+    for (int k = 0; k < NMPC_N; k++)
+    {
+        ocp_nlp_out_set(s_capsule->nlp_config,
+                        s_capsule->nlp_dims,
+                        s_capsule->nlp_out,
+                        s_capsule->nlp_in,
+                        k, "u", h->warm_u[k]);
+    }
+}
+
+
+
+
+/*********************************************************************
+ * @fn      NMPC_SaveShiftedWarmStart
+ *
+ * @param   *h: nmpc struct
+ *
+ * @brief   Save current solver values for
+ * 			next iteration of optimization
+ *
+ * @return  None
+ */
+static void NMPC_SaveShiftedWarmStart(s_NMPC *h)
+{
+    if (h == NULL || s_capsule == NULL) return;
+
+    for (int k = 0; k < NMPC_N; k++)
+    {
+        ocp_nlp_out_get(s_capsule->nlp_config,
+                        s_capsule->nlp_dims,
+                        s_capsule->nlp_out,
+                        k + 1, "x", h->warm_x[k]);
+    }
+
+    memcpy(h->warm_x[NMPC_N], h->warm_x[NMPC_N - 1], NMPC_NX * sizeof(double));
+
+    for (int k = 0; k < NMPC_N - 1; k++)
+    {
+        ocp_nlp_out_get(s_capsule->nlp_config,
+                        s_capsule->nlp_dims,
+                        s_capsule->nlp_out,
+                        k + 1, "u", h->warm_u[k]);
+    }
+    ocp_nlp_out_get(s_capsule->nlp_config,
+                    s_capsule->nlp_dims,
+                    s_capsule->nlp_out,
+                    NMPC_N - 1, "u", h->warm_u[NMPC_N - 1]);
+
+    h->warm_start_valid = 1;
+    NMPC_ApplyCachedWarmStart(h);
+}
+

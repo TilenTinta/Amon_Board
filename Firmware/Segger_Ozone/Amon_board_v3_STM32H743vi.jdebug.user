@@ -1,29 +1,37 @@
 
 
 
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1464, State=BP_STATE_ON
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1763:1, State=BP_STATE_DISABLED
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:2580:19, State=BP_STATE_DISABLED
-OpenDocument="data_transcode.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/data_transcode.c", Line=275
-OpenDocument="HMC5883L.h", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Inc/HMC5883L.h", Line=50
-OpenDocument="PMW3901.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/PMW3901.c", Line=555
-OpenDocument="MPU6050.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/MPU6050.c", Line=485
-OpenDocument="main.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c", Line=286
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_solver_amon_model.c:980:5, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/CMSIS/Include/core_cm7.h:2516:8, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1283, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1284:6, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1602:7, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:3202:3, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:3254:3, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:3266:3, State=BP_STATE_DISABLED
+OpenDocument="main.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c", Line=3523
+OpenDocument="drone_data.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/drone_data.c", Line=491
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Call Stack", DockArea=RIGHT, x=0, y=0, w=301, h=177, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=2, w=301, h=332, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
-OpenWindow="Source Files", DockArea=LEFT, x=0, y=0, w=381, h=430, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=1, w=301, h=178, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Memory 1", DockArea=BOTTOM, x=1, y=0, w=1002, h=244, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x30
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=381, h=258, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=275, h=244, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Call Stack", DockArea=RIGHT, x=0, y=0, w=340, h=302, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=2, w=340, h=289, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=0, w=280, h=405, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=1, w=340, h=151, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Memory 1", DockArea=BOTTOM, x=1, y=0, w=270, h=189, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0xE000EF50
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=280, h=338, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=1007, h=189, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
 TableHeader="Call Stack", SortCol="Function", SortOrder="ASCENDING", VisibleCols=["Function";"Stack Frame";"Source";"PC";"Return Address";"Stack Used"], ColWidths=[170;112;170;100;168;100]
-TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[216;100;100;100;1172]
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[216;100;100;100;1184]
 TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
-TableHeader="Registers 1", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[100;105;100]
-TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[116;100;100;100]
+TableHeader="Registers 1", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[180;105;686]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[116;55;71;100]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;376]
 WatchedExpression="AmonDrone", DisplayFormat=DISPLAY_FORMAT_HEX, Window=Watched Data 1
 WatchedExpression="mpu6050", DisplayFormat=DISPLAY_FORMAT_HEX, Window=Watched Data 1
 WatchedExpression="hmc5883l", DisplayFormat=DISPLAY_FORMAT_HEX, Window=Watched Data 1
+WatchedExpression="bytes", Window=Watched Data 1
+WatchedExpression="g_nmpc_mem_analysis", Window=Watched Data 1
+WatchedExpression="AmonDrone.flight_path.command_time_s", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="AmonDrone.data.nmpc_solver_time", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="tmp_bat", RefreshRate=1, Window=Watched Data 1

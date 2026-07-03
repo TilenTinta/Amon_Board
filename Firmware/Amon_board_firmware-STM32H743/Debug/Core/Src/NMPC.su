@@ -1,6 +1,7 @@
-../Core/Src/NMPC.c:336:5:NMPC_Init	16	static
-../Core/Src/NMPC.c:373:5:NMPC_SetState	40	static
-../Core/Src/NMPC.c:422:5:NMPC_SetReference	176	static
-../Core/Src/NMPC.c:464:5:NMPC_Solve	32	static
-../Core/Src/NMPC.c:504:6:NMPC_GetControl	8	static
-../Core/Src/NMPC.c:522:6:NMPC_DeInit	16	static
+../Core/Src/NMPC.c:556:13:NMPC_ApplyCachedWarmStart.part.0	48	static
+../Core/Src/NMPC.c:340:5:NMPC_Init	16	static
+../Core/Src/NMPC.c:377:5:NMPC_SetState	40	static
+../Core/Src/NMPC.c:426:5:NMPC_SetReference	176	static
+../Core/Src/NMPC.c:468:5:NMPC_Solve	48	static
+../Core/Src/NMPC.c:510:6:NMPC_GetControl	8	static
+../Core/Src/NMPC.c:528:6:NMPC_DeInit	16	static

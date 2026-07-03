@@ -41,12 +41,20 @@ static lfs_file_t file;
 
 
 s_logging_buffer log_buffer[LOG_BUFFER_SIZE]; // buffer where data is stored before logging to NVM
+static uint8_t log_buffer_index = 0;
+
+#ifdef LOG_RAW_FLASH
+static uint32_t raw_log_write_addr = 0;
+static uint32_t raw_log_size_bytes = 0;
+static uint8_t raw_log_open = 0;
+#endif
 
 
 int log_flash_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size);
 int log_flash_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size);
 int log_flash_erase(const struct lfs_config *c, lfs_block_t block);
 int log_flash_sync(const struct lfs_config *c);
+void log_write_buffer(uint8_t size);
 
 
 /*###########################################################################################################################################################*/
@@ -186,27 +194,36 @@ int log_flash_sync(const struct lfs_config *c)
  */
 int log_init(void)
 {
-	// TODO: add error handling
     Flash_Init();
 
-    cfg.read  = log_flash_read;
-    cfg.prog  = log_flash_prog;
-    cfg.erase = log_flash_erase;
-    cfg.sync  = log_flash_sync;
+	#ifdef LOG_LITTLEFS
+		cfg.read  = log_flash_read;
+		cfg.prog  = log_flash_prog;
+		cfg.erase = log_flash_erase;
+		cfg.sync  = log_flash_sync;
 
-    cfg.read_size = LFS_READ_SIZE;
-    cfg.prog_size = LFS_PROG_SIZE;
-    cfg.block_size = LFS_BLOCK_SIZE;
-    cfg.block_count = LFS_EXT_FLASH_SIZE_BYTES / LFS_BLOCK_SIZE;
-    cfg.cache_size = 256;
-    cfg.lookahead_size = 256;
-    cfg.block_cycles = 500;
+		cfg.read_size = LFS_READ_SIZE;
+		cfg.prog_size = LFS_PROG_SIZE;
+		cfg.block_size = LFS_BLOCK_SIZE;
+		cfg.block_count = LFS_EXT_FLASH_SIZE_BYTES / LFS_BLOCK_SIZE;
+		cfg.cache_size = 256;
+		cfg.lookahead_size = 256;
+		cfg.block_cycles = 500;
 
-    if (lfs_mount(&lfs, &cfg))
-    {
-        lfs_format(&lfs, &cfg);
-        lfs_mount(&lfs, &cfg);
-    }
+		if (lfs_mount(&lfs, &cfg))
+		{
+			lfs_format(&lfs, &cfg);
+			lfs_mount(&lfs, &cfg);
+		}
+	#endif
+
+	#ifdef LOG_RAW_FLASH
+		raw_log_write_addr = 0;
+		raw_log_size_bytes = 0;
+		raw_log_open = 0;
+		log_buffer_index = 0;
+	#endif
+
     return 0;
 }
 
@@ -221,15 +238,17 @@ int log_init(void)
  */
 void log_test_write(void)
 {
-    const char *msg = "Hello Drone\n";
+	#ifdef LOG_LITTLEFS
+		const char *msg = "Hello Drone\n";
 
-    lfs_file_open(&lfs, &file,
-                  "test.txt",
-                  LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
+		lfs_file_open(&lfs, &file,
+					  "test.txt",
+					  LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
 
-    lfs_file_write(&lfs, &file, msg, strlen(msg));
+		lfs_file_write(&lfs, &file, msg, strlen(msg));
 
-    lfs_file_close(&lfs, &file);
+		lfs_file_close(&lfs, &file);
+	#endif
 }
 
 
@@ -243,24 +262,26 @@ void log_test_write(void)
  */
 void log_test_read(void)
 {
-    char buffer[64];
-    int bytes_read;
+	#ifdef LOG_LITTLEFS
+		char buffer[64];
+		int bytes_read;
 
-    lfs_file_open(&lfs, &file, "test.txt", LFS_O_RDONLY);
+		lfs_file_open(&lfs, &file, "test.txt", LFS_O_RDONLY);
 
-    //while()
-     bytes_read = lfs_file_read(&lfs,
-							   &file,
-							   buffer,
-							   sizeof(buffer));
-//    {
-//        HAL_UART_Transmit(&huart1,
-//                          (uint8_t*)buffer,
-//                          bytes_read,
-//                          HAL_MAX_DELAY);
-//    }
+		//while()
+		 bytes_read = lfs_file_read(&lfs,
+								   &file,
+								   buffer,
+								   sizeof(buffer));
+	//    {
+	//        HAL_UART_Transmit(&huart1,
+	//                          (uint8_t*)buffer,
+	//                          bytes_read,
+	//                          HAL_MAX_DELAY);
+	//    }
 
-    lfs_file_close(&lfs, &file);
+		lfs_file_close(&lfs, &file);
+	#endif
 }
 
 
@@ -274,12 +295,14 @@ void log_test_read(void)
  */
 void log_list_files(void)
 {
-    lfs_dir_t dir;
-    struct lfs_info info;
+	#ifdef LOG_LITTLEFS
+		lfs_dir_t dir;
+		struct lfs_info info;
 
-    lfs_dir_open(&lfs, &dir, "/");
+		lfs_dir_open(&lfs, &dir, "/");
 
-    lfs_dir_close(&lfs, &dir);
+		lfs_dir_close(&lfs, &dir);
+	#endif
 }
 
 
@@ -293,10 +316,22 @@ void log_list_files(void)
  */
 int log_open_file(void)
 {
-    int err = lfs_file_open(&lfs, &file,
-                  "log.txt",
-                  LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
-    return err;
+	#ifdef LOG_LITTLEFS
+		int err = lfs_file_open(&lfs, &file,
+					  "log.txt",
+					  LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
+		return err;
+	#endif
+
+	#ifdef LOG_RAW_FLASH
+		raw_log_write_addr = 0;
+		raw_log_size_bytes = 0;
+		raw_log_open = 1;
+		log_buffer_index = 0;
+
+		Flash_ChipErase();
+		return 0;
+	#endif
 }
 
 
@@ -310,8 +345,27 @@ int log_open_file(void)
  */
 int log_close_file(void)
 {
-    int err = lfs_file_close(&lfs, &file);
-    return err;
+	#ifdef LOG_LITTLEFS
+		if (log_buffer_index > 0)
+		{
+			log_write_buffer(log_buffer_index);
+			log_buffer_index = 0;
+		}
+
+		int err = lfs_file_close(&lfs, &file);
+		return err;
+	#endif
+
+	#ifdef LOG_RAW_FLASH
+		if (raw_log_open && log_buffer_index > 0)
+		{
+			log_write_buffer(log_buffer_index);
+			log_buffer_index = 0;
+		}
+
+		raw_log_open = 0;
+		return 0;
+	#endif
 }
 
 
@@ -327,10 +381,31 @@ int log_close_file(void)
  */
 void log_write_buffer(uint8_t size)
 {
-    lfs_file_write(&lfs,
-                   &file,
-				   log_buffer,
-                   size * sizeof(s_logging_buffer));
+	#ifdef LOG_LITTLEFS
+		lfs_file_write(&lfs,
+					   &file,
+					   log_buffer,
+					   size * sizeof(s_logging_buffer));
+	#endif
+
+	#ifdef LOG_RAW_FLASH
+		uint32_t bytes = (uint32_t)size * (uint32_t)sizeof(s_logging_buffer);
+
+		if (!raw_log_open || bytes == 0)
+		{
+			return;
+		}
+
+		if ((raw_log_write_addr + bytes) > EXT_FLASH_SIZE)
+		{
+			raw_log_open = 0;
+			return;
+		}
+
+		Flash_Write(raw_log_write_addr, (uint8_t*)log_buffer, bytes);
+		raw_log_write_addr += bytes;
+		raw_log_size_bytes += bytes;
+	#endif
 }
 
 
@@ -347,45 +422,42 @@ void log_write_buffer(uint8_t size)
  */
 void log_add_sample(s_position *pos, s_data *data, s_actuators *actuators)
 {
-	static uint8_t index = 0;
+    log_buffer[log_buffer_index].timestamp = HAL_GetTick(); // miliseconds
+    log_buffer[log_buffer_index].servo_xp = actuators->servo_xp;
+    log_buffer[log_buffer_index].servo_xn = actuators->servo_xn;
+    log_buffer[log_buffer_index].servo_yp = actuators->servo_yp;
+    log_buffer[log_buffer_index].servo_yn = actuators->servo_yn;
+    log_buffer[log_buffer_index].nmpc_solver_time = data->nmpc_solver_time;
+    log_buffer[log_buffer_index].heading_deg = pos->heading_deg;
+    log_buffer[log_buffer_index].Pitch = pos->Pitch;
+    log_buffer[log_buffer_index].Roll = pos->Roll;
+    log_buffer[log_buffer_index].Yaw = pos->Yaw;
+    log_buffer[log_buffer_index].accel_x = pos->accel_x;
+    log_buffer[log_buffer_index].accel_y = pos->accel_y;
+    log_buffer[log_buffer_index].accel_z = pos->accel_z;
+    log_buffer[log_buffer_index].gyro_x = pos->gyro_x;
+    log_buffer[log_buffer_index].gyro_y = pos->gyro_y;
+    log_buffer[log_buffer_index].gyro_z = pos->gyro_z;
+    log_buffer[log_buffer_index].gyroTemp = pos->gyroTemp;
+    log_buffer[log_buffer_index].height_TOF_mm = pos->height_TOF_mm;
+    log_buffer[log_buffer_index].height_baro_m = pos->height_baro_m;
+    log_buffer[log_buffer_index].battery_main_voltage = data->battery_main_voltage;
+    log_buffer[log_buffer_index].battery_edf_voltage = data->battery_edf_voltage;
+    log_buffer[log_buffer_index].temperature = data->temperature;
+    log_buffer[log_buffer_index].pressure = data->pressure;
+    log_buffer[log_buffer_index].humidity = data->humidity;
+    log_buffer[log_buffer_index].edf_percent = actuators->edf_percent;
 
-    log_buffer[index].timestamp = HAL_GetTick(); // miliseconds
-    log_buffer[index].Pitch = pos->Pitch;
-    log_buffer[index].Roll = pos->Roll;
-    log_buffer[index].Yaw = pos->Yaw;
-    log_buffer[index].gyroTemp = pos->gyroTemp;
-    log_buffer[index].accel_x = pos->accel_x;
-    log_buffer[index].accel_y = pos->accel_y;
-    log_buffer[index].accel_z = pos->accel_z;
-    log_buffer[index].gyro_x = pos->gyro_x;
-    log_buffer[index].gyro_y = pos->gyro_y;
-    log_buffer[index].gyro_z = pos->gyro_z;
-    log_buffer[index].servo_xp = actuators->servo_xp;
-	log_buffer[index].servo_xn = actuators->servo_xn;
-	log_buffer[index].servo_yp = actuators->servo_yp;
-	log_buffer[index].servo_yn = actuators->servo_yn;
-	log_buffer[index].edf_percent = actuators->edf_percent;
-    log_buffer[index].height_TOF_mm = pos->height_TOF_mm;
-    log_buffer[index].height_baro_m = pos->height_baro_m;
-    log_buffer[index].battery_main_voltage = data->battery_main_voltage;
-    log_buffer[index].battery_edf_voltage = data->battery_edf_voltage;
-    log_buffer[index].temperature = data->temperature;
-    log_buffer[index].humidity = data->humidity;
-    log_buffer[index].pressure = data->pressure;
+    log_buffer_index++;
 
-    index++;
-
-    if (index >= LOG_BUFFER_SIZE)
+    if (log_buffer_index >= LOG_BUFFER_SIZE)
     {
-    	log_write_buffer(index);
-        index = 0;
+    	log_write_buffer(log_buffer_index);
+        log_buffer_index = 0;
     }
 }
 
 
-
-// Sends full LittleFS file over UART as raw bytes.
-// Return: 0 on success, negative littlefs error on FS failure, -1000 on UART failure.
 
 /*********************************************************************
  * @fcn    	log_dump_uart
@@ -399,51 +471,82 @@ void log_add_sample(s_position *pos, s_data *data, s_actuators *actuators)
  */
 int log_dump_uart(const char *path, UART_HandleTypeDef *huart)
 {
-    lfs_file_t f;
-    uint8_t txbuf[128];
+	#ifdef LOG_LITTLEFS
+		lfs_file_t f;
+		uint8_t txbuf[128];
 
-    int err = lfs_file_open(&lfs, &f, path, LFS_O_RDONLY);
-    if (err < 0)
-    {
-        return err;
-    }
+		int err = lfs_file_open(&lfs, &f, path, LFS_O_RDONLY);
+		if (err < 0)
+		{
+			return err;
+		}
 
-    // Read starts at beginning of file
-    lfs_soff_t s = lfs_file_seek(&lfs, &f, 0, LFS_SEEK_SET);
-    if (s < 0)
-    {
-        lfs_file_close(&lfs, &f);
-        return (int)s;
-    }
+		// Read starts at beginning of file
+		lfs_soff_t s = lfs_file_seek(&lfs, &f, 0, LFS_SEEK_SET);
+		if (s < 0)
+		{
+			lfs_file_close(&lfs, &f);
+			return (int)s;
+		}
 
-    while (1)
-    {
-        lfs_ssize_t rd = lfs_file_read(&lfs, &f, txbuf, sizeof(txbuf));
-        if (rd < 0)
-        {
-            err = (int)rd;
-            break;
-        }
-        if (rd == 0)
-        {
-            err = 0; // EOF
-            break;
-        }
+		while (1)
+		{
+			lfs_ssize_t rd = lfs_file_read(&lfs, &f, txbuf, sizeof(txbuf));
+			if (rd < 0)
+			{
+				err = (int)rd;
+				break;
+			}
+			if (rd == 0)
+			{
+				err = 0; // EOF
+				break;
+			}
 
-        if (HAL_UART_Transmit(huart, txbuf, (uint16_t)rd, HAL_MAX_DELAY) != HAL_OK)
-        {
-            err = -100; // UART transmit error
-            break;
-        }
-    }
+			if (HAL_UART_Transmit(huart, txbuf, (uint16_t)rd, HAL_MAX_DELAY) != HAL_OK)
+			{
+				err = -100; // UART transmit error
+				break;
+			}
+		}
 
-	int cerr = lfs_file_close(&lfs, &f);
-	if (err == 0 && cerr < 0)
-	{
-		err = cerr;
-	}
+		int cerr = lfs_file_close(&lfs, &f);
+		if (err == 0 && cerr < 0)
+		{
+			err = cerr;
+		}
 
-    return err;
+		return err;
+	#endif
+
+	#ifdef LOG_RAW_FLASH
+		(void)path;
+
+		uint8_t txbuf[128];
+		uint32_t addr = 0;
+		uint32_t remaining = raw_log_size_bytes;
+
+		while (remaining > 0)
+		{
+			uint32_t chunk = remaining;
+			if (chunk > sizeof(txbuf))
+			{
+				chunk = sizeof(txbuf);
+			}
+
+			Flash_Read(addr, txbuf, chunk);
+
+			if (HAL_UART_Transmit(huart, txbuf, (uint16_t)chunk, HAL_MAX_DELAY) != HAL_OK)
+			{
+				return -100;
+			}
+
+			addr += chunk;
+			remaining -= chunk;
+		}
+
+		return 0;
+	#endif
 }
 
 
@@ -457,10 +560,21 @@ int log_dump_uart(const char *path, UART_HandleTypeDef *huart)
  */
 void log_remove(void)
 {
-    int err = lfs_remove(&lfs, "log.txt");
+	#ifdef LOG_LITTLEFS
+		int err = lfs_remove(&lfs, "log.txt");
 
-    if (err < 0)
-    {
-        printf("Delete failed: %d\n", err);
-    }
+		if (err < 0)
+		{
+			printf("Delete failed: %d\n", err);
+		}
+	#endif
+
+	#ifdef LOG_RAW_FLASH
+		raw_log_open = 0;
+		raw_log_write_addr = 0;
+		raw_log_size_bytes = 0;
+		log_buffer_index = 0;
+		Flash_ChipErase();
+	#endif
 }
+

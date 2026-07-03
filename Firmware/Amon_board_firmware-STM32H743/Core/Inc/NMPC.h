@@ -55,25 +55,31 @@
 typedef struct
 {
     // Current state fed into the solver
-    double x0[NMPC_NX];
+    double 		x0[NMPC_NX];
 
     // Last optimal control output u[0]
-    double u_opt[NMPC_NU];
+    double 		u_opt[NMPC_NU];
 
     // Reference trajectory (same ref applied to all N stages)
-    double x_ref[NMPC_NX];     		// state  reference (used in yref[0..22])
-    double u_ref[NMPC_NU];     		// input  reference (used in yref[23..27])
+    double 		x_ref[NMPC_NX];     		// state  reference (used in yref[0..22])
+    double 		u_ref[NMPC_NU];     		// input  reference (used in yref[23..27])
 
     // Diagnostics
-    uint32_t solve_time_ms;     	// wall-clock solve time in ms
-    int      last_solver_status;	// raw acados return code
-    uint32_t solve_count;       	// total successful solves
+    uint32_t 	solve_time_ms;     			// wall-clock solve time in ms
+    int      	last_solver_status;			// raw acados return code
+    uint32_t 	solve_count;       			// total successful solves
 
     // Internal flags
-    uint8_t  initialized;
-    float nmpc_solve_time_arr[10];	// Array of last 10 times used to solve NMPC
-    uint8_t nmpc_solve_time_cnt;
-    float nmpc_solve_time;
+    uint8_t  	initialized;
+    float 		nmpc_solve_time_arr[10];	// Array of last 10 times used to solve NMPC
+    uint8_t 	nmpc_solve_time_cnt;
+    uint8_t 	nmpc_solve_time_samples;
+    float 		nmpc_solve_time_sum;
+    float 		nmpc_solve_time;
+
+    uint8_t 	warm_start_valid;
+    double 		warm_x[NMPC_N + 1][NMPC_NX];
+    double 		warm_u[NMPC_N][NMPC_NU];
 
 } s_NMPC;
 

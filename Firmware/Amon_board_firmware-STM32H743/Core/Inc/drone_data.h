@@ -42,9 +42,13 @@
 // Drone options //
 #define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
 //#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
-#define LOG_ENABLE					// Enable logging of telemetry data
 #define LOG_DELAY			3		// Delay after which log is turned off
+#define EDF_DELAY			2		// Delay after which EDF is turned off
 #define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
+
+#define LOG_ENABLE					// Enable logging of telemetry data and select which method to use
+//#define LOG_LITTLEFS
+#define LOG_RAW_FLASH
 
 // Radio / telemetry //
 //#define RADIO_HW_ACK				// Uncomment to enable use of HW ACK function provided by IC (NRF24L01)
@@ -216,7 +220,8 @@ typedef struct {
 
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
 	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
-	float				nmpc_solver_time;		// Average solver time
+	volatile float	 	nmpc_solver_time;		// Average solver time
+	uint8_t				nmpc_set_new_ref;		// Flag to set new reference if command changes
 
 	uint8_t				flag_e_kill;			// Emergency stop/kill flag
 	uint8_t				flag_land_now;			// Land immediately no matter what
@@ -233,6 +238,7 @@ typedef struct {
     volatile uint8_t    flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
 
     volatile uint8_t	flag_logging_active;	// Flag for logging in progress
+    volatile uint8_t	flag_log_now;			// Flag for triggering log event
     volatile uint8_t	flag_log_available;		// Flag for indicating log available in flash
 
     const char		    *log_file;				// Name of log file
@@ -261,6 +267,7 @@ typedef struct {
     uint8_t				rampUpTarget;			// Slow ramp-up percent goal
     uint32_t			rampUpTime;				// Slow ramp-up time goal
     uint8_t				rampUpStep;				// Slow ramp-up power step
+    uint8_t				edf_off_delay;			// Delay of EDF when landing
 
 } s_actuators;
 

@@ -414,19 +414,19 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     {
         // set time_steps
     
-        double time_step = 0.16666666666666666;
+        double time_step = 0.02;
         for (int i = 0; i < N; i++)
         {
             ocp_nlp_in_set(nlp_config, nlp_dims, nlp_in, i, "Ts", &time_step);
         }
         // set cost scaling
         double* cost_scaling = malloc((N+1)*sizeof(double));
-        cost_scaling[0] = 0.16666666666666666;
-        cost_scaling[1] = 0.16666666666666666;
-        cost_scaling[2] = 0.16666666666666666;
-        cost_scaling[3] = 0.16666666666666666;
-        cost_scaling[4] = 0.16666666666666666;
-        cost_scaling[5] = 0.16666666666666666;
+        cost_scaling[0] = 0.02;
+        cost_scaling[1] = 0.02;
+        cost_scaling[2] = 0.02;
+        cost_scaling[3] = 0.02;
+        cost_scaling[4] = 0.02;
+        cost_scaling[5] = 0.02;
         cost_scaling[6] = 1;
         for (int i = 0; i <= N; i++)
         {
@@ -451,7 +451,7 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     yref_0[2] = 1;
     yref_0[6] = 1;
-    yref_0[13] = 90;
+    yref_0[13] = 80;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "yref", yref_0);
     free(yref_0);
 
@@ -459,10 +459,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     W_0[0+(NY0) * 0] = 0.002;
     W_0[1+(NY0) * 1] = 0.002;
-    W_0[2+(NY0) * 2] = 3.2;
+    W_0[2+(NY0) * 2] = 1.6;
     W_0[3+(NY0) * 3] = 0.04;
     W_0[4+(NY0) * 4] = 0.04;
-    W_0[5+(NY0) * 5] = 3.2;
+    W_0[5+(NY0) * 5] = 1.6;
     W_0[6+(NY0) * 6] = 5;
     W_0[7+(NY0) * 7] = 80;
     W_0[8+(NY0) * 8] = 80;
@@ -470,11 +470,11 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W_0[10+(NY0) * 10] = 0.3;
     W_0[11+(NY0) * 11] = 0.3;
     W_0[12+(NY0) * 12] = 0.05;
-    W_0[13+(NY0) * 13] = 0.00075;
-    W_0[14+(NY0) * 14] = 0.00375;
-    W_0[15+(NY0) * 15] = 0.00375;
-    W_0[16+(NY0) * 16] = 0.00375;
-    W_0[17+(NY0) * 17] = 0.00375;
+    W_0[13+(NY0) * 13] = 0.005;
+    W_0[14+(NY0) * 14] = 0.0005;
+    W_0[15+(NY0) * 15] = 0.0005;
+    W_0[16+(NY0) * 16] = 0.0005;
+    W_0[17+(NY0) * 17] = 0.0005;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -507,7 +507,7 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     yref[2] = 1;
     yref[6] = 1;
-    yref[13] = 90;
+    yref[13] = 80;
 
     for (int i = 1; i < N; i++)
     {
@@ -518,10 +518,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     W[0+(NY) * 0] = 0.002;
     W[1+(NY) * 1] = 0.002;
-    W[2+(NY) * 2] = 3.2;
+    W[2+(NY) * 2] = 1.6;
     W[3+(NY) * 3] = 0.04;
     W[4+(NY) * 4] = 0.04;
-    W[5+(NY) * 5] = 3.2;
+    W[5+(NY) * 5] = 1.6;
     W[6+(NY) * 6] = 5;
     W[7+(NY) * 7] = 80;
     W[8+(NY) * 8] = 80;
@@ -529,11 +529,11 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W[10+(NY) * 10] = 0.3;
     W[11+(NY) * 11] = 0.3;
     W[12+(NY) * 12] = 0.05;
-    W[13+(NY) * 13] = 0.00075;
-    W[14+(NY) * 14] = 0.00375;
-    W[15+(NY) * 15] = 0.00375;
-    W[16+(NY) * 16] = 0.00375;
-    W[17+(NY) * 17] = 0.00375;
+    W[13+(NY) * 13] = 0.005;
+    W[14+(NY) * 14] = 0.0005;
+    W[15+(NY) * 15] = 0.0005;
+    W[16+(NY) * 16] = 0.0005;
+    W[17+(NY) * 17] = 0.0005;
 
     for (int i = 1; i < N; i++)
     {
@@ -586,10 +586,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     W_e[0+(NYN) * 0] = 0.006;
     W_e[1+(NYN) * 1] = 0.006;
-    W_e[2+(NYN) * 2] = 9.6;
+    W_e[2+(NYN) * 2] = 4.800000000000001;
     W_e[3+(NYN) * 3] = 0.12;
     W_e[4+(NYN) * 4] = 0.12;
-    W_e[5+(NYN) * 5] = 9.6;
+    W_e[5+(NYN) * 5] = 4.800000000000001;
     W_e[6+(NYN) * 6] = 15;
     W_e[7+(NYN) * 7] = 240;
     W_e[8+(NYN) * 8] = 240;
