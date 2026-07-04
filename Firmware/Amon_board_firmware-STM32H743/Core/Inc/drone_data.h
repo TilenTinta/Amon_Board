@@ -21,8 +21,8 @@
 
 // Calibration //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
-//#define IDENTIFICATION				// Uncomment to enable serial communication over USB
-//#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments
+#define IDENTIFICATION				// Uncomment to enable serial communication over USB
+#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments
 //#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
 
 //#define TUNE_KALMAN
@@ -232,9 +232,10 @@ typedef struct {
 // UART buffers and flags
 typedef struct {
 	uint8_t				buffer_temp[1];			// Small buffer for received byte //2
-    uint8_t     		buffer_UART[64];        // Buffer for saving USB data
+    uint8_t     		buffer_UART_RX[64];     // Buffer for saving RX USB data
+    uint8_t     		buffer_UART_TX[64];     // Buffer for saving TX USB data
     volatile uint8_t    flag_new_uart_rx_data;  // Flag indicating a new data has arrived (packet is not complete)
-    uint8_t    flag_new_uart_tx_data;  			// Flag indicating a new data is ready to send
+    uint8_t    			flag_new_uart_tx_data;  // Flag indicating a new data is ready to send
     volatile uint8_t    flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
 
     volatile uint8_t	flag_logging_active;	// Flag for logging in progress

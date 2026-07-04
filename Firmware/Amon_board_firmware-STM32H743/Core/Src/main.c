@@ -495,9 +495,9 @@ int main(void)
 	  	  {
 	  		  AmonDrone.uart_buffer.flag_new_uart_tx_data = 0;
 	  		  packet_create_uart_data(&data_packets, &AmonDrone);
-	  		  UART_encode(&data_packets, AmonDrone.uart_buffer.buffer_UART);
-	  		  HAL_UART_Transmit(&huart5, (uint8_t*)AmonDrone.uart_buffer.buffer_UART, sizeof(AmonDrone.uart_buffer.buffer_UART), HAL_MAX_DELAY);
-	  		  memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+	  		  UART_encode(&data_packets, AmonDrone.uart_buffer.buffer_UART_TX);
+	  		  HAL_UART_Transmit(&huart5, (uint8_t*)AmonDrone.uart_buffer.buffer_UART_TX, AmonDrone.uart_buffer.buffer_UART_TX[1] + 2, HAL_MAX_DELAY);
+	  		  memset(AmonDrone.uart_buffer.buffer_UART_TX, 0, sizeof(AmonDrone.uart_buffer.buffer_UART_TX));
 	  	  }
 
 	  	  /* USB RX - TRANSCODING HANDLING */
@@ -505,8 +505,8 @@ int main(void)
 	  	  {
 	  		  AmonDrone.uart_buffer.flag_new_uart_rx_data = 0;
 
-	  		  uint8_t ret = UART_decode(AmonDrone.uart_buffer.buffer_UART, &data_packets, &AmonDrone.uart_buffer.flag_new_uart_tx_data, &data_packets.calib_data);
-	  		  memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+	  		  uint8_t ret = UART_decode(AmonDrone.uart_buffer.buffer_UART_RX, &data_packets, &AmonDrone.uart_buffer.flag_new_uart_tx_data, &data_packets.calib_data);
+	  		  memset(AmonDrone.uart_buffer.buffer_UART_RX, 0, sizeof(AmonDrone.uart_buffer.buffer_UART_RX));
 
 	  		  // Based on return values trigger events
 	  		  switch (ret)
@@ -570,7 +570,11 @@ int main(void)
 	  				  PowerToPWMValue(data_packets.calib_data.edf_pwr_percent);
 	  				  AmonDrone.actuators.edf_percent = data_packets.calib_data.edf_pwr_percent;
 
-	  				  if (AmonDrone.actuators.servo_enable == 0) TVCServoEnable();
+	  				  if (AmonDrone.actuators.servo_enable == 0)
+					  {
+						enable_7v2_buck(ENABLE);
+						TVCServoEnable();
+					  } 
 	  				  DegresToCCR(data_packets.calib_data.x_plus_angle, SERVO_XP);
 	  				  DegresToCCR(data_packets.calib_data.x_minus_angle, SERVO_XN);
 	  				  DegresToCCR(data_packets.calib_data.y_plus_angle, SERVO_YP);
@@ -617,6 +621,7 @@ int main(void)
 
 	  			  timer_divider_200to100++;
 
+	  			  // Timer divider: 200Hz to 100Mz
 				  if (timer_divider_200to100 >= 2)
 				  {
 					  timer_divider_200to100 = 0;
@@ -632,6 +637,8 @@ int main(void)
 						  AmonDrone.position.height_TOF_mm_filtered = kalman_tof.z;    // position z [m]
 						  AmonDrone.position.velocity_z = kalman_tof.vz;	// vz [m/s]
 					  }
+
+					  if (AmonDrone.identifications.flag_test_moment) AmonDrone.uart_buffer.flag_new_uart_tx_data = 1; // Enable data transition over UART for identification
 				  }
 
 	  			  // Read sensors //
@@ -699,8 +706,6 @@ int main(void)
 
 	  			  AmonDrone.position.position_x = pmw3901.measurements.position_x_m;
 	  			  AmonDrone.position.position_y = pmw3901.measurements.position_y_m;
-
-	  			  if (AmonDrone.identifications.flag_test_moment) AmonDrone.uart_buffer.flag_new_uart_tx_data = 1; // Enable data transition over UART for identification
 
 	  		  } // TIMER 200Hz
 
@@ -1551,7 +1556,8 @@ int main(void)
 		#ifndef CALIBRATION
 	  		HAL_UART_Receive_DMA(&huart1, USART1_GPSRX_DMA, sizeof(USART1_GPSRX_DMA)); //426
 	  		memset(AmonDrone.uart_buffer.buffer_temp, 0, sizeof(AmonDrone.uart_buffer.buffer_temp));
-	  		memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
+	  		memset(AmonDrone.uart_buffer.buffer_UART_RX, 0, sizeof(AmonDrone.uart_buffer.buffer_UART_RX));
+	  		memset(AmonDrone.uart_buffer.buffer_UART_TX, 0, sizeof(AmonDrone.uart_buffer.buffer_UART_TX));
 	  		HAL_UART_Receive_IT(&huart5, AmonDrone.uart_buffer.buffer_temp, 1);
 		#endif
 
@@ -3032,7 +3038,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 		// Save received data
 		volatile uint8_t data = AmonDrone.uart_buffer.buffer_temp[0];                   // Read only once
-		AmonDrone.uart_buffer.buffer_UART[cntBuffer_UART] = data;
+		AmonDrone.uart_buffer.buffer_UART_RX[cntBuffer_UART] = data;
 		memset(AmonDrone.uart_buffer.buffer_temp, 0, sizeof(AmonDrone.uart_buffer.buffer_temp));
 		cntBuffer_UART++;
 
@@ -3045,8 +3051,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 			// New method
 			cntBuffer_UART = 0;
-			memset(AmonDrone.uart_buffer.buffer_UART, 0, sizeof(AmonDrone.uart_buffer.buffer_UART));
-			AmonDrone.uart_buffer.buffer_UART[cntBuffer_UART++] = data;
+			memset(AmonDrone.uart_buffer.buffer_UART_RX, 0, sizeof(AmonDrone.uart_buffer.buffer_UART_RX));
+			AmonDrone.uart_buffer.buffer_UART_RX[cntBuffer_UART++] = data;
 		}
 		else if (AmonDrone.uart_buffer.flag_USB_RX_new == 1 && len_new_rx_data == 0) // Flag for new packet, but no lenght of packet yet
 		{
