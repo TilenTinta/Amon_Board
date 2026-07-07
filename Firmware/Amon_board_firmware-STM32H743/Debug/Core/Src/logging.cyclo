@@ -10,5 +10,5 @@
 ../Core/Src/logging.c:346:5:log_close_file	4
 ../Core/Src/logging.c:382:6:log_write_buffer	4
 ../Core/Src/logging.c:423:6:log_add_sample	4
-../Core/Src/logging.c:472:5:log_dump_uart	4
-../Core/Src/logging.c:561:6:log_remove	1
+../Core/Src/logging.c:473:5:log_dump_uart	4
+../Core/Src/logging.c:562:6:log_remove	1

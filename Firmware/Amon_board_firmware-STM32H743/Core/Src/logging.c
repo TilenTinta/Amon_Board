@@ -438,6 +438,7 @@ void log_add_sample(s_position *pos, s_data *data, s_actuators *actuators)
     log_buffer[log_buffer_index].gyro_x = pos->gyro_x;
     log_buffer[log_buffer_index].gyro_y = pos->gyro_y;
     log_buffer[log_buffer_index].gyro_z = pos->gyro_z;
+    log_buffer[log_buffer_index].height_TOF_m_filtered = pos->height_TOF_m_filtered;
     log_buffer[log_buffer_index].gyroTemp = pos->gyroTemp;
     log_buffer[log_buffer_index].height_TOF_mm = pos->height_TOF_mm;
     log_buffer[log_buffer_index].height_baro_m = pos->height_baro_m;

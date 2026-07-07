@@ -456,6 +456,71 @@ int NMPC_SetReference(s_NMPC *h, const double *x_ref, const double *u_ref)
 
 
 /*********************************************************************
+ * @fn      clamp_actuator
+ *
+ * @param   value: current servo angle
+ * @param   min_value: min servo angle
+ * @param   max_value: max servo angle
+ *
+ * @brief   Clamp servo angle
+ *
+ * @return  servo angle
+ */
+static double clamp_actuator(double value, double min_value, double max_value)
+{
+    if (value < min_value) return min_value;
+    if (value > max_value) return max_value;
+    return value;
+}
+
+
+
+/*********************************************************************
+ * @fn      NMPC_SetStage0InputLimits
+ *
+ * @param   *h: nmpc struct
+ *
+ * @brief   Run one NMPC solve step
+ * 			Extracts u[0] into h->u_opt
+ *
+ * @return  0 OK, 1 NOK
+ */
+static void NMPC_SetStage0InputLimits(s_NMPC *h)
+{
+    double lbu[NMPC_NU] = {
+		//NMPC_U0_MIN,
+    	clamp_actuator(h->u_opt[0] - NMPC_EDF_MAX_STEP_PERCENT, NMPC_U0_MIN, NMPC_U0_MAX),
+		clamp_actuator(h->u_opt[1] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
+		clamp_actuator(h->u_opt[2] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
+		clamp_actuator(h->u_opt[3] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
+		clamp_actuator(h->u_opt[4] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX)
+    };
+
+    double ubu[NMPC_NU] = {
+		//NMPC_U0_MAX,
+		clamp_actuator(h->u_opt[0] + NMPC_EDF_MAX_STEP_PERCENT, NMPC_U0_MIN, NMPC_U0_MAX),
+		clamp_actuator(h->u_opt[1] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
+		clamp_actuator(h->u_opt[2] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
+		clamp_actuator(h->u_opt[3] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
+		clamp_actuator(h->u_opt[4] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX)
+    };
+
+    ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                  s_capsule->nlp_dims,
+                                  s_capsule->nlp_in,
+                                  s_capsule->nlp_out,
+                                  0, "lbu", lbu);
+
+    ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                  s_capsule->nlp_dims,
+                                  s_capsule->nlp_in,
+                                  s_capsule->nlp_out,
+                                  0, "ubu", ubu);
+}
+
+
+
+/*********************************************************************
  * @fn      NMPC_Solve
  *
  * @param   *h: nmpc struct
@@ -470,6 +535,9 @@ int NMPC_Solve(s_NMPC *h)
     if (!h->initialized) return NMPC_NOT_INIT;
 
     //uint32_t t0 = NMPC_PlatformGetTickMs();
+
+    //!!! ONLY FOR INSTANT MODEL !!!
+    if (h->nmpc_limiter_enable) NMPC_SetStage0InputLimits(h); // Actuator slew-rate (simple instant model actuator limiter)
 
     int status = amon_model_acados_solve(s_capsule);
 

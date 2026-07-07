@@ -4,26 +4,25 @@
 Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/acados/acados_solver_amon_model.c:1089:5, State=BP_STATE_DISABLED
 Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/CMSIS/Include/core_cm7.h:2516:8, State=BP_STATE_DISABLED
 Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:509, State=BP_STATE_ON
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:569, State=BP_STATE_ON
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:574, State=BP_STATE_ON
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1284:6, State=BP_STATE_DISABLED
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1287:4, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:614:7, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1290:6, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1294:6, State=BP_STATE_DISABLED
 Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:1607:5, State=BP_STATE_DISABLED
-Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:3204:3, State=BP_STATE_DISABLED
+Breakpoint=C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c:3232:3, State=BP_STATE_DISABLED
 OpenDocument="data_transcode.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/data_transcode.c", Line=205
 OpenDocument="drone_data.h", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Inc/drone_data.h", Line=15
 OpenDocument="drone_data.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/drone_data.c", Line=177
-OpenDocument="main.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c", Line=486
+OpenDocument="main.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/main.c", Line=3548
 OpenDocument="startup_stm32h743vitx.s", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Startup/startup_stm32h743vitx.s", Line=48
 OpenDocument="logging.c", FilePath="C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Core/Src/logging.c", Line=417
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Call Stack", DockArea=RIGHT, x=0, y=0, w=324, h=299, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=2, w=324, h=286, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
-OpenWindow="Source Files", DockArea=LEFT, x=0, y=0, w=296, h=405, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=1, w=324, h=157, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Memory 1", DockArea=BOTTOM, x=1, y=0, w=160, h=189, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0xE000EF50
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=296, h=338, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=1117, h=189, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Call Stack", DockArea=RIGHT, x=0, y=0, w=300, h=116, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Registers 1", DockArea=RIGHT, x=0, y=1, w=300, h=430, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, FilteredItems=[], RefreshRate=1
+OpenWindow="Source Files", DockArea=LEFT, x=0, y=0, w=320, h=188, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=BOTTOM, x=2, y=0, w=797, h=179, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Memory 1", DockArea=BOTTOM, x=1, y=0, w=355, h=179, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0xE000EF50
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=320, h=358, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Console", DockArea=BOTTOM, x=0, y=0, w=382, h=179, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
 SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
 TableHeader="Call Stack", SortCol="Function", SortOrder="ASCENDING", VisibleCols=["Function";"Stack Frame";"Source";"PC";"Return Address";"Stack Used"], ColWidths=[170;112;170;100;168;100]
 TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[216;100;100;100;1184]

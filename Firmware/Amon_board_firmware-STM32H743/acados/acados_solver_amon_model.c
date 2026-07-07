@@ -451,7 +451,7 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     yref_0[2] = 1;
     yref_0[6] = 1;
-    yref_0[13] = 80;
+    yref_0[13] = 70;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "yref", yref_0);
     free(yref_0);
 
@@ -466,10 +466,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W_0[6+(NY0) * 6] = 5;
     W_0[7+(NY0) * 7] = 80;
     W_0[8+(NY0) * 8] = 80;
-    W_0[9+(NY0) * 9] = 5;
+    W_0[9+(NY0) * 9] = 0.2;
     W_0[10+(NY0) * 10] = 0.3;
     W_0[11+(NY0) * 11] = 0.3;
-    W_0[12+(NY0) * 12] = 0.05;
+    W_0[12+(NY0) * 12] = 0.005;
     W_0[13+(NY0) * 13] = 0.005;
     W_0[14+(NY0) * 14] = 0.0005;
     W_0[15+(NY0) * 15] = 0.0005;
@@ -507,7 +507,7 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     // change only the non-zero elements:
     yref[2] = 1;
     yref[6] = 1;
-    yref[13] = 80;
+    yref[13] = 70;
 
     for (int i = 1; i < N; i++)
     {
@@ -525,10 +525,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W[6+(NY) * 6] = 5;
     W[7+(NY) * 7] = 80;
     W[8+(NY) * 8] = 80;
-    W[9+(NY) * 9] = 5;
+    W[9+(NY) * 9] = 0.2;
     W[10+(NY) * 10] = 0.3;
     W[11+(NY) * 11] = 0.3;
-    W[12+(NY) * 12] = 0.05;
+    W[12+(NY) * 12] = 0.005;
     W[13+(NY) * 13] = 0.005;
     W[14+(NY) * 14] = 0.0005;
     W[15+(NY) * 15] = 0.0005;
@@ -593,10 +593,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W_e[6+(NYN) * 6] = 15;
     W_e[7+(NYN) * 7] = 240;
     W_e[8+(NYN) * 8] = 240;
-    W_e[9+(NYN) * 9] = 15;
+    W_e[9+(NYN) * 9] = 0.6000000000000001;
     W_e[10+(NYN) * 10] = 0.8999999999999999;
     W_e[11+(NYN) * 11] = 0.8999999999999999;
-    W_e[12+(NYN) * 12] = 0.15000000000000002;
+    W_e[12+(NYN) * 12] = 0.015;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
     double* Vx_e = calloc(NYN*NX, sizeof(double));
@@ -696,14 +696,14 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     double* ubu = lubu + NBU;
     lbu[0] = 70;
     ubu[0] = 90;
-    lbu[1] = -45;
-    ubu[1] = 45;
-    lbu[2] = -45;
-    ubu[2] = 45;
-    lbu[3] = -45;
-    ubu[3] = 45;
-    lbu[4] = -45;
-    ubu[4] = 45;
+    lbu[1] = -25;
+    ubu[1] = 25;
+    lbu[2] = -25;
+    ubu[2] = 25;
+    lbu[3] = -25;
+    ubu[3] = 25;
+    lbu[4] = -25;
+    ubu[4] = 25;
 
     for (int i = 0; i < N; i++)
     {

@@ -632,9 +632,11 @@ int main(void)
 					  if (AmonDrone.position.flag_new_ToF_data)
 					  {
 						  float z_meas = AmonDrone.position.height_TOF_mm / 1000.0f;
+						  // Outlier protection
+						  if (fabs(AmonDrone.position.height_TOF_m_filtered - z_meas) > 0.5) z_meas = AmonDrone.position.height_TOF_m_filtered;
 						  KalmanZ_Update(&kalman_tof, z_meas);
 						  AmonDrone.position.flag_new_ToF_data = 0;
-						  AmonDrone.position.height_TOF_mm_filtered = kalman_tof.z;    // position z [m]
+						  AmonDrone.position.height_TOF_m_filtered = kalman_tof.z;    // position z [m]
 						  AmonDrone.position.velocity_z = kalman_tof.vz;	// vz [m/s]
 					  }
 
@@ -684,7 +686,8 @@ int main(void)
 	  			  uint8_t mag_valid = hmc5883l.flag_new_data;
 	  			  hmc5883l.flag_new_data = 0;
 
-	  			  AmonDrone.position.Yaw = Kalman_UpdateYaw(&kalman_yaw, AmonDrone.position.gyro_z, AmonDrone.position.heading_deg, mag_valid, DT);
+	  			  //AmonDrone.position.Yaw = Kalman_UpdateYaw(&kalman_yaw, AmonDrone.position.gyro_z, AmonDrone.position.heading_deg, mag_valid, DT);
+	  			  AmonDrone.position.Yaw = 0; // For first tests - remove later
 
 	  			  //quaternion = eulerToQuaternion(AmonDrone.position.Roll, AmonDrone.position.Pitch, AmonDrone.position.Yaw);
 	  			  //gyroToQuaternion(&quaternion, AmonDrone.position.gyro_x, AmonDrone.position.gyro_y, AmonDrone.position.gyro_z, DT); // Check order of angles
@@ -991,7 +994,8 @@ int main(void)
 					x_current[1] = 0.0f;                                       // pos y (GPS/optical flow)
 //	  				x_current[0] = AmonDrone.position.position_x;              // [m]
 //	  				x_current[1] = AmonDrone.position.position_y;              // [m]
-					x_current[2] = AmonDrone.position.height_TOF_mm_filtered;  // pos z [m]
+					//x_current[2] = AmonDrone.position.height_TOF_m_filtered;  // pos z [m]
+					x_current[2] = AmonDrone.position.height_TOF_mm / 1000;  // pos z [m]
 
 					// --- Velocity [3:6] ---
 					// You don't have direct velocity measurement — estimate or keep 0
@@ -1054,7 +1058,7 @@ int main(void)
 
 
 					static double u_ref[NMPC_NU] = {
-					    87.0,  // hover thrust / EDF nominal
+					    85.0,  // hover thrust / EDF nominal
 					    0.0,   // servo XP neutral or trim/offset
 					    0.0,   // servo XN neutral or trim/offset
 					    0.0,   // servo YP neutral or trim/offset
@@ -1153,6 +1157,8 @@ int main(void)
 						servo_xn_old = AmonDrone.actuators.servo_xn;
 						servo_yp_old = AmonDrone.actuators.servo_yp;
 						servo_yn_old = AmonDrone.actuators.servo_yn;
+
+						if (nmpc.nmpc_limiter_enable == 0 && AmonDrone.actuators.edf_percent > 70) nmpc.nmpc_limiter_enable = 1;
 					}
 
 					// --------------------------------------------------------------------------------------------------------
@@ -1203,22 +1209,15 @@ int main(void)
 						}
 					}
 
+					// --- Logging to external flash - flight log ---
+				    // TODO: add log data of NMPC (u_raw - u_limited, z_ref, yaw_ref, solve status)
 					if (AmonDrone.uart_buffer.flag_logging_active)
 					{
-						AmonDrone.uart_buffer.flag_log_now = 1;
+						//AmonDrone.uart_buffer.flag_log_now = 1;
 						log_add_sample(&AmonDrone.position, &AmonDrone.data, &AmonDrone.actuators);
 					}
 				}
 	  		  } // TIMER 50Hz
-
-
-	  		  // --- Logging to external flash - flight log ---
-	  		  //TODO: add log data of NMPC
-	  		  if (AmonDrone.uart_buffer.flag_log_now)
-			  {
-	  			  AmonDrone.uart_buffer.flag_log_now = 0;
-	  			  //log_add_sample(&AmonDrone.position, &AmonDrone.data, &AmonDrone.actuators);
-			  }
 
 
 
@@ -1860,6 +1859,7 @@ int main(void)
 						  nmpc.nmpc_solve_time_sum = 0;
 						  nmpc.nmpc_solve_time = 0;
 						  AmonDrone.data.nmpc_solver_time = 0;
+						  if (nmpc.nmpc_limiter_enable == 1) nmpc.nmpc_limiter_enable = 0;
 
 						  //AmonDrone.actuators.servo_enable = 0;
 						  //AmonDrone.actuators.edf_enable = 0;
@@ -1913,6 +1913,48 @@ int main(void)
 						AmonDrone.data.NMPC_enable = 0;
 						NMPC_DeInit(&nmpc);
 						HAL_TIM_Base_Stop_IT(&htim1);
+					  }
+
+					  if (armCheck)
+					  {
+						  AmonDrone.flight_status = STATUS_FLIGHT_GROUND;
+						  AmonDrone.data.flag_land_now = 0;
+						  AmonDrone.data.flag_e_kill = 0;
+						  AmonDrone.flight_path.command_index = 0;
+						  AmonDrone.flight_path.flight_start_time = 0;
+						  AmonDrone.flight_path.command_time_s = 0;
+						  AmonDrone.actuators.rampUpDone = 0;
+						  AmonDrone.actuators.rampUpEnable = 0;
+						  AmonDrone.data.nmpc_set_new_ref = 1;
+						  AmonDrone.flight_path.command_timeout_s = 0;
+						  AmonDrone.data.nmpc_solver_fail_cnt = 0;
+						  AmonDrone.uart_buffer.flag_log_now = 0;
+						  AmonDrone.actuators.edf_off_delay = 0;
+						  AmonDrone.uart_buffer.log_save_delay = 0;
+						  armCheck = 0;
+
+						  memset(nmpc.nmpc_solve_time_arr, 0, sizeof(nmpc.nmpc_solve_time_arr));
+						  nmpc.nmpc_solve_time_cnt = 0;
+						  nmpc.nmpc_solve_time_samples = 0;
+						  nmpc.nmpc_solve_time_sum = 0;
+						  nmpc.nmpc_solve_time = 0;
+						  AmonDrone.data.nmpc_solver_time = 0;
+						  if (nmpc.nmpc_limiter_enable == 1) nmpc.nmpc_limiter_enable = 0;
+
+						  //AmonDrone.actuators.servo_enable = 0;
+						  //AmonDrone.actuators.edf_enable = 0;
+						  AmonDrone.actuators.edf_percent = 0;
+						  AmonDrone.actuators.servo_xp = 0;
+						  AmonDrone.actuators.servo_xn = 0;
+						  AmonDrone.actuators.servo_yp = 0;
+						  AmonDrone.actuators.servo_yn = 0;
+						  PowerToPWMValue(AmonDrone.actuators.edf_percent);
+						  DegresToCCR(AmonDrone.actuators.servo_xn, SERVO_XN);
+						  DegresToCCR(AmonDrone.actuators.servo_xp, SERVO_XP);
+						  DegresToCCR(AmonDrone.actuators.servo_yn, SERVO_YN);
+						  DegresToCCR(AmonDrone.actuators.servo_yp, SERVO_YP);
+						  HAL_Delay(100);
+						  enable_7v2_buck(DISABLE);
 					  }
 
 				#ifdef LOG_ENABLE

@@ -35,10 +35,19 @@
  *   u[3]  : servo y+   [-45 .. 45]	- angle [deg]
  *   u[4]  : servo y- 	[-45 .. 45]	- angle [deg]
  * --------------------------------------------------------------------- */
+// Servo
+#define NMPC_UX_MIN  -25.0
+#define NMPC_UX_MAX   25.0
+#define NMPC_SERVO_SLEW_DEG_PER_S   375.0
+#define NMPC_DT_S                   0.02
+#define NMPC_SERVO_MAX_STEP_DEG     (NMPC_SERVO_SLEW_DEG_PER_S * NMPC_DT_S)
+
+// EDF
 #define NMPC_U0_MIN   0.0
 #define NMPC_U0_MAX   90.0
-#define NMPC_UX_MIN  -45.0
-#define NMPC_UX_MAX   45.0
+#define NMPC_EDF_SLEW_PERCENT_PER_S   150.0 // 70 -> 90 % cca.: 0.13 s
+#define NMPC_EDF_MAX_STEP_PERCENT     (NMPC_EDF_SLEW_PERCENT_PER_S * NMPC_DT_S)
+
 
 /* -----------------------------------------------------------------------
  * Return codes
@@ -47,6 +56,8 @@
 #define NMPC_FAIL       1
 #define NMPC_NOT_INIT   2
 #define NMPC_SOLVER_ERR 3   // if solver returned non-zero but we still have u
+
+
 
 
 /*###########################################################################################################################################################*/
@@ -80,6 +91,8 @@ typedef struct
     uint8_t 	warm_start_valid;
     double 		warm_x[NMPC_N + 1][NMPC_NX];
     double 		warm_u[NMPC_N][NMPC_NU];
+
+    uint8_t		nmpc_limiter_enable;
 
 } s_NMPC;
 

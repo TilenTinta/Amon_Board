@@ -68,9 +68,10 @@ typedef struct {
     float 		gyro_y;					// Raw data - gyro y
     float 		gyro_z;					// Raw data - gyro z
 
+    float 		height_TOF_m_filtered;
     uint16_t 	gyroTemp;
-
     uint16_t 	height_TOF_mm;
+
     uint16_t 	height_baro_m;
 
     uint16_t 	battery_main_voltage;	// Voltage of main board battery
