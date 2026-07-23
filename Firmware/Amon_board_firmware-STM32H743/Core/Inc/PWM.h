@@ -30,25 +30,29 @@
  */
 
 // Offsets on motor to make them straight
-#define SERVO_XP_OFFSET 	-2		// Servo offset
-#define SERVO_XN_OFFSET 	1		// Servo offset
-#define SERVO_YP_OFFSET 	-3		// Servo offset
-#define SERVO_YN_OFFSET 	0		// Servo offset
+#define SERVO_XP_OFFSET 	0		// Servo offset
+#define SERVO_XN_OFFSET 	6		// Servo offset
+#define SERVO_YP_OFFSET 	3		// Servo offset
+#define SERVO_YN_OFFSET 	-13		// Servo offset
 
 #define SERVOS_ZERO			90		// Zero position of servos (straight down)
 
+// Servo slew-rates
 #define SERVO_MIN_US 		1000	// Minimum duty-cycle of EDF (0%)
 #define SERVO_MAX_US 		2000	// Maximum duty-cycle of EDF (100%)
 #define SERVO_RANGE_US 		(SERVO_MAX_US - SERVO_MIN_US)
 #define SERVO_MAX_SLEW_DEG_PER_S   375.0f // Servo used: MG995 (Operating speed: 0.2s/60deg (4.8 V), 0.16s/60deg (6 V) -> 375deg/s)
 #define SERVO_MAX_STEP_DEG         (SERVO_MAX_SLEW_DEG_PER_S * TIM_50HZ_DT)  // per 20ms cycle
-//#define SERVO_MAX_SLEW_DEG_PER_S = 250.0f
-//#define SERVO_MAX_STEP_DEG = 5.0f
 
 
-#define RAMPUP_TARGET_PERC	60		// Ramp-up percent target
+// EDF ramp-up parameters
+#define RAMPUP_TARGET_PERC	50		// Ramp-up percent target
 #define RAMPUP_TIME_MS		3000	// Ramp-up time target
 #define RAMPUP_TIME_STEP_MS	20		// Ramp-up timer period of function call
+
+// EDF warm-up parameters
+#define WARMUP_TIME			3
+#define WARMUP_POWER		50
 
 
 
@@ -71,6 +75,7 @@ float SlewLimit(float target, float previous, float max_step);
 void DegresToCCR(float degrees, uint8_t Servo);
 void PowerToPWMValue(uint8_t power);
 void EDFSlowRamp(s_actuators *actuators);
+void EDFWarmUp(s_actuators *actuators);
 
 
 #endif /* SERVO_SERVO_H_ */

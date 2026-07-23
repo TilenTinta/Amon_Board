@@ -8,6 +8,7 @@
 *****************************************************************/
 
 #include "autopilot.h"
+#include "PWM.h"
 
 /*###########################################################################################################################################################*/
 /* Info */
@@ -82,6 +83,9 @@
 /* Private functions */
 static void ref_clear(double x_ref[NMPC_NX_SIZE]);
 static void ref_upright(double x_ref[NMPC_NX_SIZE]);
+static void apply_vertical_outer_loop(s_path *path_data, double z_current_m,
+		double vz_min_m_s, double vz_slew_m_s2,
+		double x_ref[NMPC_NX_SIZE]);
 
 static void ref_take_off(s_data_takeoff *data, double x_ref[NMPC_NX_SIZE]);
 static void ref_land(s_data_land *data, double x_ref[NMPC_NX_SIZE]);
@@ -99,9 +103,10 @@ static void ref_return_home(s_data_return_home *data, double x_ref[NMPC_NX_SIZE]
 /*###########################################################################################################################################################*/
 /* Functions */
 
-uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
+uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE], double z_current_m)
 {
 	s_flight_command current_command = path_data->flight_path[path_data->command_index]; // Extract current command
+	double vz_min_m_s = VZ_REF_MIN_M_S;
 
 	switch (current_command.command)
 	{
@@ -111,6 +116,7 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
 		case COMM_TAKE_OFF:
 		{
 			ref_take_off(&current_command.takeoff, x_ref);
+			path_data->altitude_ref_m = x_ref[2];
 			path_data->command_timeout_s = 0;
 			break;
 		}
@@ -122,6 +128,7 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
 		{
 			path_data->command_timeout_s = current_command.hover.time_s;
 			ref_hover(&current_command.hover, x_ref);
+			path_data->altitude_ref_m = x_ref[2];
 			break;
 		}
 
@@ -133,6 +140,8 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
 			//path_data->command_timeout_s = current_command.land.delay_s;
 			path_data->command_timeout_s = 0;
 			ref_land(&current_command.land, x_ref);
+			path_data->altitude_ref_m = x_ref[2];
+			vz_min_m_s = VZ_REF_LAND_MIN_M_S;
 			break;
 		}
 
@@ -142,6 +151,7 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
 		case COMM_HEIGHT:
 		{
 			ref_height(&current_command.height, x_ref);
+			path_data->altitude_ref_m = x_ref[2];
 			path_data->command_timeout_s = 0;
 			break;
 		}
@@ -275,6 +285,7 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
 		case COMM_RETURN_HOME:
 		{
 			ref_return_home(&current_command.return_home, x_ref);
+			path_data->altitude_ref_m = x_ref[2];
 			path_data->command_timeout_s = 0;
 			break;
 		}
@@ -284,7 +295,50 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE])
 			return 1; // Error
 	}
 
+	// Tune vertical speed to stabilize altitude
+	x_ref[2] = path_data->altitude_ref_m;
+	apply_vertical_outer_loop(path_data, z_current_m, vz_min_m_s, VZ_REF_SLEW_M_S2, x_ref);
+
 	return 0; // OK
+}
+
+
+/*********************************************************************
+ * @fcn    apply_vertical_outer_loop
+ *
+ * @param  z_current_m: filtered current altitude [m]
+ * @param  x_ref: NMPC reference vector; x_ref[2] must contain z target
+ *
+ * @brief  Convert altitude error into a bounded vertical-speed reference.
+ *
+ * @return none
+ */
+static void apply_vertical_outer_loop(s_path *path_data, double z_current_m, double vz_min_m_s, double vz_slew_m_s2, double x_ref[NMPC_NX_SIZE])
+{
+	// Calculate speed and direction based on error/reference
+	double z_err = x_ref[2] - z_current_m;
+	double vz_ref_target;
+
+	if (fabs(z_err) < Z_DEADBAND_M)
+	{
+		vz_ref_target = 0.0;
+	}
+	else
+	{
+		vz_ref_target = Z_OUTER_KP * z_err;
+	}
+
+    // Use defined values based on direction (up/down)
+    if (vz_ref_target > VZ_REF_MAX_M_S) vz_ref_target = VZ_REF_MAX_M_S;
+    if (vz_ref_target < vz_min_m_s) vz_ref_target = vz_min_m_s;
+
+    path_data->vz_ref_target_m_s = vz_ref_target;
+
+    float max_step = (float)(vz_slew_m_s2 * AUTOPILOT_UPDATE_DT_S);
+    float vz_ref = SlewLimit((float)vz_ref_target, (float)path_data->vz_ref_m_s, max_step);
+
+    path_data->vz_ref_m_s = vz_ref;
+    x_ref[5] = vz_ref;
 }
 
 
@@ -353,7 +407,7 @@ static void ref_take_off(s_data_takeoff *data, double x_ref[NMPC_NX_SIZE])
 	// Velocity
 	x_ref[3] = 0.0;
 	x_ref[4] = 0.0;
-	x_ref[5] = TAKEOFF_SPEED_M_S;     		// climb at 0.5 m/s (can be set in future)
+	x_ref[5] = 0.0; // If value is fixed drone overshoots and never reaches the target - maybe use scaling based on height
 
 }
 
@@ -375,7 +429,7 @@ static void ref_land(s_data_land *data, double x_ref[NMPC_NX_SIZE])
     ref_upright(x_ref);
 
     x_ref[2] = 0.0;
-    x_ref[5] = LAND_SPEED_M_S;      // landing speed, hardcoded for first test
+    x_ref[5] = 0.0;      // landing speed, hardcoded for first test
 
 }
 
@@ -597,7 +651,7 @@ static void ref_return_home(s_data_return_home *data, double x_ref[NMPC_NX_SIZE]
  *
  * @return  none
  */
-void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m, double current_y_m)
+void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m, double current_y_m, double z_current_m)
 {
     if (path_data != NULL)
     {
@@ -605,6 +659,7 @@ void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m,
         path_data->command_index = 0;
         path_data->command_time_s = 0.0f;
         path_data->command_timeout_s = 0;
+        path_data->altitude_ref_m = 0.0;
     }
 
     ref_clear(x_ref);
@@ -618,7 +673,8 @@ void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m,
     x_ref[2] = 0.0;             // ground height
     x_ref[3] = 0.0;             // no X velocity
     x_ref[4] = 0.0;             // no Y velocity
-    x_ref[5] = LAND_SPEED_M_S;  // negative vertical speed
+    apply_vertical_outer_loop(path_data, z_current_m,
+			VZ_REF_LAND_MIN_M_S, VZ_REF_LAND_NOW_SLEW_M_S2, x_ref);
 
     // Upright attitude is already set by ref_upright()
     x_ref[10] = 0.0;

@@ -13,6 +13,22 @@
 #include <stdint.h>
 //#include "../acados/acados/acados_solver_amon_model.h"
 
+/* !!! MUST CHANGES inside: acados_solver_amon_model.c
+ * 	Change: #include "amon_model_model/amon_model_model.h" -> "amon_model_model.h"
+ *  Comment out and add:
+ *      1) amon_model_acados_create_with_discretization
+ *  	- Comment: capsule->sens_out = ocp_nlp_out_create(capsule->nlp_config, capsule->nlp_dims);
+ *  	- Add: capsule->sens_out = NULL;
+ *  	2) amon_model_acados_free
+ *  	- Comment: ocp_nlp_out_destroy(capsule->sens_out);
+ *  	- Add:
+ *  		if (capsule->sens_out != NULL)
+ *			{
+ *				ocp_nlp_out_destroy(capsule->sens_out);
+ *			}
+ *
+ * */
+
 
 
 /*###########################################################################################################################################################*/
@@ -20,12 +36,20 @@
 
 //#define COMPILE_MEM_ANALYZER	// Comment / uncomment to enable
 
+// x    = 13
+// u    = 5
+// y    = [x, u] = 18
+// y_N  = [x]    = 13
+// N 	= 6
+
 // Dimensions - match acados_solver_amon_model.h !!!
 #define NMPC_NX          13 	// AMON_MODEL_NX
 #define NMPC_NU          5  	// AMON_MODEL_NU
 #define NMPC_N           6	 	// AMON_MODEL_N
 #define NMPC_NY          18 	// AMON_MODEL_NY
 #define NMPC_NYN         13 	// AMON_MODEL_NYN
+
+#define NMPC_DT_S                   0.02
 
 /* -----------------------------------------------------------------------
  * Input (control) bounds — from solver setup
@@ -38,15 +62,14 @@
 // Servo
 #define NMPC_UX_MIN  -25.0
 #define NMPC_UX_MAX   25.0
-#define NMPC_SERVO_SLEW_DEG_PER_S   375.0
-#define NMPC_DT_S                   0.02
+#define NMPC_SERVO_SLEW_DEG_PER_S   375.0	// Servo used: MG995 (Operating speed: 0.2s/60deg (4.8 V), 0.16s/60deg (6 V) -> 375deg/s)
 #define NMPC_SERVO_MAX_STEP_DEG     (NMPC_SERVO_SLEW_DEG_PER_S * NMPC_DT_S)
 
 // EDF
-#define NMPC_U0_MIN   0.0
-#define NMPC_U0_MAX   90.0
-#define NMPC_EDF_SLEW_PERCENT_PER_S   150.0 // 70 -> 90 % cca.: 0.13 s
-#define NMPC_EDF_MAX_STEP_PERCENT     (NMPC_EDF_SLEW_PERCENT_PER_S * NMPC_DT_S)
+#define NMPC_U0_MIN   0.0f
+#define NMPC_U0_MAX   90.0f
+#define NMPC_EDF_SLEW_PERCENT_PER_S	60.0f	// Measured at 70-90%: rise ~84.2 %/s, fall ~60.1 %/s (use worst case)
+#define NMPC_EDF_MAX_STEP_PERCENT 	(NMPC_EDF_SLEW_PERCENT_PER_S * NMPC_DT_S)
 
 
 /* -----------------------------------------------------------------------
@@ -87,6 +110,10 @@ typedef struct
     uint8_t 	nmpc_solve_time_samples;
     float 		nmpc_solve_time_sum;
     float 		nmpc_solve_time;
+    int         nmpc_last_qp_iter;
+    int         nmpc_last_qp_status;
+    double      u0_lbu;
+    double      u0_ubu;
 
     uint8_t 	warm_start_valid;
     double 		warm_x[NMPC_N + 1][NMPC_NX];

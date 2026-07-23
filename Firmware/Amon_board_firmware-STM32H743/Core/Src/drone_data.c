@@ -519,7 +519,7 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 			/* NMPC solve time */
 			packets->rf_packet_drone.payload[payload_cnt++] = TVL_SOLVE_TIME;
 
-			uint32_t time = (uint32_t)(drone_data->data.nmpc_solver_time * ANGLE_SCALE);
+			uint32_t time = (uint32_t)(drone_data->regulators.nmpc_solver_time * ANGLE_SCALE);
 			packets->rf_packet_drone.payload[payload_cnt++] = (time >> 24) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] = (time >> 16) & 0xFF;
 			packets->rf_packet_drone.payload[payload_cnt++] = (time >>  8) & 0xFF;
@@ -709,6 +709,45 @@ static void packet_set_flight_path(s_packets *packets, s_drone_data *drone_data)
  */
 void packet_create_uart_data(s_packets *packets, s_drone_data *drone_data)
 {
+
+	// Thrust identification test printout
+	if (drone_data->identifications.flag_test_edf)
+	{
+		uint8_t payload_cnt = 0;
+
+		packets->uart_packet.sof = SIG_SOF;
+		packets->uart_packet.version = PROTOCOL_VER;
+		packets->uart_packet.flags = FLAG_STREAM;
+		packets->uart_packet.src_id = ID_DRONE;
+		packets->uart_packet.dest_id = ID_PC;
+		packets->uart_packet.opcode = OPT_TELEMETRY;
+
+		// WARNING! Max packet size is 64-bytes only, needs to be repaired //
+
+		/* Tick timer */
+		uint32_t tickTimerVal = HAL_GetTick(); // miliseconds
+		packets->uart_packet.payload[payload_cnt++] = (tickTimerVal >> 24) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] = (tickTimerVal >> 16) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] = (tickTimerVal >>  8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  tickTimerVal		   & 0xFF;
+
+		/* EDF power */
+		packets->uart_packet.payload[payload_cnt++] = drone_data->actuators.edf_percent;
+
+		/* Main battery voltage */
+		packets->uart_packet.payload[payload_cnt++] = (drone_data->data.battery_main_voltage >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  drone_data->data.battery_main_voltage       & 0xFF;
+
+		/* EDF battery voltage */
+		packets->uart_packet.payload[payload_cnt++] = (drone_data->data.battery_edf_voltage >> 8) & 0xFF;
+		packets->uart_packet.payload[payload_cnt++] =  drone_data->data.battery_edf_voltage       & 0xFF;
+
+		packets->uart_packet.plen = payload_cnt;
+		packets->uart_packet.len = packets->uart_packet.plen + HEADER_SHIFT_UART;
+	}
+
+
+
 
 	// Moment identification test printout
 	if (drone_data->identifications.flag_test_moment)

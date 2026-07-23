@@ -4,13 +4,6 @@
  * Version            : V1.0.0
  * Date               : 2026/05/20
  * Description        :  NMPC wrapper for amon_model acados solver
- *
- * Solver details (read from acados_solver_amon_model.c):
- *   - SQP with PARTIAL_CONDENSING_HPIPM
- *   - ERK integrator, LINEAR_LS cost
- *   - NBX0 = 0  -> initial state set via ocp_nlp_out_set warm-start
- *   - NBU  = 5  -> input constraints active at every stage
- *   - yref = [x(23); u(5)], yref_e = [x(23)]
 *****************************************************************/
 
 #include <NMPC.h>
@@ -505,6 +498,9 @@ static void NMPC_SetStage0InputLimits(s_NMPC *h)
 		clamp_actuator(h->u_opt[4] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX)
     };
 
+    h->u0_lbu = lbu[0];
+    h->u0_ubu = ubu[0];
+
     ocp_nlp_constraints_model_set(s_capsule->nlp_config,
                                   s_capsule->nlp_dims,
                                   s_capsule->nlp_in,
@@ -534,15 +530,27 @@ int NMPC_Solve(s_NMPC *h)
 {
     if (!h->initialized) return NMPC_NOT_INIT;
 
-    //uint32_t t0 = NMPC_PlatformGetTickMs();
-
     //!!! ONLY FOR INSTANT MODEL !!!
-    if (h->nmpc_limiter_enable) NMPC_SetStage0InputLimits(h); // Actuator slew-rate (simple instant model actuator limiter)
+    if (h->nmpc_limiter_enable)
+    {
+        NMPC_SetStage0InputLimits(h); // Actuator slew-rate (simple instant model actuator limiter)
+    }
+    else
+    {
+        h->u0_lbu = NMPC_U0_MIN;
+        h->u0_ubu = NMPC_U0_MAX;
+    }
 
     int status = amon_model_acados_solve(s_capsule);
 
-    //h->solve_time_ms     = NMPC_PlatformGetTickMs() - t0;
+    int qp_iter = 0;
+    int qp_status = 0;
+    ocp_nlp_get(s_capsule->nlp_solver, "qp_iter", &qp_iter);
+    ocp_nlp_get(s_capsule->nlp_solver, "qp_status", &qp_status);
+
     h->last_solver_status = status;
+    h->nmpc_last_qp_iter = qp_iter;
+    h->nmpc_last_qp_status = qp_status;
 
     if (status == ACADOS_SUCCESS)
     {

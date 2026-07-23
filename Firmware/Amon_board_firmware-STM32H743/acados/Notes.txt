@@ -1,0 +1,2 @@
+Run auto copy and modify code from powershell with:
+powershell.exe -ExecutionPolicy Bypass -File ".\update_acados_files.ps1"

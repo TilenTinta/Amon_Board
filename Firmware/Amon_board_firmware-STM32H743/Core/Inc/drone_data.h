@@ -22,8 +22,17 @@
 // Calibration //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
 //#define IDENTIFICATION				// Uncomment to enable serial communication over USB
-//#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments
+//#define TEST_EDF					// Uncomment to enable edf printout (voltage)
+//#define TEST_MOMENTS				// Uncomment to enable serial print over USB - testing of fin moments (gyro stuff)
+//#define TEST_SEQUENCE				// Uncomment to enable offline test sequence
 //#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
+
+#ifdef TEST_SEQUENCE
+	//#define EDF_OFFET
+	//#define EDF_YAW
+	#define FIN_EFFECT_PITCH
+	//#define FIN_EFFECT_ROLL
+#endif
 
 //#define TUNE_KALMAN
 #ifdef TUNE_KALMAN
@@ -40,11 +49,12 @@
 #define CAL_LIDAR			0
 
 // Drone options //
-#define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter
+#define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter - WARNING (code is old and not defined completely)
 //#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
 #define LOG_DELAY			3		// Delay after which log is turned off
 #define EDF_DELAY			2		// Delay after which EDF is turned off
 #define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
+#define EDF_WARMUP_EN				// ENABLE EDF warm-up sequence to set starting conditions to the system
 
 #define LOG_ENABLE					// Enable logging of telemetry data and select which method to use
 //#define LOG_LITTLEFS
@@ -73,6 +83,9 @@
 #define ALTITUDE_M			98		// Height where drone will take off
 #define DECLINATION_DEG		4.34f	// Deskle declination = +4.28deg (+4.34deg) (source: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml?)
 
+// Define which regulator to use as primary source of control
+#define USE_NMPC	// Nonlinear Model Predictive Control - Optimization problem
+//#define USE_AMPC	// Approximate Model Predictive Control  - Neural Network  # TODO
 
 // Flight controller HW / SW definitions //
 #define MAIN_BOARD_V		3.27f		// Main board voltage
@@ -127,6 +140,14 @@ typedef enum {
 	CONN_STATUS_DISCONNECTED
 } e_connection_status;
 
+// Controllers
+typedef enum {
+	CONTROL_NONE,
+	CONTROL_NMPC,
+	CONTROL_AMPC,
+	CONTROL_PID
+} e_controller_used;
+
 
 // Drone: date-time
 typedef struct {
@@ -165,6 +186,10 @@ typedef struct {
 	float 				Pitch;
 	float 				Roll;
 	float 				Yaw;
+
+	float 				Pitch_rate; 			// Body X angular rate [rad/s]
+	float 				Roll_rate;  			// Body Y angular rate [rad/s]
+	float 				Yaw_rate;   			// Body Z angular rate [rad/s]
 
 	float				position_x;				// Drone body position in space - x axis
 	float				position_y;				// Drone body position in space - y axis
@@ -218,15 +243,52 @@ typedef struct {
 	uint32_t			pressure;				// Pressure
 	uint16_t			take_off_alt_m;			// Take off altitude in meters
 
-	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
-	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
-	volatile float	 	nmpc_solver_time;		// Average solver time
-	uint8_t				nmpc_set_new_ref;		// Flag to set new reference if command changes
-
 	uint8_t				flag_e_kill;			// Emergency stop/kill flag
 	uint8_t				flag_land_now;			// Land immediately no matter what
 
 } s_data;
+
+
+// Drone regulators
+typedef struct {
+	uint8_t				controller_used;		// Number of used controller - e_controller_used
+
+	// NMPC //
+	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
+	uint8_t				nmpc_solver_fail_cnt;	// NMPC solver fails counter
+	volatile float	 	nmpc_solver_time;		// Average solver time
+	uint8_t				nmpc_set_new_ref;		// Flag to set new reference if command changes
+	int					nmpc_solve_status;		// Status of solver (OK, NOK)
+    int         		nmpc_last_qp_iter;		// Acados SQP_RTI number of solve iterations
+    int         		nmpc_last_qp_status;	// Acados SQP_RTI status of solve iterations
+
+    // NMPC reference and constraint diagnostics for flight log
+    float               nmpc_z_ref;
+    float               nmpc_z_current;
+    float               nmpc_z_error;
+    float               nmpc_vz_ref_target;
+    float               nmpc_vz_ref_slew;
+    float               nmpc_vz_current;
+    float               nmpc_u0_ref;
+    float               nmpc_u0_opt;
+    float               nmpc_u0_lbu;
+    float               nmpc_u0_ubu;
+
+    // AMPC //
+    uint8_t				AMPC_enable;			// Flag for enabling AMPC regulator
+    uint8_t				ampc_solver_fail_cnt;	// AMPC solver fails counter
+	volatile float	 	ampc_solver_time;		// Average solver time
+	uint8_t				ampc_set_new_ref;		// Flag to set new reference if command changes
+	int					ampc_solve_status;		// Status of solver (OK, NOK)
+
+    // PID //
+    uint8_t				PID_enable;				// Flag for enabling PID regulator
+    uint8_t				pid_solver_fail_cnt;	// PID solver fails counter
+	volatile float	 	pid_solver_time;		// Average solver time
+	uint8_t				pid_set_new_ref;		// Flag to set new reference if command changes
+	int					pid_solve_status;		// Status of solver (OK, NOK)
+
+} s_regulators;
 
 
 // UART buffers and flags
@@ -239,6 +301,7 @@ typedef struct {
     volatile uint8_t    flag_USB_RX_new;        // Flag for new complete USB packet (PC -> link) - start decode
 
     volatile uint8_t	flag_logging_active;	// Flag for logging in progress
+    volatile uint8_t	flag_log_start;			// Flag for logging start (difference between arm and flying)
     volatile uint8_t	flag_log_now;			// Flag for triggering log event
     volatile uint8_t	flag_log_available;		// Flag for indicating log available in flash
 
@@ -268,6 +331,11 @@ typedef struct {
     uint8_t				rampUpTarget;			// Slow ramp-up percent goal
     uint32_t			rampUpTime;				// Slow ramp-up time goal
     uint8_t				rampUpStep;				// Slow ramp-up power step
+
+    uint8_t				warmUpEnable;			// Battery warm-up
+    float				warmUpTime_s;			// Current time of warm up sequence in seconds
+    uint8_t				warmUpDone;				// Warm-up sequence done
+
     uint8_t				edf_off_delay;			// Delay of EDF when landing
 
 } s_actuators;
@@ -297,6 +365,18 @@ typedef struct {
 	uint8_t				flag_test_edf;				// Test EDF thrust
 	uint8_t				flag_test_servo;			// Test servo motors
 	uint8_t				flag_test_moment;			// Test drone moments
+	uint8_t				flag_test_sequence;			// Test drone sequence commands
+
+	uint8_t				identification_start;		// Flag for start of identification
+	uint8_t				identification_test_index;	// Identification test index of array
+	float				identification_time;		// Current time of identification test
+	uint8_t				identification_sequence_length;	// Length of identification sequence
+	float				event_time_s[100];			// Identification test array with times in seconds (based on 100Hz timers) - End time of each sequence step [s]
+	uint8_t				edf_thrust_percent[100];	// Identification test array with percents of edf thrusts
+	int8_t				servo_xp_deg[100];			// Identification test array with angles in degrees for a single servo - X+ - first value must be 0
+	int8_t				servo_xn_deg[100];			// Identification test array with angles in degrees for a single servo - X- - first value must be 0
+	int8_t				servo_yp_deg[100];			// Identification test array with angles in degrees for a single servo - Y+ - first value must be 0
+	int8_t				servo_yn_deg[100];			// Identification test array with angles in degrees for a single servo - Y- - first value must be 0
 
 } s_identification;
 
@@ -320,6 +400,7 @@ typedef struct {
 	s_data				data;					// Other drone data (batterys, temp, hum, press...)
 	s_path				flight_path;			// Flight path data
 	s_actuators			actuators;				// Drone actuators value
+	s_regulators		regulators;				// Drone regulation algorithms
 
 } s_drone_data;
 

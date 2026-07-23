@@ -1,3 +1,4 @@
+"./Core/Src/AMPC.o"
 "./Core/Src/BME280.o"
 "./Core/Src/GNSS.o"
 "./Core/Src/HMC5883L.o"

@@ -420,14 +420,27 @@ void log_write_buffer(uint8_t size)
  *
  * @return  none
  */
-void log_add_sample(s_position *pos, s_data *data, s_actuators *actuators)
+void log_add_sample(s_position *pos, s_data *data, s_regulators *reg, s_actuators *actuators)
 {
     log_buffer[log_buffer_index].timestamp = HAL_GetTick(); // miliseconds
     log_buffer[log_buffer_index].servo_xp = actuators->servo_xp;
     log_buffer[log_buffer_index].servo_xn = actuators->servo_xn;
     log_buffer[log_buffer_index].servo_yp = actuators->servo_yp;
     log_buffer[log_buffer_index].servo_yn = actuators->servo_yn;
-    log_buffer[log_buffer_index].nmpc_solver_time = data->nmpc_solver_time;
+    log_buffer[log_buffer_index].nmpc_solver_time = reg->nmpc_solver_time;
+    log_buffer[log_buffer_index].nmpc_solve_status = reg->nmpc_solve_status;
+	log_buffer[log_buffer_index].nmpc_last_qp_iter = reg->nmpc_last_qp_iter;
+	log_buffer[log_buffer_index].nmpc_last_qp_status = reg->nmpc_last_qp_status;
+    log_buffer[log_buffer_index].nmpc_z_ref = reg->nmpc_z_ref;
+    log_buffer[log_buffer_index].nmpc_z_current = reg->nmpc_z_current;
+    log_buffer[log_buffer_index].nmpc_z_error = reg->nmpc_z_error;
+    log_buffer[log_buffer_index].nmpc_vz_ref_target = reg->nmpc_vz_ref_target;
+    log_buffer[log_buffer_index].nmpc_vz_ref_slew = reg->nmpc_vz_ref_slew;
+    log_buffer[log_buffer_index].nmpc_vz_current = reg->nmpc_vz_current;
+    log_buffer[log_buffer_index].nmpc_u0_ref = reg->nmpc_u0_ref;
+    log_buffer[log_buffer_index].nmpc_u0_opt = reg->nmpc_u0_opt;
+    log_buffer[log_buffer_index].nmpc_u0_lbu = reg->nmpc_u0_lbu;
+    log_buffer[log_buffer_index].nmpc_u0_ubu = reg->nmpc_u0_ubu;
     log_buffer[log_buffer_index].heading_deg = pos->heading_deg;
     log_buffer[log_buffer_index].Pitch = pos->Pitch;
     log_buffer[log_buffer_index].Roll = pos->Roll;
@@ -438,6 +451,10 @@ void log_add_sample(s_position *pos, s_data *data, s_actuators *actuators)
     log_buffer[log_buffer_index].gyro_x = pos->gyro_x;
     log_buffer[log_buffer_index].gyro_y = pos->gyro_y;
     log_buffer[log_buffer_index].gyro_z = pos->gyro_z;
+    log_buffer[log_buffer_index].quaternion[0] = pos->quaternion[0];
+    log_buffer[log_buffer_index].quaternion[1] = pos->quaternion[1];
+    log_buffer[log_buffer_index].quaternion[2] = pos->quaternion[2];
+    log_buffer[log_buffer_index].quaternion[3] = pos->quaternion[3];
     log_buffer[log_buffer_index].height_TOF_m_filtered = pos->height_TOF_m_filtered;
     log_buffer[log_buffer_index].gyroTemp = pos->gyroTemp;
     log_buffer[log_buffer_index].height_TOF_mm = pos->height_TOF_mm;

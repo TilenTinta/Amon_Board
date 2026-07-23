@@ -245,7 +245,7 @@ void Kalman_rawToAngles(s_drone_data *drone, float *roll_angle_accel, float *pit
 
 	// Tilt angles (standard stable formulas) - angles from gravitation
 	*pitch_angle_accel = -atan2f(-ay, az) * RAD_TO_DEG;  // angle around body X
-	*roll_angle_accel = -atan2f( ax, az) * RAD_TO_DEG;  // angle around body Y
+	*roll_angle_accel = atan2f( ax, az) * RAD_TO_DEG;  // angle around body Y
 }
 
 
@@ -385,8 +385,8 @@ float Kalman_UpdateYaw(s_Kalman *k, float gyro_z, float mag_yaw, uint8_t mag_val
         if (innovation > 180.0f) innovation -= 360.0f;
         if (innovation < -180.0f) innovation += 360.0f;
 
-        // Remove compass spikes
-        if (fabsf(innovation) < 120.0f)
+        // Reject magnetic disturbances instead of pulling yaw toward a bad sample.
+        if (fabsf(innovation) < 45.0f)
         {
             float S = k->P00 + R_mag;
             float K0 = k->P00 / S;
@@ -640,7 +640,7 @@ s_Quaternion eulerToQuaternion(float roll, float pitch, float yaw)
 
 
 /*********************************************************************
-* @fn     	gyroToQuaternion
+* @fn     	gyroToQuaternion - OLD
 *
 * @param 	gyro_x_deg  - rotation around X axis [deg/s]
 * @param 	gyro_y_deg  - rotation around Y axis [deg/s]
@@ -711,6 +711,7 @@ void gyroToQuaternion(s_Quaternion *q, float gyro_x_deg, float gyro_y_deg, float
 void EulerQuaternion_Complementary(s_Quaternion *q, float gyro_x_deg,  float gyro_y_deg, float gyro_z_deg, float roll_deg, float pitch_deg, float yaw_deg, float dt, float alpha)
 {
     // Propagate quaternion using gyro
+    //float wx = -gyro_x_deg * DEG_TO_RAD;
     float wx = gyro_x_deg * DEG_TO_RAD;
     float wy = gyro_y_deg * DEG_TO_RAD;
     float wz = gyro_z_deg * DEG_TO_RAD;
@@ -746,7 +747,7 @@ void EulerQuaternion_Complementary(s_Quaternion *q, float gyro_x_deg,  float gyr
     }
 
     // Create reference quaternion from Kalman Euler
-    s_Quaternion q_ref = eulerToQuaternion(roll_deg, pitch_deg, yaw_deg);
+    s_Quaternion q_ref = eulerToQuaternion(pitch_deg, roll_deg, yaw_deg);
 
     // Quaternion hemisphere correction (prevent interpolation jumps)
 

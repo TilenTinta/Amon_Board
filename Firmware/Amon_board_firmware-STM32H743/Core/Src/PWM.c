@@ -154,6 +154,45 @@ void EDFSlowRamp(s_actuators *actuators)
 
 
 
+/*********************************************************************
+* @fn    EDFWarmUp
+*
+* @param *actuators: pinter to all actuators parameters
+*
+* @brief   Warm-up sequence to heat up system
+* 			- better battery consumption
+* 			- more thrust
+* 			- less voltage drop
+*
+* @return  none
+*/
+void EDFWarmUp(s_actuators *actuators)
+{
+	if (!actuators->warmUpEnable)
+	{
+		actuators->warmUpEnable = 1;	// Enable flag for warm-up
+		actuators->warmUpDone = 0;
+		// Increase for calculated step
+		actuators->edf_percent = WARMUP_POWER;
+	}
+
+	actuators->warmUpTime_s += TIM_50HZ_DT;
+
+    // 0% =0.870us, 100% = 2.12ms; delta = 1.25ms
+	// Must be set by user (HTIRC HORNET 100A)
+    // TIM2 tick is 1us with PSC=167, ARR=19999 at 84MHz, period=20ms (50Hz)
+    uint32_t pulse_us = SERVO_MIN_US + ((SERVO_MAX_US - SERVO_MIN_US) * actuators->edf_percent) / 100;
+
+    if (actuators->warmUpTime_s >= WARMUP_TIME)
+    {
+    	actuators->warmUpDone = 1;
+    	actuators->warmUpEnable = 0;
+    }
+
+    SetPWMValue(PWM_EDF, pulse_us);
+}
+
+
 
 /*********************************************************************
 * @fn    SetPWMValue
