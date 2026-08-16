@@ -57,6 +57,10 @@ typedef struct {
     int			nmpc_solve_status;
     int         nmpc_last_qp_iter;
     int         nmpc_last_qp_status;
+    int         nmpc_acados_status;       // Raw acados NLP solver status
+    float       nmpc_time_tot_ms;         // Total acados solve time [ms]
+    float       nmpc_time_qp_ms;          // QP solver portion of acados time [ms]
+    int         nmpc_sqp_iter;            // SQP/SQP_RTI iteration count
 
     float       nmpc_z_ref;              // NMPC height reference [m]
     float       nmpc_z_current;          // Current height passed to NMPC [m]
@@ -85,6 +89,10 @@ typedef struct {
     float		quaternion[4];
 
     float 		height_TOF_m_filtered;
+    float       position_x;
+    float       position_y;
+    float       velocity_x;
+    float       velocity_y;
     uint16_t 	gyroTemp;
     uint16_t 	height_TOF_mm;
 
@@ -100,6 +108,9 @@ typedef struct {
     uint8_t 	edf_percent;			// Percents of power on EDF
 
 } s_logging_buffer;
+
+_Static_assert(sizeof(s_logging_buffer) == 188,
+               "s_logging_buffer must match Ground Control log_schema.json");
 
 
 /*###########################################################################################################################################################*/

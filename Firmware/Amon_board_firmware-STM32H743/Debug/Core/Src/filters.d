@@ -38,7 +38,7 @@ Core/Src/filters.o: ../Core/Src/filters.c ../Core/Inc/filters.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h \
  ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
- ../Core/Inc/autopilot.h
+ ../Core/Inc/autopilot.h ../Core/Inc/nmpc_config.h
 ../Core/Inc/filters.h:
 ../Core/Inc/MPU6050.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h:
@@ -82,3 +82,4 @@ Core/Src/filters.o: ../Core/Src/filters.c ../Core/Inc/filters.h \
 ../Core/Inc/data_transcode.h:
 ../Core/Inc/GNSS.h:
 ../Core/Inc/autopilot.h:
+../Core/Inc/nmpc_config.h:

@@ -527,6 +527,53 @@ void packet_create_telemetry(s_packets *packets, s_drone_data *drone_data)
 
 			packets->rf_packet_drone.plen = payload_cnt;
 
+			packet_num++;
+			break;
+
+		case 4:
+			// DATA_4
+
+			/* Drone position */
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_DRONE_POS;
+
+			int16_t pos_x = scale_to_i16(drone_data->position.position_x, POSITION_SCALE);
+			int16_t pos_y = scale_to_i16(drone_data->position.position_y, POSITION_SCALE);
+			int16_t pos_z = scale_to_i16(drone_data->position.position_z, POSITION_SCALE);
+
+			/* - position x */
+			packets->rf_packet_drone.payload[payload_cnt++] = (pos_x >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  pos_x       & 0xFF;
+
+			/* - position y */
+			packets->rf_packet_drone.payload[payload_cnt++] = (pos_y >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  pos_y       & 0xFF;
+
+			/* - position z */
+			packets->rf_packet_drone.payload[payload_cnt++] = (pos_z >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  pos_z       & 0xFF;
+
+
+			/* Drone velocity */
+			packets->rf_packet_drone.payload[payload_cnt++] =  TVL_DRONE_VEL;
+
+			int16_t vel_x = scale_to_i16(drone_data->position.velocity_x, VELOCITY_SCALE);
+			int16_t vel_y = scale_to_i16(drone_data->position.velocity_y, VELOCITY_SCALE);
+			int16_t vel_z = scale_to_i16(drone_data->position.velocity_z, VELOCITY_SCALE);
+
+			/* - position x */
+			packets->rf_packet_drone.payload[payload_cnt++] = (vel_x >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  vel_x       & 0xFF;
+
+			/* - position y */
+			packets->rf_packet_drone.payload[payload_cnt++] = (vel_y >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  vel_y       & 0xFF;
+
+			/* - position z */
+			packets->rf_packet_drone.payload[payload_cnt++] = (vel_z >> 8) & 0xFF;
+			packets->rf_packet_drone.payload[payload_cnt++] =  vel_z       & 0xFF;
+
+			packets->rf_packet_drone.plen = payload_cnt;
+
 			packet_num = 0;
 			break;
 

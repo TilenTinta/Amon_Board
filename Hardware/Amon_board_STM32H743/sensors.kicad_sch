@@ -5,7 +5,7 @@
 	(uuid "34056ed0-2907-4496-a8ca-1e4dc02d97f3")
 	(paper "A4")
 	(title_block
-		(title "Amon board - Sensors")
+		(title "Amon board - Devices")
 		(date "2026-05-10")
 		(rev "3.0")
 		(company "Tinta T.")

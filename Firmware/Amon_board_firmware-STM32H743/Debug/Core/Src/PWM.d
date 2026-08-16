@@ -37,7 +37,7 @@ Core/Src/PWM.o: ../Core/Src/PWM.c ../Core/Inc/PWM.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h \
  ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
- ../Core/Inc/autopilot.h
+ ../Core/Inc/autopilot.h ../Core/Inc/nmpc_config.h
 ../Core/Inc/PWM.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h:
 ../Core/Inc/stm32h7xx_hal_conf.h:
@@ -80,3 +80,4 @@ Core/Src/PWM.o: ../Core/Src/PWM.c ../Core/Inc/PWM.h \
 ../Core/Inc/data_transcode.h:
 ../Core/Inc/GNSS.h:
 ../Core/Inc/autopilot.h:
+../Core/Inc/nmpc_config.h:

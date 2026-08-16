@@ -39,7 +39,7 @@ extern "C" {
 
 /* --------------------- RF ---------------------
  * + Relation: Link - Drone
- * + Compact layout (fits nRF DPL �� 32):
+ * + Compact layout (fits nRF DPL-32):
  *      - VER(1) | FLAGS(1) | SRC(1) | DST(1) | OPCODE(1) | PLEN(1) | PAYLOAD(0..26)
  */
 
@@ -160,6 +160,8 @@ extern "C" {
 #define TVL_GPS                 0x35    // GPS lat(i32 1e-7deg), lon(i32), alt_cm(i32)
 #define TVL_THROTTLE			0x36	// EDF throttle level
 #define TVL_SERVO_ANGL			0x37	// Servos angle
+#define TVL_DRONE_POS			0x38	// Drone position
+#define TVL_DRONE_VEL			0x39	// Drone velocity
 // TODO: TBD
 
 #define TVL_STATE_STARTUP       0x40    // Drone state - startup (OPT_DRONE_SET_STATE)

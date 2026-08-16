@@ -11,6 +11,8 @@
 #define INC_NMPC_H_
 
 #include <stdint.h>
+#include "nmpc_config.h"
+
 //#include "../acados/acados/acados_solver_amon_model.h"
 
 /* !!! MUST CHANGES inside: acados_solver_amon_model.c
@@ -42,15 +44,6 @@
 // y_N  = [x]    = 13
 // N 	= 6
 
-// Dimensions - match acados_solver_amon_model.h !!!
-#define NMPC_NX          13 	// AMON_MODEL_NX
-#define NMPC_NU          5  	// AMON_MODEL_NU
-#define NMPC_N           6	 	// AMON_MODEL_N
-#define NMPC_NY          18 	// AMON_MODEL_NY
-#define NMPC_NYN         13 	// AMON_MODEL_NYN
-
-#define NMPC_DT_S                   0.02
-
 /* -----------------------------------------------------------------------
  * Input (control) bounds — from solver setup
  *   u[0]  : total thrust    [0 .. 100]	- percent
@@ -60,17 +53,24 @@
  *   u[4]  : servo y- 	[-45 .. 45]	- angle [deg]
  * --------------------------------------------------------------------- */
 // Servo
-#define NMPC_UX_MIN  -25.0
-#define NMPC_UX_MAX   25.0
+#define NMPC_UX_MIN  				-35.0 	// -25.0
+#define NMPC_UX_MAX   				35.0	// 25.0
 #define NMPC_SERVO_SLEW_DEG_PER_S   375.0	// Servo used: MG995 (Operating speed: 0.2s/60deg (4.8 V), 0.16s/60deg (6 V) -> 375deg/s)
 #define NMPC_SERVO_MAX_STEP_DEG     (NMPC_SERVO_SLEW_DEG_PER_S * NMPC_DT_S)
 
-// EDF
-#define NMPC_U0_MIN   0.0f
-#define NMPC_U0_MAX   90.0f
+// EDF absolute limits. The active flight/landing lower bound is set by autopilot.
+#define NMPC_U0_ABS_MIN   			0.0f
+#define NMPC_U0_MAX      			90.0f
 #define NMPC_EDF_SLEW_PERCENT_PER_S	60.0f	// Measured at 70-90%: rise ~84.2 %/s, fall ~60.1 %/s (use worst case)
 #define NMPC_EDF_MAX_STEP_PERCENT 	(NMPC_EDF_SLEW_PERCENT_PER_S * NMPC_DT_S)
 
+// First-order actuator estimator
+#define NMPC_EDF_TAU_UP_S            0.18
+#define NMPC_EDF_TAU_DOWN_S          0.22
+#define NMPC_SERVO_TAU_S             0.05
+
+
+#define USE_HOVER_TRIM						// Uncomment if you dont want to use external loop to height correction
 
 /* -----------------------------------------------------------------------
  * Return codes
@@ -94,6 +94,10 @@ typedef struct
     // Last optimal control output u[0]
     double 		u_opt[NMPC_NU];
 
+    // Last control command actually sent to the actuators
+    double		u_applied[NMPC_NU];
+    uint8_t		u_applied_valid;
+
     // Reference trajectory (same ref applied to all N stages)
     double 		x_ref[NMPC_NX];     		// state  reference (used in yref[0..22])
     double 		u_ref[NMPC_NU];     		// input  reference (used in yref[23..27])
@@ -112,8 +116,25 @@ typedef struct
     float 		nmpc_solve_time;
     int         nmpc_last_qp_iter;
     int         nmpc_last_qp_status;
+    int         nmpc_acados_status;       // Raw acados NLP solver status
+    double      nmpc_time_tot_s;          // Total acados solve time [s]
+    double      nmpc_time_qp_s;           // QP solver portion of acados time [s]
+    int         nmpc_sqp_iter;            // SQP/SQP_RTI iteration count
     double      u0_lbu;
     double      u0_ubu;
+    double      u0_operating_min;
+    double      u0_operating_max;
+    double      eta_T;                    // EDF LUT thrust scale used by the acados model
+
+    // First-order actuator state estimator diagnostics
+    uint8_t     actuator_estimator_valid;
+    double      estimated_thrust_N;
+    double      estimated_servo_rad[4];
+    double      estimator_edf_alpha;
+    double      estimator_servo_alpha;
+    uint8_t     model_selection;
+    uint8_t     model_nx;
+    uint8_t     model_horizon;
 
     uint8_t 	warm_start_valid;
     double 		warm_x[NMPC_N + 1][NMPC_NX];
@@ -134,7 +155,12 @@ extern "C" {
 
 int NMPC_Init(s_NMPC *h);
 int NMPC_SetState(s_NMPC *h, const double *x);
+int NMPC_SetAppliedControl(s_NMPC *h, const double *u_applied);
 int NMPC_SetReference(s_NMPC *h, const double *x_ref, const double *u_ref);
+int NMPC_SetEdfOperatingLimits(s_NMPC *h, double min_percent, double max_percent);
+int NMPC_SetThrustScale(s_NMPC *h, double eta_T);
+void NMPC_ResetActuatorEstimator(s_NMPC *h);
+int NMPC_UpdateActuatorEstimator(s_NMPC *h, const double *u_applied, double commanded_thrust_N, double dt_s);
 int NMPC_Solve(s_NMPC *h);
 void NMPC_GetControl(const s_NMPC *h, double *u_out);
 void NMPC_DeInit(s_NMPC *h);

@@ -8,13 +8,13 @@
 
 #include <NMPC.h>
 
-#include "nmpc_platform.h"
 #include "acados_solver_amon_model.h"
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados/ocp_nlp/ocp_nlp_common.h"
 #include "acados/ocp_nlp/ocp_nlp_sqp_rti.h"
 #include <string.h>
 #include <stddef.h>
+#include <math.h>
 
 /*###########################################################################################################################################################*/
 /* Functions */
@@ -23,6 +23,13 @@
 static amon_model_solver_capsule *s_capsule = NULL;
 static void NMPC_ApplyCachedWarmStart(s_NMPC *h);
 static void NMPC_SaveShiftedWarmStart(s_NMPC *h);
+
+_Static_assert(AMON_MODEL_NP == 1, "NMPC expects eta_T");
+_Static_assert(AMON_MODEL_NX == NMPC_NX, "Selected NMPC profile does not match acados NX");
+_Static_assert(AMON_MODEL_NU == NMPC_NU, "Selected NMPC profile does not match acados NU");
+_Static_assert(AMON_MODEL_NY == NMPC_NY, "Selected NMPC profile does not match acados NY");
+_Static_assert(AMON_MODEL_NYN == NMPC_NYN, "Selected NMPC profile does not match acados NYN");
+_Static_assert(AMON_MODEL_N == NMPC_N, "Selected NMPC profile does not match acados N");
 
 
 
@@ -352,6 +359,108 @@ int NMPC_Init(s_NMPC *h)
     }
 
     h->initialized = 1;
+    h->u0_operating_min = 70.0;
+    h->u0_operating_max = NMPC_U0_MAX;
+    h->eta_T = 1.0;
+    h->model_selection = NMPC_MODEL_SELECTION;
+    h->model_nx = NMPC_NX;
+    h->model_horizon = NMPC_N;
+    NMPC_ResetActuatorEstimator(h);
+    return NMPC_OK;
+}
+
+
+int NMPC_SetThrustScale(s_NMPC *h, double eta_T)
+{
+    if (h == NULL) return NMPC_FAIL;
+
+    if (eta_T < 0.85) eta_T = 0.85;
+    if (eta_T > 1.15) eta_T = 1.15;
+    h->eta_T = eta_T;
+
+    return NMPC_OK;
+}
+
+
+
+/*********************************************************************
+ * @fn      NMPC_ResetActuatorEstimator
+ *
+ * @param   *h: nmpc struct
+ *
+ * @brief   Reset first-order actuator estimates and diagnostics
+ *
+ * @return  None
+ */
+void NMPC_ResetActuatorEstimator(s_NMPC *h)
+{
+    if (h == NULL) return;
+
+    h->actuator_estimator_valid = 0;
+    h->estimated_thrust_N = 0.0;
+    h->estimator_edf_alpha = 0.0;
+    h->estimator_servo_alpha = 0.0;
+
+    for (int i = 0; i < 4; i++)
+    {
+        h->estimated_servo_rad[i] = 0.0;
+    }
+}
+
+
+
+/*********************************************************************
+ * @fn      NMPC_UpdateActuatorEstimator
+ *
+ * @param   *h: nmpc struct
+ * @param   *u_applied: last actuator commands [% and deg]
+ * @param   commanded_thrust_N: eta_T-scaled EDF LUT thrust [N]
+ * @param   dt_s: estimator update period [s]
+ *
+ * @brief   Exact-discrete first-order estimator for actuator states
+ *
+ * @return  0 OK, 1 NOK
+ */
+int NMPC_UpdateActuatorEstimator(s_NMPC *h, const double *u_applied, double commanded_thrust_N, double dt_s)
+{
+    if (h == NULL || u_applied == NULL || dt_s <= 0.0 ||
+        !isfinite(commanded_thrust_N) || commanded_thrust_N < 0.0)
+    {
+        return NMPC_FAIL;
+    }
+
+    double servo_command_rad[4];
+    for (int i = 0; i < 4; i++)
+    {
+        servo_command_rad[i] = u_applied[i + 1] * NMPC_DEG_TO_RAD;
+    }
+
+    if (!h->actuator_estimator_valid)
+    {
+        h->estimated_thrust_N = commanded_thrust_N;
+        for (int i = 0; i < 4; i++)
+        {
+            h->estimated_servo_rad[i] = servo_command_rad[i];
+        }
+        h->actuator_estimator_valid = 1;
+        return NMPC_OK;
+    }
+
+    const double edf_tau_s = (commanded_thrust_N >= h->estimated_thrust_N)
+                           ? NMPC_EDF_TAU_UP_S
+                           : NMPC_EDF_TAU_DOWN_S;
+    const double edf_alpha = 1.0 - exp(-dt_s / edf_tau_s);
+    const double servo_alpha = 1.0 - exp(-dt_s / NMPC_SERVO_TAU_S);
+
+    h->estimated_thrust_N += edf_alpha * (commanded_thrust_N - h->estimated_thrust_N);
+    for (int i = 0; i < 4; i++)
+    {
+        h->estimated_servo_rad[i] += servo_alpha *
+                                    (servo_command_rad[i] - h->estimated_servo_rad[i]);
+    }
+
+    h->estimator_edf_alpha = edf_alpha;
+    h->estimator_servo_alpha = servo_alpha;
     return NMPC_OK;
 }
 
@@ -404,6 +513,29 @@ int NMPC_SetState(s_NMPC *h, const double *x)
 
 
 
+/*********************************************************************
+ * @fn      NMPC_SetAppliedControl
+ *
+ * @param   *h: nmpc struct
+ * @param   *u_applied: last control command actually sent to actuators
+ *
+ * @brief   Store the command used as the center of the next stage-0
+ * 			actuator slew-rate bounds
+ *
+ * @return  0 OK, 1 NOK
+ */
+int NMPC_SetAppliedControl(s_NMPC *h, const double *u_applied)
+{
+    if (!h->initialized || u_applied == NULL) return NMPC_FAIL;
+
+    memcpy(h->u_applied, u_applied, NMPC_NU * sizeof(double));
+    h->u_applied_valid = 1;
+
+    return NMPC_OK;
+}
+
+
+
 
 /*********************************************************************
  * @fn      NMPC_SetReference
@@ -449,6 +581,58 @@ int NMPC_SetReference(s_NMPC *h, const double *x_ref, const double *u_ref)
 
 
 /*********************************************************************
+ * @fn      NMPC_SetEdfOperatingLimits
+ *
+ * @param   *h: nmpc struct
+ * @param   min_percent: minimum edf limits
+ * @param   max_percent: maximum edf limits
+ *
+ * @brief   Set minimum and maximum edf values for complete horizont (envelope)
+ *
+ * @return  0 OK, 1 NOK
+ */
+int NMPC_SetEdfOperatingLimits(s_NMPC *h, double min_percent, double max_percent)
+{
+    if (!h->initialized) return NMPC_NOT_INIT;
+    if (min_percent < NMPC_U0_ABS_MIN || max_percent > NMPC_U0_MAX || min_percent > max_percent)
+    {
+        return NMPC_FAIL;
+    }
+
+    h->u0_operating_min = min_percent;
+    h->u0_operating_max = max_percent;
+
+    // Stage 0 gets additional slew-rate bounds immediately before solving.
+    double lbu[NMPC_NU] = {
+        min_percent,
+        NMPC_UX_MIN, NMPC_UX_MIN, NMPC_UX_MIN, NMPC_UX_MIN
+    };
+
+    double ubu[NMPC_NU] = {
+        max_percent,
+        NMPC_UX_MAX, NMPC_UX_MAX, NMPC_UX_MAX, NMPC_UX_MAX
+    };
+
+    for (int stage = 1; stage < NMPC_N; stage++)
+    {
+        ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                      s_capsule->nlp_dims,
+                                      s_capsule->nlp_in,
+                                      s_capsule->nlp_out,
+                                      stage, "lbu", lbu);
+        ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                      s_capsule->nlp_dims,
+                                      s_capsule->nlp_in,
+                                      s_capsule->nlp_out,
+                                      stage, "ubu", ubu);
+    }
+
+    return NMPC_OK;
+}
+
+
+
+/*********************************************************************
  * @fn      clamp_actuator
  *
  * @param   value: current servo angle
@@ -478,40 +662,67 @@ static double clamp_actuator(double value, double min_value, double max_value)
  *
  * @return  0 OK, 1 NOK
  */
-static void NMPC_SetStage0InputLimits(s_NMPC *h)
+static void NMPC_SetHorizonInputLimits(s_NMPC *h)
 {
-    double lbu[NMPC_NU] = {
-		//NMPC_U0_MIN,
-    	clamp_actuator(h->u_opt[0] - NMPC_EDF_MAX_STEP_PERCENT, NMPC_U0_MIN, NMPC_U0_MAX),
-		clamp_actuator(h->u_opt[1] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
-		clamp_actuator(h->u_opt[2] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
-		clamp_actuator(h->u_opt[3] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
-		clamp_actuator(h->u_opt[4] - NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX)
-    };
+    // Center the reachable envelope on command that was used in last iteration
+    const double *u_previous = h->u_applied_valid ? h->u_applied : h->u_opt;
+    double cumulative_time_s = 0.0;
 
-    double ubu[NMPC_NU] = {
-		//NMPC_U0_MAX,
-		clamp_actuator(h->u_opt[0] + NMPC_EDF_MAX_STEP_PERCENT, NMPC_U0_MIN, NMPC_U0_MAX),
-		clamp_actuator(h->u_opt[1] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
-		clamp_actuator(h->u_opt[2] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
-		clamp_actuator(h->u_opt[3] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX),
-		clamp_actuator(h->u_opt[4] + NMPC_SERVO_MAX_STEP_DEG, NMPC_UX_MIN, NMPC_UX_MAX)
-    };
+    for (int stage = 0; stage < NMPC_N; stage++)
+    {
+        double stage_dt_s = 0.0;
+        ocp_nlp_in_get(s_capsule->nlp_config,
+                       s_capsule->nlp_dims,
+                       s_capsule->nlp_in,
+                       stage, "Ts", &stage_dt_s);
+        cumulative_time_s += stage_dt_s;
 
-    h->u0_lbu = lbu[0];
-    h->u0_ubu = ubu[0];
+        const double edf_reachable = NMPC_EDF_SLEW_PERCENT_PER_S * cumulative_time_s;
+#if NMPC_MODEL_SELECTION == NMPC_MODEL_INSTANT
+        const double servo_reachable = NMPC_SERVO_SLEW_DEG_PER_S * cumulative_time_s;
+#endif
 
-    ocp_nlp_constraints_model_set(s_capsule->nlp_config,
-                                  s_capsule->nlp_dims,
-                                  s_capsule->nlp_in,
-                                  s_capsule->nlp_out,
-                                  0, "lbu", lbu);
+        double lbu[NMPC_NU] = {
+            clamp_actuator(u_previous[0] - edf_reachable, h->u0_operating_min, h->u0_operating_max),
+#if NMPC_MODEL_SELECTION == NMPC_MODEL_INSTANT
+            clamp_actuator(u_previous[1] - servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX),
+            clamp_actuator(u_previous[2] - servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX),
+            clamp_actuator(u_previous[3] - servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX),
+            clamp_actuator(u_previous[4] - servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX)
+#else
+            NMPC_UX_MIN, NMPC_UX_MIN, NMPC_UX_MIN, NMPC_UX_MIN
+#endif
+        };
 
-    ocp_nlp_constraints_model_set(s_capsule->nlp_config,
-                                  s_capsule->nlp_dims,
-                                  s_capsule->nlp_in,
-                                  s_capsule->nlp_out,
-                                  0, "ubu", ubu);
+        double ubu[NMPC_NU] = {
+            clamp_actuator(u_previous[0] + edf_reachable, h->u0_operating_min, h->u0_operating_max),
+#if NMPC_MODEL_SELECTION == NMPC_MODEL_INSTANT
+            clamp_actuator(u_previous[1] + servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX),
+            clamp_actuator(u_previous[2] + servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX),
+            clamp_actuator(u_previous[3] + servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX),
+            clamp_actuator(u_previous[4] + servo_reachable, NMPC_UX_MIN, NMPC_UX_MAX)
+#else
+            NMPC_UX_MAX, NMPC_UX_MAX, NMPC_UX_MAX, NMPC_UX_MAX
+#endif
+        };
+
+        if (stage == 0)
+        {
+            h->u0_lbu = lbu[0];
+            h->u0_ubu = ubu[0];
+        }
+
+        ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                      s_capsule->nlp_dims,
+                                      s_capsule->nlp_in,
+                                      s_capsule->nlp_out,
+                                      stage, "lbu", lbu);
+        ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                      s_capsule->nlp_dims,
+                                      s_capsule->nlp_in,
+                                      s_capsule->nlp_out,
+                                      stage, "ubu", ubu);
+    }
 }
 
 
@@ -530,27 +741,76 @@ int NMPC_Solve(s_NMPC *h)
 {
     if (!h->initialized) return NMPC_NOT_INIT;
 
-    //!!! ONLY FOR INSTANT MODEL !!!
+#if NMPC_MODEL_SELECTION == NMPC_MODEL_FIRST_ORDER
+    // First-order model keeps EDF command slew limits. Servo dynamics are
+    // represented by model states, therefore only absolute servo bounds apply.
+    NMPC_SetHorizonInputLimits(h);
+#else
+    // Instant model enables the reachable actuator envelope after spool-up.
     if (h->nmpc_limiter_enable)
     {
-        NMPC_SetStage0InputLimits(h); // Actuator slew-rate (simple instant model actuator limiter)
+        NMPC_SetHorizonInputLimits(h); // Reachable actuator envelope for the instant model
     }
     else
     {
-        h->u0_lbu = NMPC_U0_MIN;
-        h->u0_ubu = NMPC_U0_MAX;
+        double lbu[NMPC_NU] = {
+            h->u0_operating_min,
+            NMPC_UX_MIN, NMPC_UX_MIN, NMPC_UX_MIN, NMPC_UX_MIN
+        };
+        double ubu[NMPC_NU] = {
+            h->u0_operating_max,
+            NMPC_UX_MAX, NMPC_UX_MAX, NMPC_UX_MAX, NMPC_UX_MAX
+        };
+
+        h->u0_lbu = lbu[0];
+        h->u0_ubu = ubu[0];
+
+        ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                      s_capsule->nlp_dims,
+                                      s_capsule->nlp_in,
+                                      s_capsule->nlp_out,
+                                      0, "lbu", lbu);
+        ocp_nlp_constraints_model_set(s_capsule->nlp_config,
+                                      s_capsule->nlp_dims,
+                                      s_capsule->nlp_in,
+                                      s_capsule->nlp_out,
+                                      0, "ubu", ubu);
+    }
+#endif
+
+    // Only eta_T is changed at runtime.
+    int parameter_index = 0;
+    double eta_T = h->eta_T;
+    for (int stage = 0; stage <= NMPC_N; stage++)
+    {
+        if (amon_model_acados_update_params_sparse(s_capsule, stage,
+                                                   &parameter_index, &eta_T, 1) != 0)
+        {
+            return NMPC_FAIL;
+        }
     }
 
     int status = amon_model_acados_solve(s_capsule);
 
     int qp_iter = 0;
-    int qp_status = 0;
+    double time_tot = 0.0;
+    double time_qp = 0.0;
+    int sqp_iter = 0;
     ocp_nlp_get(s_capsule->nlp_solver, "qp_iter", &qp_iter);
-    ocp_nlp_get(s_capsule->nlp_solver, "qp_status", &qp_status);
+
+    // Solver diagnostics supported by FULL_CONDENSING_HPIPM.
+    ocp_nlp_get(s_capsule->nlp_solver, "status", &status);
+    ocp_nlp_get(s_capsule->nlp_solver, "time_tot", &time_tot);
+    ocp_nlp_get(s_capsule->nlp_solver, "time_qp", &time_qp);
+    ocp_nlp_get(s_capsule->nlp_solver, "sqp_iter", &sqp_iter);
 
     h->last_solver_status = status;
     h->nmpc_last_qp_iter = qp_iter;
-    h->nmpc_last_qp_status = qp_status;
+    h->nmpc_last_qp_status = 0; // Not exposed by FULL_CONDENSING_HPIPM.
+    h->nmpc_acados_status = status;
+    h->nmpc_time_tot_s = time_tot;
+    h->nmpc_time_qp_s = time_qp;
+    h->nmpc_sqp_iter = sqp_iter;
 
     if (status == ACADOS_SUCCESS)
     {
@@ -669,29 +929,131 @@ static void NMPC_SaveShiftedWarmStart(s_NMPC *h)
 {
     if (h == NULL || s_capsule == NULL) return;
 
+    // Cache the unshifted solution first.
+    for (int k = 0; k <= NMPC_N; k++)
+    {
+        ocp_nlp_out_get(s_capsule->nlp_config,
+                        s_capsule->nlp_dims,
+                        s_capsule->nlp_out,
+                        k, "x", h->warm_x[k]);
+    }
+
     for (int k = 0; k < NMPC_N; k++)
     {
         ocp_nlp_out_get(s_capsule->nlp_config,
                         s_capsule->nlp_dims,
                         s_capsule->nlp_out,
-                        k + 1, "x", h->warm_x[k]);
+                        k, "u", h->warm_u[k]);
     }
 
-    memcpy(h->warm_x[NMPC_N], h->warm_x[NMPC_N - 1], NMPC_NX * sizeof(double));
-
-    for (int k = 0; k < NMPC_N - 1; k++)
+    // Build node times from the same nonuniform Ts values used by acados.
+    double node_time_s[NMPC_N + 1];
+    node_time_s[0] = 0.0;
+    for (int stage = 0; stage < NMPC_N; stage++)
     {
-        ocp_nlp_out_get(s_capsule->nlp_config,
-                        s_capsule->nlp_dims,
-                        s_capsule->nlp_out,
-                        k + 1, "u", h->warm_u[k]);
+        double stage_dt_s = 0.0;
+        ocp_nlp_in_get(s_capsule->nlp_config,
+                       s_capsule->nlp_dims,
+                       s_capsule->nlp_in,
+                       stage, "Ts", &stage_dt_s);
+        node_time_s[stage + 1] = node_time_s[stage] + stage_dt_s;
     }
-    ocp_nlp_out_get(s_capsule->nlp_config,
-                    s_capsule->nlp_dims,
-                    s_capsule->nlp_out,
-                    NMPC_N - 1, "u", h->warm_u[NMPC_N - 1]);
+
+    // Resample the old state trajectory at t + controller_dt. Processing in
+    // ascending order is safe in-place because every source index is >= k.
+    for (int k = 0; k <= NMPC_N; k++)
+    {
+        const double target_time_s = NMPC_DT_S + node_time_s[k];
+
+        if (target_time_s >= node_time_s[NMPC_N])
+        {
+            memcpy(h->warm_x[k], h->warm_x[NMPC_N], NMPC_NX * sizeof(double));
+            continue;
+        }
+
+        int lower = 0;
+        while (lower < NMPC_N - 1 && target_time_s > node_time_s[lower + 1])
+        {
+            lower++;
+        }
+
+        const double interval_s = node_time_s[lower + 1] - node_time_s[lower];
+        const double alpha = (interval_s > 0.0)
+                           ? (target_time_s - node_time_s[lower]) / interval_s
+                           : 0.0;
+
+        // Save quaternion endpoints before an in-place write can overwrite one.
+        double q0[4];
+        double q1[4];
+        double q_dot = 0.0;
+        for (int j = 0; j < 4; j++)
+        {
+            q0[j] = h->warm_x[lower][6 + j];
+            q1[j] = h->warm_x[lower + 1][6 + j];
+            q_dot += q0[j] * q1[j];
+        }
+        if (q_dot < 0.0)
+        {
+            for (int j = 0; j < 4; j++) q1[j] = -q1[j];
+        }
+
+        for (int j = 0; j < NMPC_NX; j++)
+        {
+            const double x0 = h->warm_x[lower][j];
+            const double x1 = h->warm_x[lower + 1][j];
+            h->warm_x[k][j] = x0 + alpha * (x1 - x0);
+        }
+
+        double q_norm_sq = 0.0;
+        for (int j = 0; j < 4; j++)
+        {
+            h->warm_x[k][6 + j] = q0[j] + alpha * (q1[j] - q0[j]);
+            q_norm_sq += h->warm_x[k][6 + j] * h->warm_x[k][6 + j];
+        }
+        if (q_norm_sq > 1e-12)
+        {
+            const double q_norm_inv = 1.0 / sqrt(q_norm_sq);
+            for (int j = 0; j < 4; j++) h->warm_x[k][6 + j] *= q_norm_inv;
+        }
+    }
+
+    // Controls live at interval start times. Interpolate where possible and
+    // hold the final control when the shifted time exceeds the old grid.
+    for (int k = 0; k < NMPC_N; k++)
+    {
+        const double target_time_s = NMPC_DT_S + node_time_s[k];
+
+        if (target_time_s >= node_time_s[NMPC_N - 1])
+        {
+            memcpy(h->warm_u[k], h->warm_u[NMPC_N - 1], NMPC_NU * sizeof(double));
+            continue;
+        }
+
+        int lower = 0;
+        while (lower < NMPC_N - 2 && target_time_s > node_time_s[lower + 1])
+        {
+            lower++;
+        }
+
+        const double interval_s = node_time_s[lower + 1] - node_time_s[lower];
+        const double alpha = (interval_s > 0.0)
+                           ? (target_time_s - node_time_s[lower]) / interval_s
+                           : 0.0;
+
+        for (int j = 0; j < NMPC_NU; j++)
+        {
+            const double u0 = h->warm_u[lower][j];
+            const double u1 = h->warm_u[lower + 1][j];
+            h->warm_u[k][j] = u0 + alpha * (u1 - u0);
+        }
+    }
 
     h->warm_start_valid = 1;
     NMPC_ApplyCachedWarmStart(h);
 }
+
+
+
+
+
 

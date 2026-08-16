@@ -107,6 +107,8 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE], do
 {
 	s_flight_command current_command = path_data->flight_path[path_data->command_index]; // Extract current command
 	double vz_min_m_s = VZ_REF_MIN_M_S;
+	path_data->edf_min_percent = EDF_MIN_FLIGHT_PERCENT;
+	path_data->edf_max_percent = EDF_MAX_PERCENT;
 
 	switch (current_command.command)
 	{
@@ -142,6 +144,13 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE], do
 			ref_land(&current_command.land, x_ref);
 			path_data->altitude_ref_m = x_ref[2];
 			vz_min_m_s = VZ_REF_LAND_MIN_M_S;
+			path_data->edf_min_percent = EDF_MIN_LAND_PERCENT;
+			
+			if (z_current_m < LAND_NEAR_GROUND_ALT_M)
+			{
+				vz_min_m_s = VZ_REF_LAND_NEAR_GROUND_MIN_M_S;
+				path_data->edf_max_percent = EDF_MAX_LAND_NEAR_GROUND_PERCENT;
+			}
 			break;
 		}
 
@@ -309,7 +318,7 @@ uint8_t execute_flight_command(s_path *path_data, double x_ref[NMPC_NX_SIZE], do
  * @param  z_current_m: filtered current altitude [m]
  * @param  x_ref: NMPC reference vector; x_ref[2] must contain z target
  *
- * @brief  Convert altitude error into a bounded vertical-speed reference.
+ * @brief  Slowly learn nominal EDF command from calm hover solutions.
  *
  * @return none
  */
@@ -328,9 +337,9 @@ static void apply_vertical_outer_loop(s_path *path_data, double z_current_m, dou
 		vz_ref_target = Z_OUTER_KP * z_err;
 	}
 
-    // Use defined values based on direction (up/down)
+    // Limits: use defined values based on direction (up/down)
     if (vz_ref_target > VZ_REF_MAX_M_S) vz_ref_target = VZ_REF_MAX_M_S;
-    if (vz_ref_target < vz_min_m_s) vz_ref_target = vz_min_m_s;
+    if (vz_ref_target < vz_min_m_s) vz_ref_target = vz_min_m_s; // Min value can be changed for landing
 
     path_data->vz_ref_target_m_s = vz_ref_target;
 
@@ -339,6 +348,62 @@ static void apply_vertical_outer_loop(s_path *path_data, double z_current_m, dou
 
     path_data->vz_ref_m_s = vz_ref;
     x_ref[5] = vz_ref;
+}
+
+
+
+/*********************************************************************
+ * @fcn    update_hover_trim
+ *
+ * @param  path_data: current path data struct
+ * @param  x_ref: NMPC reference vector; x_ref[2] must contain z target, x_ref[5] must contain vz target
+ *
+ * @brief  Estimate hover EDF power and correct altitude bias
+ *
+ * @return none
+ */
+void update_hover_trim(s_path *path_data, const double x_ref[NMPC_NX_SIZE], double z_current_m, double vz_current_m_s, double u0_opt_percent, double thrust_vertical_factor)
+{
+    if (path_data == NULL || x_ref == NULL) return;
+
+    // Recover a valid nominal value if the path structure was not initialized
+    if (path_data->u_hover_trim_percent < U_HOVER_TRIM_MIN_PERCENT || path_data->u_hover_trim_percent > U_HOVER_TRIM_MAX_PERCENT)
+    {
+        path_data->u_hover_trim_percent = U_HOVER_TRIM_INITIAL_PERCENT;
+    }
+
+    // Do not learn or integrate hover trim during landing or other low-altitude references
+    if (x_ref[2] <= U_HOVER_ADAPT_Z_REF_MIN_M)
+    {
+        return;
+    }
+
+    double z_err = x_ref[2] - z_current_m;
+    double vz_err = x_ref[5] - vz_current_m_s;
+
+
+    // 1) Hover trim estimator - Learn from u0_opt only very close to stable hover
+    if (fabs(z_err) < U_HOVER_ADAPT_Z_ERR_MAX_M &&
+        fabs(vz_current_m_s) < U_HOVER_ADAPT_VZ_MAX_M_S &&
+        u0_opt_percent > U_HOVER_ADAPT_U0_MIN_PERCENT &&
+        u0_opt_percent < U_HOVER_ADAPT_U0_MAX_PERCENT &&
+        thrust_vertical_factor >= U_HOVER_ADAPT_VERTICAL_FACTOR_MIN &&
+        thrust_vertical_factor <= 1.0)
+    {
+        double vertical_u0_percent = u0_opt_percent * thrust_vertical_factor;
+        path_data->u_hover_trim_percent = (1.0 - U_HOVER_TRIM_ALPHA) * path_data->u_hover_trim_percent + U_HOVER_TRIM_ALPHA * vertical_u0_percent;
+    }
+
+
+    // 2) Altitude and vertical-speed bias integrator, active above the minimum reference height
+    // z_err = z_ref - z_current:
+    // 	- too high -> negative error -> lower trim
+    //  - too low  -> positive error -> raise trim
+    path_data->u_hover_trim_percent +=
+            (U_HOVER_TRIM_KI_Z * z_err + U_HOVER_TRIM_KI_VZ * vz_err) * AUTOPILOT_UPDATE_DT_S;
+
+    if (path_data->u_hover_trim_percent > U_HOVER_TRIM_MAX_PERCENT) path_data->u_hover_trim_percent = U_HOVER_TRIM_MAX_PERCENT;
+    if (path_data->u_hover_trim_percent < U_HOVER_TRIM_MIN_PERCENT) path_data->u_hover_trim_percent = U_HOVER_TRIM_MIN_PERCENT;
 }
 
 
@@ -660,6 +725,12 @@ void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m,
         path_data->command_time_s = 0.0f;
         path_data->command_timeout_s = 0;
         path_data->altitude_ref_m = 0.0;
+        path_data->edf_min_percent = EDF_MIN_LAND_PERCENT;
+        path_data->edf_max_percent = EDF_MAX_PERCENT;
+        if (z_current_m < LAND_NEAR_GROUND_ALT_M)
+        {
+            path_data->edf_max_percent = EDF_MAX_LAND_NEAR_GROUND_PERCENT;
+        }
     }
 
     ref_clear(x_ref);
@@ -673,8 +744,10 @@ void land_now(s_path *path_data, double x_ref[NMPC_NX_SIZE], double current_x_m,
     x_ref[2] = 0.0;             // ground height
     x_ref[3] = 0.0;             // no X velocity
     x_ref[4] = 0.0;             // no Y velocity
+    double vz_min_m_s = (z_current_m < LAND_NEAR_GROUND_ALT_M) ?
+            VZ_REF_LAND_NEAR_GROUND_MIN_M_S : VZ_REF_LAND_MIN_M_S;
     apply_vertical_outer_loop(path_data, z_current_m,
-			VZ_REF_LAND_MIN_M_S, VZ_REF_LAND_NOW_SLEW_M_S2, x_ref);
+			vz_min_m_s, VZ_REF_LAND_NOW_SLEW_M_S2, x_ref);
 
     // Upright attitude is already set by ref_upright()
     x_ref[10] = 0.0;

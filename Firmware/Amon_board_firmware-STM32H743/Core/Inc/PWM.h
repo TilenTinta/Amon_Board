@@ -32,7 +32,7 @@
 // Offsets on motor to make them straight
 #define SERVO_XP_OFFSET 	0		// Servo offset
 #define SERVO_XN_OFFSET 	6		// Servo offset
-#define SERVO_YP_OFFSET 	3		// Servo offset
+#define SERVO_YP_OFFSET 	8		// Servo offset
 #define SERVO_YN_OFFSET 	-13		// Servo offset
 
 #define SERVOS_ZERO			90		// Zero position of servos (straight down)
@@ -51,7 +51,7 @@
 #define RAMPUP_TIME_STEP_MS	20		// Ramp-up timer period of function call
 
 // EDF warm-up parameters
-#define WARMUP_TIME			3
+#define WARMUP_TIME			5
 #define WARMUP_POWER		50
 
 

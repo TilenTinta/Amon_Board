@@ -1,3 +1,4 @@
-../Core/Src/autopilot.c:106:9:execute_flight_command	19
-../Core/Src/autopilot.c:654:6:land_now	5
-../Core/Src/autopilot.c:698:9:command_position_reached	6
+../Core/Src/autopilot.c:106:9:execute_flight_command	20
+../Core/Src/autopilot.c:365:6:update_hover_trim	14
+../Core/Src/autopilot.c:719:6:land_now	7
+../Core/Src/autopilot.c:771:9:command_position_reached	6

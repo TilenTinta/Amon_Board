@@ -132,7 +132,7 @@ try {
     }
 
     Write-Host ""
-    Write-Host "All acados files were copied successfully."
+    Write-Host " ###### All acados files were copied successfully ######"
     Write-Host ""
 
     # -------------------------------------------------------------------------
@@ -200,7 +200,7 @@ try {
 
     Write-Host "Finished modifying acados_solver_amon_model.c"
     Write-Host ""
-    Write-Host "Acados file update completed successfully."
+    Write-Host " ###### Acados file update completed successfully ######"
     Write-Host ""
 }
 catch {

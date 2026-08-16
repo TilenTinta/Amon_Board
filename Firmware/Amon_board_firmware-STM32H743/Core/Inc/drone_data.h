@@ -19,7 +19,7 @@
 /*###########################################################################################################################################################*/
 /* Defines */
 
-// Calibration //
+// Development functions //
 //#define CALIBRATION				// Uncomment to enable gyro calibration mode (set 1/0 to output value or not)
 //#define IDENTIFICATION				// Uncomment to enable serial communication over USB
 //#define TEST_EDF					// Uncomment to enable edf printout (voltage)
@@ -28,9 +28,10 @@
 //#define TEST_LITTLEFS				// Uncomment to enable write and read test with Little FS
 
 #ifdef TEST_SEQUENCE
+	#define IMU_VIB
 	//#define EDF_OFFET
 	//#define EDF_YAW
-	#define FIN_EFFECT_PITCH
+	//#define FIN_EFFECT_PITCH
 	//#define FIN_EFFECT_ROLL
 #endif
 
@@ -50,7 +51,9 @@
 
 // Drone options //
 #define GYRO_KALMAN					// Use Kalman filter - Comment this: use complementary filter - WARNING (code is old and not defined completely)
-//#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
+#define GYRO_BIAS_CORRECTION		// Use bias correction logic for biasing raw gyro values
+#define HEADING_DEG_GLITCH	20		// Value that is maximum allowed step between two measurements of compass/heading dirrection
+#define USE_OPTICAL_FLOW			// Use optical flow sensor to detect movement
 #define LOG_DELAY			3		// Delay after which log is turned off
 #define EDF_DELAY			2		// Delay after which EDF is turned off
 #define EDF_RAMP_UP_EN				// Enable EDF slow ramp-up procedure
@@ -69,6 +72,8 @@
 #define RADIO_RX_TIMEOUT	2		// Time after which if rx flag is set it gets cleared
 
 #define ANGLE_SCALE			100.0f	// Factor for angle scaling of angle when sending over radio
+#define POSITION_SCALE		1000.0f	// Position [m] to signed millimeters for telemetry
+#define VELOCITY_SCALE		1000.0f	// Velocity [m/s] to signed millimeters per second for telemetry
 
 // Select GPS decoding (comment/uncomment for enable/disable) //
 //#define USE_GPS
@@ -84,8 +89,10 @@
 #define DECLINATION_DEG		4.34f	// Deskle declination = +4.28deg (+4.34deg) (source: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml?)
 
 // Define which regulator to use as primary source of control
+#define USE_CPID	// Cascade PID controller
 #define USE_NMPC	// Nonlinear Model Predictive Control - Optimization problem
-//#define USE_AMPC	// Approximate Model Predictive Control  - Neural Network  # TODO
+//#define USE_AMPC	// Approximate Model Predictive Control  - Neural Network
+
 
 // Flight controller HW / SW definitions //
 #define MAIN_BOARD_V		3.27f		// Main board voltage
@@ -206,6 +213,9 @@ typedef struct {
 	float				gyro_x;					// Raw data - gyro x
 	float				gyro_y;					// Raw data - gyro y
 	float				gyro_z;					// Raw data - gyro z
+	float				gyro_bias_x;			// Raw data - gyro bias x
+	float				gyro_bias_y;			// Raw data - gyro bias y
+	float				gyro_bias_z;			// Raw data - gyro bias z
 	float				quaternion[4];			// Quaternion from Euler angles: Body to World system
 
 	/* Height of drone (when on ground the height is 0, offset on sensor set to 130mm) */
@@ -233,6 +243,7 @@ typedef struct {
 	uint16_t			buck_7V2_v[10];			// 7.2V buck voltage averaging array
 	uint16_t 			battery_main_voltage;	// Voltage of main board battery
 	uint16_t 			battery_edf_voltage;	// Voltage of EDF fan battery
+	uint16_t			battery_edf_ref_voltage;// Reference voltage saved at boot
 	uint16_t 			buck_5v_voltage;		// Voltage of 5V buck converter
 	uint16_t 			buck_7v2_voltage;		// Voltage of 7.2V buck converter
 	uint8_t				buck_5v_enable;			// Enable flag: buck 5V
@@ -252,6 +263,7 @@ typedef struct {
 // Drone regulators
 typedef struct {
 	uint8_t				controller_used;		// Number of used controller - e_controller_used
+	uint8_t				solver_timeout_cnt;		// Counter for overtime solves
 
 	// NMPC //
 	uint8_t				NMPC_enable;			// Flag for enabling NMPC regulator
@@ -261,6 +273,10 @@ typedef struct {
 	int					nmpc_solve_status;		// Status of solver (OK, NOK)
     int         		nmpc_last_qp_iter;		// Acados SQP_RTI number of solve iterations
     int         		nmpc_last_qp_status;	// Acados SQP_RTI status of solve iterations
+    int                 nmpc_acados_status;      // Raw acados NLP solver status
+    float               nmpc_time_tot_ms;        // Total acados solve time [ms]
+    float               nmpc_time_qp_ms;         // QP solver portion of acados time [ms]
+    int                 nmpc_sqp_iter;           // SQP/SQP_RTI iteration count
 
     // NMPC reference and constraint diagnostics for flight log
     float               nmpc_z_ref;
@@ -273,6 +289,14 @@ typedef struct {
     float               nmpc_u0_opt;
     float               nmpc_u0_lbu;
     float               nmpc_u0_ubu;
+    uint8_t             nmpc_model_selection;
+    uint8_t             nmpc_model_nx;
+    uint8_t             nmpc_model_horizon;
+    uint8_t             nmpc_actuator_estimator_valid;
+    float               nmpc_estimated_thrust_N;
+    float               nmpc_estimated_servo_rad[4];
+    float               nmpc_estimator_edf_alpha;
+    float               nmpc_estimator_servo_alpha;
 
     // AMPC //
     uint8_t				AMPC_enable;			// Flag for enabling AMPC regulator

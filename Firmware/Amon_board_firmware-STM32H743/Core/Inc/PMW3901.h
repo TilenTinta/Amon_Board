@@ -64,9 +64,15 @@ extern "C" {
 #define PMW3901_PRODUCT_ID             	0x49U
 
 // Algorithm variables
-#define PMW3901_SQUAL_MIN_VALID     	20U		// Surface quality threshold (<10: terrible, 20: acceptable, 40+ good, 80+: very good)
+#define PMW3901_SQUAL_MIN_VALID     	25U		// Reject low quality only when shutter is also saturated
 #define PMW3901_DT						0.005f	// Time of sensor reading period
-//#define PIXART_INIT
+#define PMW3901_MAX_VALID_DT_S			0.050f	// Maximum interval used for one valid motion sample
+#define PMW3901_VELOCITY_TIMEOUT_MS	    50U		// Set velocity to zero after this time without valid motion
+#define PMW3901_VELOCITY_LPF_TAU_S	    0.030f	// Optical flow velocity low-pass filter time constant
+
+#define PMW3901_FLOW_SCALE_RAD_COUNT	0.00238f // Optical flow angular scale [rad/count]: new_scale = current_scale * actual_distance / measured_distance
+
+#define PIXART_INIT
 
 /*###########################################################################################################################################################*/
 /* Structs and enums */
@@ -111,6 +117,9 @@ typedef struct {
 typedef struct {
 	// Height
 	float 	altitude_m;
+
+	// Drone heading for body-to-world optical flow rotation
+	float 	yaw_rad;
 
     // Processed / validated data
     uint8_t motion_valid;
@@ -169,6 +178,8 @@ typedef struct {
     // Statistics
     uint32_t 	motion_read_counter;
     uint32_t 	motion_rejected_counter;
+    uint32_t    last_motion_read_ms;
+    uint32_t    last_valid_motion_ms;
 
     // Measurements
     s_measurements measurements;

@@ -1,5 +1,5 @@
-Core/Src/nmpc_platform.o: ../Core/Src/nmpc_platform.c \
- ../Core/Inc/nmpc_platform.h \
+Core/Src/adc.o: ../Core/Src/adc.c ../Core/Inc/adc.h \
+ ../Core/Inc/drone_data.h ../Core/Inc/data_transcode.h ../Core/Inc/GNSS.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h \
  ../Core/Inc/stm32h7xx_hal_conf.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rcc.h \
@@ -36,8 +36,12 @@ Core/Src/nmpc_platform.o: ../Core/Src/nmpc_platform.c \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h \
- ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h
-../Core/Inc/nmpc_platform.h:
+ ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h \
+ ../Core/Inc/autopilot.h ../Core/Inc/nmpc_config.h
+../Core/Inc/adc.h:
+../Core/Inc/drone_data.h:
+../Core/Inc/data_transcode.h:
+../Core/Inc/GNSS.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h:
 ../Core/Inc/stm32h7xx_hal_conf.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rcc.h:
@@ -75,3 +79,5 @@ Core/Src/nmpc_platform.o: ../Core/Src/nmpc_platform.c \
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim_ex.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h:
+../Core/Inc/autopilot.h:
+../Core/Inc/nmpc_config.h:

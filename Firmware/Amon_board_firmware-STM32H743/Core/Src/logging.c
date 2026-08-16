@@ -431,6 +431,10 @@ void log_add_sample(s_position *pos, s_data *data, s_regulators *reg, s_actuator
     log_buffer[log_buffer_index].nmpc_solve_status = reg->nmpc_solve_status;
 	log_buffer[log_buffer_index].nmpc_last_qp_iter = reg->nmpc_last_qp_iter;
 	log_buffer[log_buffer_index].nmpc_last_qp_status = reg->nmpc_last_qp_status;
+    log_buffer[log_buffer_index].nmpc_acados_status = reg->nmpc_acados_status;
+    log_buffer[log_buffer_index].nmpc_time_tot_ms = reg->nmpc_time_tot_ms;
+    log_buffer[log_buffer_index].nmpc_time_qp_ms = reg->nmpc_time_qp_ms;
+    log_buffer[log_buffer_index].nmpc_sqp_iter = reg->nmpc_sqp_iter;
     log_buffer[log_buffer_index].nmpc_z_ref = reg->nmpc_z_ref;
     log_buffer[log_buffer_index].nmpc_z_current = reg->nmpc_z_current;
     log_buffer[log_buffer_index].nmpc_z_error = reg->nmpc_z_error;
@@ -456,6 +460,10 @@ void log_add_sample(s_position *pos, s_data *data, s_regulators *reg, s_actuator
     log_buffer[log_buffer_index].quaternion[2] = pos->quaternion[2];
     log_buffer[log_buffer_index].quaternion[3] = pos->quaternion[3];
     log_buffer[log_buffer_index].height_TOF_m_filtered = pos->height_TOF_m_filtered;
+    log_buffer[log_buffer_index].position_x = pos->position_x;
+    log_buffer[log_buffer_index].position_y = pos->position_y;
+    log_buffer[log_buffer_index].velocity_x = pos->velocity_x;
+    log_buffer[log_buffer_index].velocity_y = pos->velocity_y;
     log_buffer[log_buffer_index].gyroTemp = pos->gyroTemp;
     log_buffer[log_buffer_index].height_TOF_mm = pos->height_TOF_mm;
     log_buffer[log_buffer_index].height_baro_m = pos->height_baro_m;

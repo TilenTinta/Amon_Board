@@ -8,12 +8,131 @@
 
 #include "filters.h"
 #include <math.h>
+#include <string.h>
 
 /*###########################################################################################################################################################*/
 /* Private functions */
 static inline void accel_normalize(float *ax, float *ay, float *az);
 static inline float wrap180(float angle);
 static inline float degToRad(float angle);
+
+
+/*###########################################################################################################################################################*/
+/* Low-pass filter */
+
+/*********************************************************************
+* @fn     	LowPassFilter_Update
+*
+* @param	input: current unfiltered input
+* @param	previous_output: filter output from the previous update
+* @param	dt: update period [s]
+*
+* @brief   	Updates a first-order low-pass filter. A larger tau gives
+* 			more smoothing but also adds more delay.
+*
+* @return  	Updated filtered output
+*/
+float LowPassFilter_Update(float input, float previous_output, float dt)
+{
+	if (VZ_LPF_TAU_S <= 0.0f)
+	{
+		return input;
+	}
+
+	if (dt <= 0.0f)
+	{
+		return previous_output;
+	}
+
+	const float alpha = dt / (VZ_LPF_TAU_S + dt);
+	return previous_output + alpha * (input - previous_output);
+}
+
+/*********************************************************************
+* @fn     	LowPassFilter_Accel
+*
+* @param	input: current unfiltered input
+* @param	previous_output: filter output from the previous update
+* @param	dt: update period [s]
+*
+* @brief   	Updates a first-order low-pass filter for vertical acceleration
+*
+* @return  	Updated filtered output
+*/
+float LowPassFilter_Accel(float input, float previous_output, float dt)
+{
+    if (AZ_LPF_TAU_S <= 0.0f)
+    {
+        return input;
+    }
+
+    if (dt <= 0.0f)
+    {
+        return previous_output;
+    }
+
+    const float alpha = dt / (AZ_LPF_TAU_S + dt);
+    return previous_output + alpha * (input - previous_output);
+}
+
+
+/*********************************************************************
+* @fn     	gyro_bias_correction
+*
+* @param	*drone: pointer to all drone data
+* @param	*gyro_corr: pointer to all gyro correction data
+*
+* @brief   	Checks raw data from gyros, once time is reached it calculates average drift
+*
+* @return  	gyro bias correction status
+*/
+void gyro_bias_correction(s_gyro_correction *gyro_corr, float gyro_x, float gyro_y, float gyro_z, float dt)
+{
+	gyro_corr->gyro_x_bias += gyro_x;
+	gyro_corr->gyro_y_bias += gyro_y;
+	gyro_corr->gyro_z_bias += gyro_z;
+
+	gyro_corr->bia_corr_cnt++;
+	gyro_corr->bias_corr_time += dt;
+
+	if (gyro_corr->bias_corr_time >= GYRO_DRIFT_CALIB_TIME)
+	{
+		gyro_corr->gyro_x_bias /= gyro_corr->bia_corr_cnt;
+		gyro_corr->gyro_y_bias /= gyro_corr->bia_corr_cnt;
+		gyro_corr->gyro_z_bias /= gyro_corr->bia_corr_cnt;
+
+		gyro_corr->bias_corr_complete = 1;
+	}
+	else
+	{
+		gyro_corr->bias_corr_complete = 0;
+	}
+}
+
+
+/*********************************************************************
+* @fn     	accel_body_to_world_z_m_s2
+*
+* @param	ax_g: acceleration in body frame x-axis [g]
+* @param	ay_g: acceleration in body frame y-axis [g]
+* @param	az_g: acceleration in body frame z-axis [g]
+* @param	q: quaternion representing the rotation from body frame to world frame
+*
+* @brief   	Transforms the acceleration from body frame to world frame and returns the vertical acceleration in m/s^2.
+*
+* @return  	Vertical acceleration in world frame z-axis [m/s^2]
+*/
+float AccelBodyToWorldZ(float ax_g, float ay_g, float az_g, const float q[4])
+{
+    const float qw = q[0];
+    const float qx = q[1];
+    const float qy = q[2];
+    const float qz = q[3];
+
+    const float az_world_g = 2.0f * (qx*qz - qw*qy) * ax_g + 2.0f * (qy*qz + qw*qx) * ay_g + (1.0f - 2.0f * (qx*qx + qy*qy)) * az_g;
+
+    return (az_world_g - 1.0f) * 9.80665f;
+}
 
 /*###########################################################################################################################################################*/
 /* Complementary filter */
@@ -203,23 +322,30 @@ void Kalman_Init(s_Kalman *k)
 * @fn     	KalmanZ_Init
 *
 * @param 	*kz: struct to kalman filter data
-* @param 	*Q_z: process noise - position
-* @param 	*Q_vz: process noise - velocity
-* @param 	 R: measurement noise - TOF sensor
+* @param 	 q_accel: continuous acceleration-noise intensity [m^2/s^3]
+* @param 	 R: ToF measurement variance [m^2]
 *
 * @brief   Kalman filter initialization - ToF
 *
 * @return  None
 */
-void KalmanZ_Init(s_KalmanZ *kf, float Q_z, float Q_vz, float R)
+void KalmanZ_Init(s_KalmanZ *kf, float q_accel, float R)
 {
 	kf->z = 0.0f;
 	kf->vz = 0.0f;
-	kf->P[0][0] = 1.0f; kf->P[0][1] = 0.0f;
-	kf->P[1][0] = 0.0f; kf->P[1][1] = 1.0f;
-	kf->Q_z = Q_z;
-	kf->Q_vz = Q_vz;
+	kf->P[0][0] = 1.0f; kf->P[0][1] = 0.0f; kf->P[0][2] = 0.0f;
+	kf->P[1][0] = 0.0f; kf->P[1][1] = 1.0f; kf->P[1][2] = 0.0f;
+	kf->P[2][0] = 0.0f; kf->P[2][1] = 0.0f; kf->P[2][2] = 0.25f;
+	kf->q_accel = q_accel;
 	kf->R = R;
+	kf->measurement_initialized = 0;
+	kf->accel_z_world_filtered = 0.0f;
+	kf->accel_z_world_bias = 0.0f;
+	kf->tof_candidate_z = 0.0f;
+	kf->tof_candidate_count = 0;
+	kf->tof_candidate_confirmed = 0;
+	kf->tof_rejected_count = 0;
+	kf->tof_confirmed_count = 0;
 }
 
 
@@ -417,31 +543,74 @@ float Kalman_UpdateYaw(s_Kalman *k, float gyro_z, float mag_yaw, uint8_t mag_val
 * @fn     	KalmanZ_Predict
 *
 * @param 	*kf: struct to kalman filter data
+* @param	accel_z_world_m_s2: vertical acceleration in world frame [m/s^2]
 * @param	dt: delta time of filter
 *
-* @brief   	Kalman prediction step - Call every xxxHz cycle
+* @brief   	Kalman prediction step - Call every xxxHz 
 *
 * @return  	predicted height
 */
-void KalmanZ_Predict(s_KalmanZ *kf, float dt)
+void KalmanZ_Predict(s_KalmanZ *kf, float accel_z_world_m_s2, float dt)
 {
-    // State prediction
-    kf->z  = kf->z + kf->vz * dt;
-    // kf->vz unchanged (constant velocity model)
+    if (!kf->measurement_initialized)
+    {
+        return;
+    }
 
-    // Covariance prediction: P = F*P*F^T + Q
-    float P00 = kf->P[0][0], P01 = kf->P[0][1];
-    float P10 = kf->P[1][0], P11 = kf->P[1][1];
+    const float dt2 = dt * dt;
+    const float dt3 = dt2 * dt;
+    const float accel_corrected = accel_z_world_m_s2 - kf->accel_z_world_bias;
 
-    float new_P00 = P00 + dt*(P10 + P01) + dt*dt*P11 + kf->Q_z;
-    float new_P01 = P01 + dt*P11;
-    float new_P10 = P10 + dt*P11;
-    float new_P11 = P11 + kf->Q_vz;
+    /*
+     * x = [z, vz, accel_bias]
+     *
+     * z(k+1)  = z(k) + vz(k)*dt + 0.5*az*dt²
+     * vz(k+1) = vz(k) + az*dt
+     */
+    kf->z  += kf->vz * dt + 0.5f * accel_corrected * dt2;
+    kf->vz += accel_corrected * dt;
 
-    kf->P[0][0] = new_P00;
-    kf->P[0][1] = new_P01;
-    kf->P[1][0] = new_P10;
-    kf->P[1][1] = new_P11;
+    const float F[3][3] = {
+        {1.0f, dt, -0.5f * dt2},
+        {0.0f, 1.0f, -dt},
+        {0.0f, 0.0f, 1.0f}
+    };
+    float FP[3][3] = {0};
+    float P_new[3][3] = {0};
+
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        for (uint8_t j = 0; j < 3; j++)
+        {
+            for (uint8_t k = 0; k < 3; k++)
+            {
+                FP[i][j] += F[i][k] * kf->P[k][j];
+            }
+        }
+    }
+
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        for (uint8_t j = 0; j < 3; j++)
+        {
+            for (uint8_t k = 0; k < 3; k++)
+            {
+                P_new[i][j] += FP[i][k] * F[j][k];
+            }
+        }
+    }
+
+    const float Q00 = kf->q_accel * dt3 / 3.0f;
+    const float Q01 = kf->q_accel * dt2 / 2.0f;
+    const float Q11 = kf->q_accel * dt;
+
+    P_new[0][0] += Q00;
+    P_new[0][1] += Q01;
+    P_new[1][0] += Q01;
+    P_new[1][1] += Q11;
+    P_new[2][2] += AZ_BIAS_PROCESS_NOISE * dt;
+
+    memcpy(kf->P, P_new, sizeof(kf->P));
 }
 
 
@@ -459,6 +628,18 @@ void KalmanZ_Predict(s_KalmanZ *kf, float dt)
 */
 void KalmanZ_Update(s_KalmanZ *kf, float z_measured)
 {
+    // Initialize height directly from the first valid ToF measurement.
+    if (!kf->measurement_initialized)
+    {
+        kf->z = z_measured;
+        kf->vz = 0.0f;
+        kf->P[0][0] = kf->R; kf->P[0][1] = 0.0f; kf->P[0][2] = 0.0f;
+        kf->P[1][0] = 0.0f;  kf->P[1][1] = 1.0f; kf->P[1][2] = 0.0f;
+        kf->P[2][0] = 0.0f;  kf->P[2][1] = 0.0f; kf->P[2][2] = 0.25f;
+        kf->measurement_initialized = 1;
+        return;
+    }
+
     // Innovation
     float y = z_measured - kf->z;
 
@@ -468,19 +649,124 @@ void KalmanZ_Update(s_KalmanZ *kf, float z_measured)
     // Kalman gain
     float K0 = kf->P[0][0] / S;
     float K1 = kf->P[1][0] / S;
+    float K2 = kf->P[2][0] / S;
 
     // State update
     kf->z  += K0 * y;
     kf->vz += K1 * y;
+    kf->accel_z_world_bias += K2 * y;
+
+    if (kf->accel_z_world_bias > AZ_BIAS_LIMIT_M_S2) kf->accel_z_world_bias = AZ_BIAS_LIMIT_M_S2;
+    if (kf->accel_z_world_bias < -AZ_BIAS_LIMIT_M_S2) kf->accel_z_world_bias = -AZ_BIAS_LIMIT_M_S2;
 
     // Covariance update: P = (I - K*H) * P
-    float P00 = kf->P[0][0], P01 = kf->P[0][1];
-    float P10 = kf->P[1][0], P11 = kf->P[1][1];
+    float P_row_0[3] = {kf->P[0][0], kf->P[0][1], kf->P[0][2]};
+    float K[3] = {K0, K1, K2};
 
-    kf->P[0][0] = P00 - K0 * P00;
-    kf->P[0][1] = P01 - K0 * P01;
-    kf->P[1][0] = P10 - K1 * P00;
-    kf->P[1][1] = P11 - K1 * P01;
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        for (uint8_t j = 0; j < 3; j++)
+        {
+            kf->P[i][j] -= K[i] * P_row_0[j];
+        }
+    }
+}
+
+
+
+/*********************************************************************
+* @fn     KalmanZ_ProcessToFMeasurement
+*
+* @param  *kf: struct to kalman filter data
+* @param  z_measured: new ToF height measurement [m]
+*
+* @brief  Validate a ToF measurement against the physically reachable
+*         height change. A larger jump must be confirmed with multiple
+*         measurements before it is accepted.
+*
+* @return 1: measurement accepted, 0: measurement rejected
+*/
+uint8_t KalmanZ_ProcessToFMeasurement(s_KalmanZ *kf, float z_measured)
+{
+    if (kf == NULL || !isfinite(z_measured) || z_measured < 0.0f)
+    {
+        return 0;
+    }
+
+    // The first valid ToF measurement initializes the filter directly.
+    if (!kf->measurement_initialized)
+    {
+        KalmanZ_Update(kf, z_measured);
+        kf->tof_candidate_count = 0;
+        kf->tof_candidate_confirmed = 0;
+        return 1;
+    }
+
+    float innovation = z_measured - kf->z;
+
+    // A physically reachable measurement is accepted immediately.
+    if (fabsf(innovation) <= TOF_MAX_HEIGHT_STEP_M)
+    {
+        KalmanZ_Update(kf, z_measured);
+        kf->tof_candidate_count = 0;
+        kf->tof_candidate_confirmed = 0;
+        return 1;
+    }
+
+    kf->tof_rejected_count++;
+
+    // Start a new candidate if this measurement does not agree with previous surface.
+    if (kf->tof_candidate_count == 0 || fabsf(z_measured - kf->tof_candidate_z) > TOF_CANDIDATE_TOLERANCE_M)
+    {
+        kf->tof_candidate_z = z_measured;
+        kf->tof_candidate_count = 1;
+        kf->tof_candidate_confirmed = 0;
+        return 0;
+    }
+
+    // Once confirmed, move toward the persistent surface only by one
+    // physically reachable height step per ToF sample.
+    if (kf->tof_candidate_confirmed)
+    {
+        kf->tof_candidate_z += 0.25f * (z_measured - kf->tof_candidate_z);
+        float limited_measurement = kf->z;
+
+        if (kf->tof_candidate_z > kf->z)
+        {
+            limited_measurement += TOF_MAX_HEIGHT_STEP_M;
+        }
+        else
+        {
+            limited_measurement -= TOF_MAX_HEIGHT_STEP_M;
+        }
+
+        KalmanZ_Update(kf, limited_measurement);
+        return 1;
+    }
+
+    // Running average prevents one noisy candidate from defining the new surface.
+    kf->tof_candidate_count++;
+    kf->tof_candidate_z += (z_measured - kf->tof_candidate_z) / (float)kf->tof_candidate_count;
+
+    if (kf->tof_candidate_count < TOF_CANDIDATE_CONFIRM_COUNT)
+    {
+        return 0;
+    }
+
+    // Strange surface can be a real anomaly or landing.
+    kf->tof_candidate_confirmed = 1;
+    float limited_measurement = kf->z;
+    if (kf->tof_candidate_z > kf->z)
+    {
+        limited_measurement += TOF_MAX_HEIGHT_STEP_M;
+    }
+    else
+    {
+        limited_measurement -= TOF_MAX_HEIGHT_STEP_M;
+    }
+    KalmanZ_Update(kf, limited_measurement);
+    kf->tof_confirmed_count++;
+    return 1;
 }
 
 

@@ -8,6 +8,7 @@
 
 /* Includes */
 #include "PMW3901.h"
+#include <math.h>
 
 /*###########################################################################################################################################################*/
 /* Private functions - used to manipulate pin states and SPI bus */
@@ -344,6 +345,7 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
 {
     uint8_t id = 0;
     uint8_t rev = 0;
+    uint8_t tmp = 0;
 
     if (dev == NULL)
     {
@@ -355,7 +357,13 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
 
     // Software reset / power-up reset
     PMW3901_WriteRegister(dev, PMW3901_REG_POWER_UP_RESET, 0x5AU);
-    HAL_Delay(PMW3901_RESET_DELAY_MS);
+    HAL_Delay(20);
+
+    // Clear motion and delta registers after power-up reset.
+    for (uint8_t reg = PMW3901_REG_MOTION; reg <= PMW3901_REG_DELTA_Y_H; reg++)
+    {
+        PMW3901_ReadRegister(dev, reg, &tmp);
+    }
 
     PMW3901_ReadRegister(dev, PMW3901_REG_PRODUCT_ID, &id);
     PMW3901_ReadRegister(dev, PMW3901_REG_REVISION_ID, &rev);
@@ -375,6 +383,40 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
      * but motion data may not work correctly.
      */
 #ifdef PIXART_INIT
+    uint8_t c1 = 0;
+    uint8_t c2 = 0;
+
+    PMW3901_WriteRegister(dev, 0x7F, 0x00);
+    PMW3901_WriteRegister(dev, 0x55, 0x01);
+    PMW3901_WriteRegister(dev, 0x50, 0x07);
+    PMW3901_WriteRegister(dev, 0x7F, 0x0E);
+    PMW3901_WriteRegister(dev, 0x43, 0x10);
+    PMW3901_ReadRegister(dev, 0x67, &tmp);
+    PMW3901_WriteRegister(dev, 0x48, (tmp & 0x80U) ? 0x04 : 0x02);
+    PMW3901_WriteRegister(dev, 0x7F, 0x00);
+    PMW3901_WriteRegister(dev, 0x51, 0x7B);
+    PMW3901_WriteRegister(dev, 0x50, 0x00);
+    PMW3901_WriteRegister(dev, 0x55, 0x00);
+    PMW3901_WriteRegister(dev, 0x7F, 0x0E);
+    PMW3901_ReadRegister(dev, 0x73, &tmp);
+
+    if (tmp == 0x00U)
+    {
+        PMW3901_ReadRegister(dev, 0x70, &c1);
+        PMW3901_ReadRegister(dev, 0x71, &c2);
+
+        c1 = (c1 <= 28U) ? (uint8_t)(c1 + 14U) : (uint8_t)(c1 + 11U);
+        if (c1 > 0x3FU) c1 = 0x3FU;
+        c2 = (uint8_t)(((uint16_t)c2 * 45U) / 100U);
+
+        PMW3901_WriteRegister(dev, 0x7F, 0x00);
+        PMW3901_WriteRegister(dev, 0x61, 0xAD);
+        PMW3901_WriteRegister(dev, 0x51, 0x70);
+        PMW3901_WriteRegister(dev, 0x7F, 0x0E);
+        PMW3901_WriteRegister(dev, 0x70, c1);
+        PMW3901_WriteRegister(dev, 0x71, c2);
+    }
+
     PMW3901_WriteRegister(dev, 0x7F, 0x00);
     PMW3901_WriteRegister(dev, 0x61, 0xAD);
     PMW3901_WriteRegister(dev, 0x7F, 0x03);
@@ -408,7 +450,7 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
     PMW3901_WriteRegister(dev, 0x7F, 0x00);
     PMW3901_WriteRegister(dev, 0x4D, 0x11);
     PMW3901_WriteRegister(dev, 0x55, 0x80);
-    PMW3901_WriteRegister(dev, 0x74, 0x1F);
+    PMW3901_WriteRegister(dev, 0x74, 0x21);
     PMW3901_WriteRegister(dev, 0x75, 0x1F);
     PMW3901_WriteRegister(dev, 0x4A, 0x78);
     PMW3901_WriteRegister(dev, 0x4B, 0x78);
@@ -417,11 +459,11 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
     PMW3901_WriteRegister(dev, 0x64, 0xFF);
     PMW3901_WriteRegister(dev, 0x65, 0x1F);
     PMW3901_WriteRegister(dev, 0x7F, 0x14);
-    PMW3901_WriteRegister(dev, 0x65, 0x60);
+    PMW3901_WriteRegister(dev, 0x65, 0x67);
     PMW3901_WriteRegister(dev, 0x66, 0x08);
-    PMW3901_WriteRegister(dev, 0x63, 0x78);
+    PMW3901_WriteRegister(dev, 0x63, 0x70);
     PMW3901_WriteRegister(dev, 0x7F, 0x15);
-    PMW3901_WriteRegister(dev, 0x48, 0x58);
+    PMW3901_WriteRegister(dev, 0x48, 0x48);
     PMW3901_WriteRegister(dev, 0x7F, 0x07);
     PMW3901_WriteRegister(dev, 0x41, 0x0D);
     PMW3901_WriteRegister(dev, 0x43, 0x14);
@@ -437,10 +479,38 @@ uint8_t PMW3901_init(s_PMW3901 *dev)
 
     HAL_Delay(10);
 
+    PMW3901_WriteRegister(dev, 0x32, 0x44);
+    PMW3901_WriteRegister(dev, 0x7F, 0x07);
+    PMW3901_WriteRegister(dev, 0x40, 0x40);
+    PMW3901_WriteRegister(dev, 0x7F, 0x06);
+    PMW3901_WriteRegister(dev, 0x62, 0xF0);
+    PMW3901_WriteRegister(dev, 0x63, 0x00);
+    PMW3901_WriteRegister(dev, 0x7F, 0x0D);
+    PMW3901_WriteRegister(dev, 0x48, 0xC0);
+    PMW3901_WriteRegister(dev, 0x6F, 0xD5);
+    PMW3901_WriteRegister(dev, 0x7F, 0x00);
+    PMW3901_WriteRegister(dev, 0x5B, 0xA0);
+    PMW3901_WriteRegister(dev, 0x4E, 0xA8);
+    PMW3901_WriteRegister(dev, 0x5A, 0x50);
+    PMW3901_WriteRegister(dev, 0x40, 0x80);
+
+    HAL_Delay(240);
+
+    PMW3901_WriteRegister(dev, 0x7F, 0x14);
+    PMW3901_WriteRegister(dev, 0x6F, 0x1C);
+    PMW3901_WriteRegister(dev, 0x7F, 0x00);
+
 #endif
 
     PMW3901_ClearMotion(dev);
     dev->motion_irq_flag = 0;
+    dev->measurements.flow_scale = PMW3901_FLOW_SCALE_RAD_COUNT;
+    dev->measurements.velocity_x_mps = 0.0f;
+    dev->measurements.velocity_y_mps = 0.0f;
+    dev->measurements.position_x_m = 0.0f;
+    dev->measurements.position_y_m = 0.0f;
+    dev->last_motion_read_ms = 0U;
+    dev->last_valid_motion_ms = 0U;
 
     return PMW3901_OK;
 }
@@ -562,7 +632,7 @@ uint8_t PMW3901_ReadMotionBurst(s_PMW3901 *dev)
     dev->raw_data.max_raw_data = burst[8];
     dev->raw_data.min_raw_data = burst[9];
 
-    dev->raw_data.shutter = (uint16_t)burst[10] | ((uint16_t)burst[11] << 8);
+    dev->raw_data.shutter = ((uint16_t)burst[10] << 8) | (uint16_t)burst[11];
 
     return PMW3901_OK;
 }
@@ -588,8 +658,9 @@ uint8_t PMW3901_MotionValid(s_PMW3901 *dev)
     // Motion bit
     dev->data.motion_valid = ((dev->raw_data.motion & 0x80U) != 0U) ? 1U : 0U;
 
-    // Surface quality filtering
-    dev->data.surface_valid = (dev->raw_data.squal >= PMW3901_SQUAL_MIN_VALID) ? 1U : 0U;
+    // Low SQUAL is rejected only together with a saturated shutter.
+    uint8_t shutter_upper = (uint8_t)(dev->raw_data.shutter >> 8);
+    dev->data.surface_valid = !((dev->raw_data.squal < PMW3901_SQUAL_MIN_VALID) && (shutter_upper == 0x1FU));
 
     return (dev->data.motion_valid && dev->data.surface_valid) ? 1U : 0U;
 }
@@ -727,35 +798,69 @@ void PMW3901_Update(s_PMW3901 *dev)
         return;
     }
 
-    // Validate motion quality
-    PMW3901_MotionValid(dev);
+    uint32_t now_ms = HAL_GetTick();
+    float motion_dt = PMW3901_DT;
 
-    // Integrate position
-    PMW3901_AccumulatePosition(dev);
+    // delta is for interval since previous burst read even if frame was rejected
+    if (dev->last_motion_read_ms != 0U)
+    {
+        uint32_t elapsed_ms = (uint32_t)(now_ms - dev->last_motion_read_ms);
+        if (elapsed_ms > 0U)
+        {
+            motion_dt = (float)elapsed_ms * 0.001f;
+        }
+        if (motion_dt > PMW3901_MAX_VALID_DT_S) motion_dt = PMW3901_MAX_VALID_DT_S;
+    }
+    dev->last_motion_read_ms = now_ms;
+
+    // Use only motion frames with sufficient surface quality.
+    if (!PMW3901_MotionValid(dev))
+    {
+        if (dev->last_valid_motion_ms != 0U &&
+            (uint32_t)(now_ms - dev->last_valid_motion_ms) >= PMW3901_VELOCITY_TIMEOUT_MS)
+        {
+            dev->measurements.velocity_x_mps = 0.0f;
+            dev->measurements.velocity_y_mps = 0.0f;
+            dev->last_valid_motion_ms = 0U;
+        }
+
+        dev->motion_rejected_counter++;
+        return;
+    }
+
+    dev->last_valid_motion_ms = now_ms;
 
     /* Flow calculation based on height */
-    // Calculate velocity
-    dev->measurements.velocity_x_mps = dev->measurements.flow_scale * ((float)dev->raw_data.delta_x) * dev->data.altitude_m / PMW3901_DT;
-    dev->measurements.velocity_y_mps = dev->measurements.flow_scale * ((float)dev->raw_data.delta_y) * dev->data.altitude_m / PMW3901_DT;
+    // Sensor flow and gyro rotation are angular displacements over one sample [rad]
+    // Sensor axes are swapped relative to the drone body axes
+    dev->measurements.flow_x = (float)dev->raw_data.delta_y * dev->measurements.flow_scale;
+    dev->measurements.flow_y = (float)dev->raw_data.delta_x * dev->measurements.flow_scale;
 
-//    // Calculate position
-//    dev->measurements.position_x_m += dev->measurements.velocity_x_mps * PMW3901_DT;
-//    dev->measurements.position_y_m += dev->measurements.velocity_y_mps * PMW3901_DT;
+    float rot_x = dev->data.gyro_y_rad_s * motion_dt;
+    float rot_y = dev->data.gyro_x_rad_s * motion_dt;
 
+    // Remove rotational image motion before converting angular flow to translation
+    // PMW flow axes are mapped to positive drone translation, body rotation is inverted
+    dev->measurements.flow_x_corrected = dev->measurements.flow_x + rot_x;
+    dev->measurements.flow_y_corrected = dev->measurements.flow_y + rot_y;
 
-    /* Flow compensation on drone rotation (needed to be canceled out) */
-    dev->measurements.flow_x = dev->raw_data.delta_x * dev->measurements.flow_scale;
-    dev->measurements.flow_y = dev->raw_data.delta_y * dev->measurements.flow_scale;
+    float displacement_x_body_m = dev->measurements.flow_x_corrected * dev->data.altitude_m;
+    float displacement_y_body_m = dev->measurements.flow_y_corrected * dev->data.altitude_m;
 
-    // Rotational compensation
-    float rot_x = dev->data.gyro_y_rad_s * dev->data.altitude_m;
-    float rot_y = dev->data.gyro_x_rad_s * dev->data.altitude_m;
+    // Rotate body-frame optical flow displacement into the world frame used by NMPC.
+    float cos_yaw = cosf(dev->data.yaw_rad);
+    float sin_yaw = sinf(dev->data.yaw_rad);
+    float displacement_x_world_m = cos_yaw * displacement_x_body_m - sin_yaw * displacement_y_body_m;
+    float displacement_y_world_m = sin_yaw * displacement_x_body_m + cos_yaw * displacement_y_body_m;
 
-    // Remove rotational component
-    dev->measurements.flow_x_corrected = dev->measurements.flow_x - rot_x;
-    dev->measurements.flow_y_corrected = dev->measurements.flow_y - rot_y;
+    float velocity_x_mps = displacement_x_world_m / motion_dt;
+    float velocity_y_mps = displacement_y_world_m / motion_dt;
+    float velocity_alpha = 1.0f - expf(-motion_dt / PMW3901_VELOCITY_LPF_TAU_S);
 
-    // Integration of corrected flow
-    dev->measurements.position_x_m += dev->measurements.flow_x_corrected * PMW3901_DT;
-    dev->measurements.position_y_m += dev->measurements.flow_y_corrected * PMW3901_DT;
+    dev->measurements.velocity_x_mps += velocity_alpha * (velocity_x_mps - dev->measurements.velocity_x_mps);
+    dev->measurements.velocity_y_mps += velocity_alpha * (velocity_y_mps - dev->measurements.velocity_y_mps);
+
+    dev->measurements.position_x_m += displacement_x_world_m;
+    dev->measurements.position_y_m += displacement_y_world_m;
+    dev->motion_read_counter++;
 }

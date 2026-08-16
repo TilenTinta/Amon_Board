@@ -39,13 +39,17 @@ extern "C" {
 #include "VL53L1X_calibration.h"
 #include "HMC5883L.h"
 #include "PMW3901.h"
+#include "adc.h"
 
 #include "drone_data.h"
+#include "identifications.h"
 #include "data_transcode.h"
 #include "filters.h"
 #include "logging.h"
-#include "autopilot.h"
+#include <nmpc_controler.h>
 #include "NMPC.h"
+#include "AMPC.h"
+#include "CPID.h"
 
 /* USER CODE END Includes */
 

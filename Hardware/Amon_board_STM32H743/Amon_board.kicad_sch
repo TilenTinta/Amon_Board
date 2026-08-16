@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "Amon board")
-		(date "2023-02-15")
+		(date "2026-05-10")
 		(rev "3.0")
 		(company " Tinta T.")
 		(comment 1 "Project: Amon Lander")

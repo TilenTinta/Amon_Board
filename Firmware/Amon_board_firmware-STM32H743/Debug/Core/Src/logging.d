@@ -40,7 +40,7 @@ Core/Src/logging.o: ../Core/Src/logging.c ../Core/Inc/logging.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_tim_ex.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h \
  ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h \
- ../Core/Inc/autopilot.h
+ ../Core/Inc/autopilot.h ../Core/Inc/nmpc_config.h
 ../Core/Inc/logging.h:
 ../Core/Inc/flash_W25QXXX.h:
 C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Drivers/littlefs/lfs.h:
@@ -86,3 +86,4 @@ C:/DATA/Projects/Amon_Board/Firmware/Amon_board_firmware-STM32H743/Drivers/../Dr
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h:
 ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart_ex.h:
 ../Core/Inc/autopilot.h:
+../Core/Inc/nmpc_config.h:
