@@ -477,10 +477,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W_0[4+(NY0) * 4] = 0.32;
     W_0[5+(NY0) * 5] = 6.4;
     W_0[6+(NY0) * 6] = 1;
-    W_0[7+(NY0) * 7] = 250;
+    W_0[7+(NY0) * 7] = 140;
     W_0[8+(NY0) * 8] = 140;
     W_0[9+(NY0) * 9] = 66;
-    W_0[10+(NY0) * 10] = 1.7;
+    W_0[10+(NY0) * 10] = 1.3;
     W_0[11+(NY0) * 11] = 1.3;
     W_0[12+(NY0) * 12] = 0.02;
     W_0[13+(NY0) * 13] = 0.00001;
@@ -491,8 +491,8 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W_0[18+(NY0) * 18] = 0.15;
     W_0[19+(NY0) * 19] = 0.014693877551020407;
     W_0[20+(NY0) * 20] = 0.014693877551020407;
-    W_0[21+(NY0) * 21] = 0.04897959183673469;
-    W_0[22+(NY0) * 22] = 0.04897959183673469;
+    W_0[21+(NY0) * 21] = 0.014693877551020407;
+    W_0[22+(NY0) * 22] = 0.014693877551020407;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
     double* Vx_0 = calloc(NY0*NX, sizeof(double));
@@ -546,10 +546,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W[4+(NY) * 4] = 0.32;
     W[5+(NY) * 5] = 6.4;
     W[6+(NY) * 6] = 1;
-    W[7+(NY) * 7] = 250;
+    W[7+(NY) * 7] = 140;
     W[8+(NY) * 8] = 140;
     W[9+(NY) * 9] = 66;
-    W[10+(NY) * 10] = 1.7;
+    W[10+(NY) * 10] = 1.3;
     W[11+(NY) * 11] = 1.3;
     W[12+(NY) * 12] = 0.02;
     W[13+(NY) * 13] = 0.00001;
@@ -560,8 +560,8 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W[18+(NY) * 18] = 0.15;
     W[19+(NY) * 19] = 0.014693877551020407;
     W[20+(NY) * 20] = 0.014693877551020407;
-    W[21+(NY) * 21] = 0.04897959183673469;
-    W[22+(NY) * 22] = 0.04897959183673469;
+    W[21+(NY) * 21] = 0.014693877551020407;
+    W[22+(NY) * 22] = 0.014693877551020407;
 
     for (int i = 1; i < N; i++)
     {
@@ -624,10 +624,10 @@ void amon_model_acados_setup_nlp_in(amon_model_solver_capsule* capsule, const in
     W_e[4+(NYN) * 4] = 0.96;
     W_e[5+(NYN) * 5] = 19.200000000000003;
     W_e[6+(NYN) * 6] = 3;
-    W_e[7+(NYN) * 7] = 750;
+    W_e[7+(NYN) * 7] = 420;
     W_e[8+(NYN) * 8] = 420;
     W_e[9+(NYN) * 9] = 198;
-    W_e[10+(NYN) * 10] = 5.1;
+    W_e[10+(NYN) * 10] = 3.9;
     W_e[11+(NYN) * 11] = 3.9;
     W_e[12+(NYN) * 12] = 0.06;
     W_e[13+(NYN) * 13] = 0.000030000000000000004;

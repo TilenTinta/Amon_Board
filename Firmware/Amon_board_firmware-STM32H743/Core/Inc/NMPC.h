@@ -67,7 +67,7 @@
 // First-order actuator estimator
 #define NMPC_EDF_TAU_UP_S            0.18
 #define NMPC_EDF_TAU_DOWN_S          0.22
-#define NMPC_SERVO_TAU_S             0.05
+#define NMPC_SERVO_TAU_S             0.07
 
 
 #define USE_HOVER_TRIM						// Uncomment if you dont want to use external loop to height correction
